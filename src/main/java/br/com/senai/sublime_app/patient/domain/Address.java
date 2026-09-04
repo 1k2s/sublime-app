@@ -12,12 +12,19 @@ import lombok.NoArgsConstructor;
 @AllArgsConstructor
 public class Address {
 
-    @Column(name = "address_street")
+    @Column(name = "street")
     private String street;
 
-    @Column(name = "address_city")
+    @Column(name="number_house")
+    private String numberHouse;
+
+    @Column(name = "city")
     private String city;
 
-    @Column(name = "address_zip_code")
-    private String zipCode;
+    @Column(name="complement")
+    private String complement;
+
+    
+    @Column(name = "cep")
+    private String cep;
 }
