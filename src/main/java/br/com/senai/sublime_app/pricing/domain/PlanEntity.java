@@ -1,29 +1,27 @@
 package br.com.senai.sublime_app.pricing.domain;
 
-import br.com.senai.sublime_app.pricing.enums.PricingModel;
 import jakarta.persistence.Column;
 import jakarta.persistence.Entity;
-import jakarta.persistence.EnumType;
-import jakarta.persistence.Enumerated;
 import jakarta.persistence.GeneratedValue;
 import jakarta.persistence.GenerationType;
 import jakarta.persistence.Id;
 import jakarta.persistence.Table;
 import lombok.AccessLevel;
 import lombok.AllArgsConstructor;
+import lombok.Data;
 import lombok.EqualsAndHashCode;
-import lombok.Getter;
 import lombok.NoArgsConstructor;
 import lombok.Setter;
 
 @Entity
-@Table(name = "pricing_group")
-@Getter
+@Table(name = "plan")
+@Data
 @Setter(AccessLevel.PROTECTED)
 @NoArgsConstructor(access = AccessLevel.PROTECTED)
-@AllArgsConstructor 
+@AllArgsConstructor
 @EqualsAndHashCode(onlyExplicitlyIncluded = true)
-public class PricingGroupEntity {
+public class PlanEntity {
+
     @Id
     @GeneratedValue(strategy = GenerationType.IDENTITY)
     @EqualsAndHashCode.Include
@@ -32,8 +30,10 @@ public class PricingGroupEntity {
     @Column(nullable = false)
     private String name;
 
-    @Enumerated(EnumType.STRING)
-    @Column(name = "pricing_model", nullable = false)
-    private PricingModel pricingModel;
+    @Column(name = "session_count", nullable = false)
+    private int sessionCount;
+
+    @Column(nullable = false)
+    private boolean active;
 
 }

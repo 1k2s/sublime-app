@@ -1,8 +1,8 @@
 package br.com.senai.sublime_app.pricing.repository;
 
 import org.springframework.data.jpa.repository.JpaRepository;
-import br.com.senai.sublime_app.pricing.domain.PricingEntity;
+import br.com.senai.sublime_app.pricing.domain.PricingGroupEntity;
 
-public interface PricingRespository extends JpaRepository<PricingEntity, Long> {
-    
+public interface PricingGroupRepository extends JpaRepository<PricingGroupEntity, Long> {
+
 }
