@@ -4,7 +4,7 @@ import java.util.List;
 
 import org.springframework.stereotype.Service;
 
-import br.com.senai.sublime_app.user.domain.User;
+import br.com.senai.sublime_app.user.domain.UserEntity;
 import br.com.senai.sublime_app.user.dto.UserRequestDTO;
 import br.com.senai.sublime_app.user.dto.UserResponseDTO;
 import br.com.senai.sublime_app.user.repository.UserRepository;
@@ -17,12 +17,12 @@ public class UserService {
     private final UserRepository userRepository;
 
     public UserResponseDTO create(UserRequestDTO dto) {
-        User user = new User();
+        UserEntity user = new UserEntity();
         user.setEmail(dto.getEmail());
         user.setPassword(dto.getPassword());
         user.setRole(dto.getRole());
 
-        User saved = userRepository.save(user);
+        UserEntity saved = userRepository.save(user);
         return toResponse(saved);
     }
 
@@ -34,20 +34,20 @@ public class UserService {
     }
 
     public UserResponseDTO findById(Long id) {
-        User user = userRepository.findById(id)
+        UserEntity user = userRepository.findById(id)
                 .orElseThrow(() -> new RuntimeException("User not found"));
         return toResponse(user);
     }
 
     public UserResponseDTO update(Long id, UserRequestDTO dto) {
-        User user = userRepository.findById(id)
+        UserEntity user = userRepository.findById(id)
                 .orElseThrow(() -> new RuntimeException("User not found"));
 
         user.setEmail(dto.getEmail());
         user.setPassword(dto.getPassword());
         user.setRole(dto.getRole());
 
-        User saved = userRepository.save(user);
+        UserEntity saved = userRepository.save(user);
         return toResponse(saved);
     }
 
@@ -58,7 +58,7 @@ public class UserService {
         userRepository.deleteById(id);
     }
 
-    private UserResponseDTO toResponse(User user) {
+    private UserResponseDTO toResponse(UserEntity user) {
         return new UserResponseDTO(user.getId(), user.getEmail(), user.getRole());
     }
 }
