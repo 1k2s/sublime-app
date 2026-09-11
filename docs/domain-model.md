@@ -107,7 +107,7 @@ erDiagram
     bigint id PK
     bigint userId FK
     string name
-    decimal commissionPercentage
+    BigDecimal commissionPercentage
     boolean active
   }
 
