@@ -99,7 +99,7 @@ erDiagram
   USER {
     bigint id PK
     string email
-    string passwordHash
+    string password
     string role
   }
 
