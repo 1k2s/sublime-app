@@ -14,6 +14,13 @@ Toda nomenclatura de código — classes, atributos, métodos, pacotes — em **
 Comentários no código e toda documentação/discussão em **português**. Não misturar:
 nunca criar uma classe ou atributo com nome em português.
 
+**Exceção deliberada:** conceitos específicos do contexto brasileiro sem
+equivalente correto em inglês mantêm o nome em português — ex: `cep` em
+`Address` (não é o mesmo conceito de um "zip code" americano, então traduzir
+seria impreciso, não só uma questão de idioma). Isso é exceção pontual, não
+abertura geral: qualquer novo caso deve ter a mesma justificativa (conceito de
+domínio sem tradução fiel), não conveniência.
+
 ## Arquitetura: monolito modular
 
 - Cada módulo é um pacote logo abaixo do pacote base, nomeado com o mesmo nome do
