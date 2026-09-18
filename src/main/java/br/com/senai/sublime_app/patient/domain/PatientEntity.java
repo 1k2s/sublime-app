@@ -9,19 +9,25 @@ import jakarta.persistence.GeneratedValue;
 import jakarta.persistence.GenerationType;
 import jakarta.persistence.Id;
 import jakarta.persistence.Table;
+import lombok.AccessLevel;
 import lombok.AllArgsConstructor;
-import lombok.Data;
+import lombok.EqualsAndHashCode;
+import lombok.Getter;
 import lombok.NoArgsConstructor;
+import lombok.Setter;
 
 @Entity
 @Table(name = "patients")
-@Data
-@NoArgsConstructor
+@Getter
+@Setter(AccessLevel.PROTECTED)
+@NoArgsConstructor(access = AccessLevel.PROTECTED)
 @AllArgsConstructor
+@EqualsAndHashCode(onlyExplicitlyIncluded = true)
 public class PatientEntity {
 
     @Id
     @GeneratedValue(strategy = GenerationType.IDENTITY)
+    @EqualsAndHashCode.Include
     private Long id;
 
     @Column(nullable = false)
@@ -42,4 +48,25 @@ public class PatientEntity {
 
     @Column(nullable = false)
     private boolean active;
+
+    // Substitui telefone e e-mail juntos, em vez de dois setters soltos: os dois
+    // costumam ser atualizados no mesmo fluxo de "atualizar contato" do paciente.
+    public void updateContactInfo(String phone, String email) {
+        this.phone = phone;
+        this.email = email;
+    }
+
+    // Endereço é Value Object: sempre substituído por inteiro, nunca editado
+    // campo a campo (ver Address).
+    public void updateAddress(Address newAddress) {
+        this.address = newAddress;
+    }
+
+    public void activate() {
+        this.active = true;
+    }
+
+    public void deactivate() {
+        this.active = false;
+    }
 }

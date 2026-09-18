@@ -36,8 +36,10 @@ erDiagram
     string phone
     string email
     string addressStreet
+    string addressNumberHouse
     string addressCity
-    string addressZipCode
+    string addressComplement
+    string addressCep
     boolean active
   }
 
@@ -128,8 +130,10 @@ erDiagram
   }
 ```
 
-Legenda: `addressStreet`/`addressCity`/`addressZipCode` em `Patient` são um Value
-Object embutido (`@Embeddable`), não uma tabela própria. `pricingModel`, `role`,
+Legenda: `addressStreet`/`addressNumberHouse`/`addressCity`/`addressComplement`/
+`addressCep` em `Patient` são um Value Object embutido (`@Embeddable`), não uma
+tabela própria (`cep`, não `zipCode` — é um conceito específico do endereçamento
+brasileiro, não uma tradução literal de "zip code"). `pricingModel`, `role`,
 `paymentMethod` e `status` são ENUMs. `groupPlanPriceId`/`groupPlanFrequencyPriceId`
 (em `Contract` e `Consultation`) são nullable, em padrão "exclusive arc": sempre um
 preenchido, nunca os dois.
@@ -146,7 +150,7 @@ preenchido, nunca os dois.
 | `birthDate` | date | |
 | `phone` | string | |
 | `email` | string | |
-| `address` | VO embutido (street, city, zipCode) | `@Embeddable`/`@Embedded` |
+| `address` | VO embutido (street, numberHouse, city, complement, cep) | `@Embeddable`/`@Embedded`, imutável (sem setter) |
 | `active` | boolean | soft delete |
 
 **Por que endereço é Value Object, não entidade própria:** não existe caso de uso
