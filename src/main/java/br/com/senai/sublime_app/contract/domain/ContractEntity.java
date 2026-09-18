@@ -8,13 +8,11 @@ import br.com.senai.sublime_app.pricing.domain.PlanEntity;
 import br.com.senai.sublime_app.pricing.domain.TechniqueEntity;
 import jakarta.persistence.*;
 import lombok.*;
-import org.hibernate.annotations.Check;
 
 import java.time.LocalDate;
 
 @Entity
 @Table(name = "contracts")
-@Check(constraints = "(group_plan_price_id IS NOT NULL AND group_plan_frequency_price_id IS NULL) OR (group_plan_price_id IS NULL AND group_plan_frequency_price_id IS NOT NULL)")
 @Getter
 @Setter(AccessLevel.PROTECTED)
 @NoArgsConstructor(access = AccessLevel.PROTECTED)
@@ -70,11 +68,12 @@ public class ContractEntity {
                           PlanEntity plan, Integer weeklyFrequency, LocalDate startDate, LocalDate endDate,
                           PaymentMethod paymentMethod, GroupPlanPriceEntity groupPlanPrice,
                           GroupPlanFrequencyPriceEntity groupPlanFrequencyPrice) {
-        if ((groupPlanPrice != null && groupPlanFrequencyPrice != null) || 
+        if ((groupPlanPrice != null && groupPlanFrequencyPrice != null) ||
             (groupPlanPrice == null && groupPlanFrequencyPrice == null)) {
-            throw new IllegalArgumentException("Exclusive arc violation: A contract must have either a groupPlanPrice or a groupPlanFrequencyPrice, not both or neither.");
+            throw new IllegalArgumentException(
+                "Exclusive arc violation: A contract must have either a groupPlanPrice or a groupPlanFrequencyPrice, not both or neither."
+            );
         }
-        
         this.patient = patient;
         this.beneficiary = beneficiary;
         this.technique = technique;
