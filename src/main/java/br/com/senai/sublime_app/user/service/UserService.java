@@ -17,11 +17,7 @@ public class UserService {
     private final UserRepository userRepository;
 
     public UserResponseDTO create(UserRequestDTO dto) {
-        UserEntity user = new UserEntity();
-        user.setEmail(dto.getEmail());
-        user.setPassword(dto.getPassword());
-        user.setRole(dto.getRole());
-
+        UserEntity user = new UserEntity(dto.getEmail(), dto.getPassword(), dto.getRole());
         UserEntity saved = userRepository.save(user);
         return toResponse(saved);
     }
@@ -43,9 +39,7 @@ public class UserService {
         UserEntity user = userRepository.findById(id)
                 .orElseThrow(() -> new RuntimeException("User not found"));
 
-        user.setEmail(dto.getEmail());
-        user.setPassword(dto.getPassword());
-        user.setRole(dto.getRole());
+        user.update(dto.getEmail(), dto.getPassword(), dto.getRole());
 
         UserEntity saved = userRepository.save(user);
         return toResponse(saved);

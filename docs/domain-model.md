@@ -99,7 +99,7 @@ erDiagram
   USER {
     bigint id PK
     string email
-    string passwordHash
+    string password
     string role
   }
 
@@ -107,7 +107,7 @@ erDiagram
     bigint id PK
     bigint userId FK
     string name
-    decimal commissionPercentage
+    BigDecimal commissionPercentage
     boolean active
   }
 

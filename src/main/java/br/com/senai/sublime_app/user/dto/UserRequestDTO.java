@@ -1,6 +1,6 @@
 package br.com.senai.sublime_app.user.dto;
 
-import br.com.senai.sublime_app.user.domain.Role;
+import br.com.senai.sublime_app.user.enums.Role;
 import jakarta.validation.constraints.Email;
 import jakarta.validation.constraints.NotBlank;
 import jakarta.validation.constraints.NotNull;

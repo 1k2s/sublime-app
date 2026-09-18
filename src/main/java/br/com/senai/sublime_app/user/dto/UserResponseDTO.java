@@ -1,6 +1,6 @@
 package br.com.senai.sublime_app.user.dto;
 
-import br.com.senai.sublime_app.user.domain.Role;
+import br.com.senai.sublime_app.user.enums.Role;
 import lombok.AllArgsConstructor;
 import lombok.Data;
 import lombok.NoArgsConstructor;
