@@ -49,6 +49,24 @@ public class PatientEntity {
     @Column(nullable = false)
     private boolean active;
 
+    // Construtor de negócio: todo paciente novo nasce ativo e sem id (gerado pelo banco)
+    public PatientEntity(String name, String cpf, LocalDate birthDate, String phone, String email, Address address) {
+        this.name = name;
+        this.cpf = cpf;
+        this.birthDate = birthDate;
+        this.phone = phone;
+        this.email = email;
+        this.address = address;
+        this.active = true;
+    }
+
+    // Dados cadastrais básicos, atualizados juntos no fluxo de edição do paciente
+    public void updatePersonalInfo(String name, String cpf, LocalDate birthDate) {
+        this.name = name;
+        this.cpf = cpf;
+        this.birthDate = birthDate;
+    }
+
     // Substitui telefone e e-mail juntos, em vez de dois setters soltos: os dois
     // costumam ser atualizados no mesmo fluxo de "atualizar contato" do paciente.
     public void updateContactInfo(String phone, String email) {
