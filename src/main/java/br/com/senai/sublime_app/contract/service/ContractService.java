@@ -47,7 +47,7 @@ public class ContractService {
 
     /**
      * Cria um novo contrato aplicando as seguintes regras de negócio:
-
+     * 
      * Exclusive Arc: o contrato referencia exatamente uma das duas tabelas
      * de preço —
      * nunca as duas, nunca nenhuma. A escolha depende do modelo de precificação

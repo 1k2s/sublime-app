@@ -65,14 +65,13 @@ public class ContractEntity {
     private boolean active = true;
 
     public ContractEntity(PatientEntity patient, PatientEntity beneficiary, TechniqueEntity technique,
-                          PlanEntity plan, Integer weeklyFrequency, LocalDate startDate, LocalDate endDate,
-                          PaymentMethod paymentMethod, GroupPlanPriceEntity groupPlanPrice,
-                          GroupPlanFrequencyPriceEntity groupPlanFrequencyPrice) {
+            PlanEntity plan, Integer weeklyFrequency, LocalDate startDate, LocalDate endDate,
+            PaymentMethod paymentMethod, GroupPlanPriceEntity groupPlanPrice,
+            GroupPlanFrequencyPriceEntity groupPlanFrequencyPrice) {
         if ((groupPlanPrice != null && groupPlanFrequencyPrice != null) ||
-            (groupPlanPrice == null && groupPlanFrequencyPrice == null)) {
+                (groupPlanPrice == null && groupPlanFrequencyPrice == null)) {
             throw new IllegalArgumentException(
-                "Exclusive arc violation: A contract must have either a groupPlanPrice or a groupPlanFrequencyPrice, not both or neither."
-            );
+                    "Exclusive arc violation: A contract must have either a groupPlanPrice or a groupPlanFrequencyPrice, not both or neither.");
         }
         this.patient = patient;
         this.beneficiary = beneficiary;

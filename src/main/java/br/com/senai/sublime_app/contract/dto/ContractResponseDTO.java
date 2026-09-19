@@ -34,7 +34,6 @@ public record ContractResponseDTO(
                 entity.getPaymentMethod(),
                 entity.getGroupPlanPrice() != null ? entity.getGroupPlanPrice().getId() : null,
                 entity.getGroupPlanFrequencyPrice() != null ? entity.getGroupPlanFrequencyPrice().getId() : null,
-                entity.isActive()
-        );
+                entity.isActive());
     }
 }
