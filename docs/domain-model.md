@@ -121,7 +121,7 @@ erDiagram
     bigint techniqueId FK
     int durationMinutes
     date occurredAt
-    string status
+    string status (ENUM)
     bigint groupPlanPriceId FK
     bigint groupPlanFrequencyPriceId FK
     decimal commissionPercentageApplied
@@ -341,8 +341,8 @@ do tempo com `UPDATE` simples — não precisa de historização própria, porqu
 | `techniqueId` | FK → Technique | técnica clinicamente executada |
 | `durationMinutes` | int | dado de agenda; só participa do cálculo se o grupo for `DURATION_BASED` |
 | `occurredAt` | date | (não usar `date` como nome de campo — ambíguo com o tipo em alguns parsers) |
-| `status` | ENUM: `ATTENDED` \| `NO_SHOW` \| `CANCELLED_EARLY` \| `CANCELLED_WITH_CHARGE` | |
-| `groupPlanPriceId` | FK → GroupPlanPrice, nullable | exclusive arc |
+| `status` | ENUM: `ATTENDED` \| `CANCELED` \| `UNSCHEDULED_WITH_NOTICE` \| `UNSCHEDULED_WITH_CHARGE` \| `MISSED`  
+ `groupPlanPriceId` | FK → GroupPlanPrice, nullable | exclusive arc |
 | `groupPlanFrequencyPriceId` | FK → GroupPlanFrequencyPrice, nullable | exclusive arc |
 | `commissionPercentageApplied` | decimal | snapshot |
 | `baseValue` | decimal | snapshot |
