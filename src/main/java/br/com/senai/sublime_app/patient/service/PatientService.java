@@ -9,6 +9,8 @@ import br.com.senai.sublime_app.patient.domain.PatientEntity;
 import br.com.senai.sublime_app.patient.dto.PatientRequestDTO;
 import br.com.senai.sublime_app.patient.dto.PatientResponseDTO;
 import br.com.senai.sublime_app.patient.repository.PatientRepository;
+import br.com.senai.sublime_app.shared.exception.ConflictException;
+import br.com.senai.sublime_app.shared.exception.ResourceNotFoundException;
 
 @Service
 public class PatientService {
@@ -27,7 +29,7 @@ public class PatientService {
      */
     public PatientResponseDTO create(PatientRequestDTO dto) {
         if (patientRepository.existsByCpf(dto.getCpf())) {
-            throw new RuntimeException("A patient is already registered with cpf: " + dto.getCpf());
+            throw new ConflictException("A patient is already registered with cpf: " + dto.getCpf());
         }
 
         PatientEntity patient = new PatientEntity(
@@ -67,7 +69,7 @@ public class PatientService {
         PatientEntity patient = getPatientOrThrow(id);
 
         if (patientRepository.existsByCpfAndIdNot(dto.getCpf(), id)) {
-            throw new RuntimeException("A patient is already registered with cpf: " + dto.getCpf());
+            throw new ConflictException("A patient is already registered with cpf: " + dto.getCpf());
         }
 
         patient.updatePersonalInfo(dto.getName(), dto.getCpf(), dto.getBirthDate());
@@ -93,7 +95,7 @@ public class PatientService {
     // Centraliza a busca + erro de "não encontrado", usada por findById, update e deactivate
     private PatientEntity getPatientOrThrow(Long id) {
         return patientRepository.findById(id)
-                .orElseThrow(() -> new RuntimeException("Patient not found with id: " + id));
+                .orElseThrow(() -> new ResourceNotFoundException("Patient not found with id: " + id));
     }
 
     // Endereço é opcional no cadastro

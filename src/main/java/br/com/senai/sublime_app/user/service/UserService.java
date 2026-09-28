@@ -4,6 +4,7 @@ import java.util.List;
 
 import org.springframework.stereotype.Service;
 
+import br.com.senai.sublime_app.shared.exception.ResourceNotFoundException;
 import br.com.senai.sublime_app.user.domain.UserEntity;
 import br.com.senai.sublime_app.user.dto.UserRequestDTO;
 import br.com.senai.sublime_app.user.dto.UserResponseDTO;
@@ -31,13 +32,13 @@ public class UserService {
 
     public UserResponseDTO findById(Long id) {
         UserEntity user = userRepository.findById(id)
-                .orElseThrow(() -> new RuntimeException("User not found"));
+                .orElseThrow(() -> new ResourceNotFoundException("User not found"));
         return toResponse(user);
     }
 
     public UserResponseDTO update(Long id, UserRequestDTO dto) {
         UserEntity user = userRepository.findById(id)
-                .orElseThrow(() -> new RuntimeException("User not found"));
+                .orElseThrow(() -> new ResourceNotFoundException("User not found"));
 
         user.update(dto.getEmail(), dto.getPassword(), dto.getRole());
 
@@ -47,7 +48,7 @@ public class UserService {
 
     public void delete(Long id) {
         if (!userRepository.existsById(id)) {
-            throw new RuntimeException("User not found");
+            throw new ResourceNotFoundException("User not found");
         }
         userRepository.deleteById(id);
     }

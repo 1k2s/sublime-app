@@ -69,8 +69,8 @@ public class ProviderController {
     }
 
     /**
-     * Endpoint para exclusão de um prestador:
-     * - Recebe o ID pela URL e remove o registro do banco.
+     * Endpoint para inativação de um prestador (soft delete):
+     * - Recebe o ID pela URL e marca o prestador como inativo (active = false).
      * - Retorna status HTTP 204 No Content (sem corpo de resposta).
      */
     @DeleteMapping("/{id}")

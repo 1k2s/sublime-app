@@ -8,6 +8,8 @@ import br.com.senai.sublime_app.provider.domain.ProviderEntity;
 import br.com.senai.sublime_app.provider.dto.ProviderRequestDTO;
 import br.com.senai.sublime_app.provider.dto.ProviderResponseDTO;
 import br.com.senai.sublime_app.provider.repository.ProviderRepository;
+import br.com.senai.sublime_app.shared.exception.ConflictException;
+import br.com.senai.sublime_app.shared.exception.ResourceNotFoundException;
 import br.com.senai.sublime_app.user.domain.UserEntity;
 import br.com.senai.sublime_app.user.repository.UserRepository;
 import lombok.RequiredArgsConstructor;
@@ -29,11 +31,11 @@ public class ProviderService {
     public ProviderResponseDTO create(ProviderRequestDTO dto) {
         // Busca o usuário associado
         UserEntity user = userRepository.findById(dto.getUserId())
-                .orElseThrow(() -> new RuntimeException("User not found with id: " + dto.getUserId()));
+                .orElseThrow(() -> new ResourceNotFoundException("User not found with id: " + dto.getUserId()));
 
         // Valida se este usuário já possui vínculo com outro prestador
         if (providerRepository.existsByUserId(dto.getUserId())) {
-            throw new RuntimeException("A provider is already linked to user id: " + dto.getUserId());
+            throw new ConflictException("A provider is already linked to user id: " + dto.getUserId());
         }
 
         // Instancia a entidade pelo construtor de negócio
@@ -59,7 +61,7 @@ public class ProviderService {
      */
     public ProviderResponseDTO findById(Long id) {
         ProviderEntity provider = providerRepository.findById(id)
-                .orElseThrow(() -> new RuntimeException("Provider not found with id: " + id));
+                .orElseThrow(() -> new ResourceNotFoundException("Provider not found with id: " + id));
         return toResponse(provider);
     }
 
@@ -69,7 +71,7 @@ public class ProviderService {
      */
     public ProviderResponseDTO update(Long id, ProviderRequestDTO dto) {
         ProviderEntity provider = providerRepository.findById(id)
-                .orElseThrow(() -> new RuntimeException("Provider not found with id: " + id));
+                .orElseThrow(() -> new ResourceNotFoundException("Provider not found with id: " + id));
 
         // Atualização via método de domínio da entidade (encapsulado)
         provider.update(dto.getName(), dto.getCommissionPercentage());
@@ -79,13 +81,14 @@ public class ProviderService {
     }
 
     /**
-     * Remove um prestador pelo ID.
+     * Soft delete: o prestador é desativado, não removido do banco, para preservar
+     * o histórico de atendimentos que o referenciam.
      */
     public void delete(Long id) {
-        if (!providerRepository.existsById(id)) {
-            throw new RuntimeException("Provider not found with id: " + id);
-        }
-        providerRepository.deleteById(id);
+        ProviderEntity provider = providerRepository.findById(id)
+                .orElseThrow(() -> new ResourceNotFoundException("Provider not found with id: " + id));
+        provider.deactivate();
+        providerRepository.save(provider);
     }
 
     /**
