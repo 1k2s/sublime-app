@@ -14,7 +14,9 @@ import br.com.senai.sublime_app.pricing.repository.GroupPlanFrequencyPriceReposi
 import br.com.senai.sublime_app.pricing.repository.GroupPlanPriceRepository;
 import br.com.senai.sublime_app.pricing.repository.PlanRepository;
 import br.com.senai.sublime_app.pricing.repository.TechniqueRepository;
-import jakarta.persistence.EntityNotFoundException;
+import br.com.senai.sublime_app.shared.exception.BusinessRuleException;
+import br.com.senai.sublime_app.shared.exception.ConflictException;
+import br.com.senai.sublime_app.shared.exception.ResourceNotFoundException;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
@@ -57,30 +59,30 @@ public class ContractService {
 
         // Valida exclusive arc antes de qualquer consulta ao banco (falha barata)
         if (!dto.isValidExclusiveArc()) {
-            throw new IllegalArgumentException(
+            throw new BusinessRuleException(
                     "Exactly one price reference must be provided: groupPlanPriceId or groupPlanFrequencyPriceId.");
         }
 
         // Garante que o paciente titular não possui contrato ativo
         contractRepository.findByPatientIdAndActiveTrue(dto.patientId()).ifPresent(c -> {
-            throw new IllegalStateException("Patient already has an active contract.");
+            throw new ConflictException("Patient already has an active contract.");
         });
 
         // Carrega as entidades relacionadas
         PatientEntity patient = patientRepository.findById(dto.patientId())
-                .orElseThrow(() -> new EntityNotFoundException("Patient not found"));
+                .orElseThrow(() -> new ResourceNotFoundException("Patient not found"));
 
         PatientEntity beneficiary = null;
         if (dto.beneficiaryId() != null) {
             beneficiary = patientRepository.findById(dto.beneficiaryId())
-                    .orElseThrow(() -> new EntityNotFoundException("Beneficiary not found"));
+                    .orElseThrow(() -> new ResourceNotFoundException("Beneficiary not found"));
         }
 
         TechniqueEntity technique = techniqueRepository.findById(dto.techniqueId())
-                .orElseThrow(() -> new EntityNotFoundException("Technique not found"));
+                .orElseThrow(() -> new ResourceNotFoundException("Technique not found"));
 
         PlanEntity plan = planRepository.findById(dto.planId())
-                .orElseThrow(() -> new EntityNotFoundException("Plan not found"));
+                .orElseThrow(() -> new ResourceNotFoundException("Plan not found"));
 
         // Trava o preço vigente no momento da assinatura (snapshot)
         // Rejeita preços históricos (validTo != null significa que já foi encerrado)
@@ -89,15 +91,15 @@ public class ContractService {
 
         if (dto.groupPlanPriceId() != null) {
             price = groupPlanPriceRepository.findById(dto.groupPlanPriceId())
-                    .orElseThrow(() -> new EntityNotFoundException("GroupPlanPrice not found"));
+                    .orElseThrow(() -> new ResourceNotFoundException("GroupPlanPrice not found"));
             if (price.getValidTo() != null) {
-                throw new IllegalArgumentException("GroupPlanPrice is no longer valid. Please use the current price.");
+                throw new BusinessRuleException("GroupPlanPrice is no longer valid. Please use the current price.");
             }
         } else {
             frequencyPrice = groupPlanFrequencyPriceRepository.findById(dto.groupPlanFrequencyPriceId())
-                    .orElseThrow(() -> new EntityNotFoundException("GroupPlanFrequencyPrice not found"));
+                    .orElseThrow(() -> new ResourceNotFoundException("GroupPlanFrequencyPrice not found"));
             if (frequencyPrice.getValidTo() != null) {
-                throw new IllegalArgumentException(
+                throw new BusinessRuleException(
                         "GroupPlanFrequencyPrice is no longer valid. Please use the current price.");
             }
         }
@@ -123,14 +125,14 @@ public class ContractService {
     @Transactional(readOnly = true)
     public ContractResponseDTO findById(Long id) {
         ContractEntity contract = contractRepository.findById(id)
-                .orElseThrow(() -> new EntityNotFoundException("Contract not found"));
+                .orElseThrow(() -> new ResourceNotFoundException("Contract not found"));
         return ContractResponseDTO.fromEntity(contract);
     }
 
     @Transactional
     public ContractResponseDTO update(Long id, ContractRequestDTO dto) {
         ContractEntity contract = contractRepository.findById(id)
-                .orElseThrow(() -> new EntityNotFoundException("Contract not found"));
+                .orElseThrow(() -> new ResourceNotFoundException("Contract not found"));
 
         // update permite ajustar apenas os campos de negociação
         // os campos de preço (exclusive arc) são imutáveis após a assinatura
@@ -141,7 +143,7 @@ public class ContractService {
     @Transactional
     public void delete(Long id) {
         ContractEntity contract = contractRepository.findById(id)
-                .orElseThrow(() -> new EntityNotFoundException("Contract not found"));
+                .orElseThrow(() -> new ResourceNotFoundException("Contract not found"));
         contract.deactivate();
     }
 }

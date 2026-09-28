@@ -14,8 +14,8 @@ import jakarta.persistence.ManyToOne;
 import jakarta.persistence.Table;
 import lombok.AccessLevel;
 import lombok.AllArgsConstructor;
-import lombok.Data;
 import lombok.EqualsAndHashCode;
+import lombok.Getter;
 import lombok.NoArgsConstructor;
 import lombok.Setter;
 
@@ -24,7 +24,7 @@ import lombok.Setter;
 // (com filtro WHERE). Precisa ser garantida na camada de serviço, na hora do reajuste.
 @Entity
 @Table(name = "group_plan_price")
-@Data
+@Getter
 @Setter(AccessLevel.PROTECTED)
 @NoArgsConstructor(access = AccessLevel.PROTECTED)
 @AllArgsConstructor

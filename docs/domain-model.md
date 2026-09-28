@@ -15,7 +15,7 @@ erDiagram
   PLAN ||--o{ GROUP_PLAN_PRICE : precifica
   PLAN ||--o{ GROUP_PLAN_FREQUENCY_PRICE : precifica
   PATIENT ||--o{ CONTRACT : titular
-  PATIENT ||--o{ CONTRACT : beneficiario
+  PATIENT |o--o{ CONTRACT : beneficiario
   TECHNIQUE ||--o{ CONTRACT : ancora
   PLAN ||--o{ CONTRACT : contratado
   GROUP_PLAN_PRICE |o--o{ CONTRACT : trava
@@ -68,7 +68,7 @@ erDiagram
     bigint pricingGroupId FK
     bigint planId FK
     int durationMinutes
-    decimal sessionValue
+    BigDecimal sessionValue
     date validFrom
     date validTo
   }
@@ -78,7 +78,7 @@ erDiagram
     bigint pricingGroupId FK
     bigint planId FK
     int weeklyFrequency
-    decimal sessionValue
+    BigDecimal sessionValue
     date validFrom
     date validTo
   }
@@ -121,12 +121,12 @@ erDiagram
     bigint techniqueId FK
     int durationMinutes
     date occurredAt
-    string status (ENUM)
+    string status "ENUM"
     bigint groupPlanPriceId FK
     bigint groupPlanFrequencyPriceId FK
-    decimal commissionPercentageApplied
-    decimal baseValue
-    decimal repasseValue
+    BigDecimal commissionPercentageApplied
+    BigDecimal baseValue
+    BigDecimal repasseValue
   }
 ```
 
@@ -228,7 +228,7 @@ de preço separadas (abaixo).
 | `pricingGroupId` | FK → PricingGroup | |
 | `planId` | FK → Plan | |
 | `durationMinutes` | int | eixo de duração |
-| `sessionValue` | decimal | |
+| `sessionValue` | BigDecimal | |
 | `validFrom` | date | |
 | `validTo` | date, nullable | `null` = vigente |
 
@@ -240,7 +240,7 @@ de preço separadas (abaixo).
 | `pricingGroupId` | FK → PricingGroup | |
 | `planId` | FK → Plan | |
 | `weeklyFrequency` | int | eixo de frequência |
-| `sessionValue` | decimal | |
+| `sessionValue` | BigDecimal | |
 | `validFrom` | date | |
 | `validTo` | date, nullable | `null` = vigente |
 
@@ -303,7 +303,7 @@ banco (`CHECK`) garante que exatamente uma das duas FKs esteja preenchida.
 |---|---|---|
 | `id` | Long | auto-increment |
 | `email` | string | |
-| `passwordHash` | string | |
+| `password` | string | |
 | `role` | ENUM: `ADMIN` \| `PROVIDER` | |
 
 **Por que separado de `Provider`:** autenticação é preocupação genérica; dado de
@@ -319,7 +319,7 @@ acoplaria o módulo de login a regras que não são dele.
 | `id` | Long | auto-increment |
 | `userId` | FK → User | |
 | `name` | string | |
-| `commissionPercentage` | decimal | uniforme, não varia por técnica |
+| `commissionPercentage` | BigDecimal | uniforme, não varia por técnica |
 | `active` | boolean | |
 
 **Sobre `commissionPercentage`:** o percentual de repasse é o mesmo para
@@ -341,12 +341,12 @@ do tempo com `UPDATE` simples — não precisa de historização própria, porqu
 | `techniqueId` | FK → Technique | técnica clinicamente executada |
 | `durationMinutes` | int | dado de agenda; só participa do cálculo se o grupo for `DURATION_BASED` |
 | `occurredAt` | date | (não usar `date` como nome de campo — ambíguo com o tipo em alguns parsers) |
-| `status` | ENUM: `ATTENDED` \| `CANCELED` \| `UNSCHEDULED_WITH_NOTICE` \| `UNSCHEDULED_WITH_CHARGE` \| `MISSED`  
- `groupPlanPriceId` | FK → GroupPlanPrice, nullable | exclusive arc |
+| `status` | ENUM: `ATTENDED` \| `CANCELED` \| `UNSCHEDULED_WITH_NOTICE` \| `UNSCHEDULED_WITH_CHARGE` \| `MISSED` | |
+| `groupPlanPriceId` | FK → GroupPlanPrice, nullable | exclusive arc |
 | `groupPlanFrequencyPriceId` | FK → GroupPlanFrequencyPrice, nullable | exclusive arc |
-| `commissionPercentageApplied` | decimal | snapshot |
-| `baseValue` | decimal | snapshot |
-| `repasseValue` | decimal | snapshot |
+| `commissionPercentageApplied` | BigDecimal | snapshot |
+| `baseValue` | BigDecimal | snapshot |
+| `repasseValue` | BigDecimal | snapshot |
 
 **Por que `patientId` e `contractId` são dois campos separados:** no Pilates em
 Dupla, quando o titular não comparece, o prestador pode lançar o atendimento no

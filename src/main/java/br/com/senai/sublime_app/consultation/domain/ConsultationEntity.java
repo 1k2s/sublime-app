@@ -20,8 +20,6 @@ import jakarta.persistence.Id;
 import jakarta.persistence.JoinColumn;
 import jakarta.persistence.ManyToOne;
 import jakarta.persistence.Table;
-import jakarta.validation.constraints.NotNull;
-import jakarta.validation.constraints.Positive;
 import lombok.AccessLevel;
 import lombok.AllArgsConstructor;
 import lombok.EqualsAndHashCode;
@@ -61,12 +59,9 @@ public class ConsultationEntity {
     @JoinColumn(name = "technique_id", nullable = false)
     private TechniqueEntity technique;
  
-    @NotNull
-    @Positive
     @Column(name = "duration_minutes", nullable = false)
     private Integer durationMinutes;
  
-    @NotNull
     @Column(name = "occurred_at", nullable = false)
     private LocalDate occurredAt;
  
