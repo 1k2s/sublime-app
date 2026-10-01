@@ -44,7 +44,7 @@ patient   pricing   user       ← módulos de base, sem dependência entre si
 
 - `patient`: cadastro de pacientes (`Patient`).
 - `pricing`: técnicas, planos e catálogo de preços (`Technique`, `Plan`,
-  `PricingGroup`, `GroupPlanPrice`, `GroupPlanFrequencyPrice`). Ficam juntos porque
+  `PricingGroup`, `SessionDurationPrice`, `SessionFrequencyPrice`). Ficam juntos porque
   mudam sempre em conjunto e nenhum outro módulo deve conhecer a fiação interna
   entre eles.
 - `user`: autenticação genérica (`User`).
@@ -57,7 +57,7 @@ Referência completa de entidades, atributos e decisões de negócio:
 `docs/domain-model.md` — consulte esse arquivo sempre que for mexer em qualquer
 entidade de domínio, antes de propor mudanças de schema.
 
-## Princípios ordem modelagem já fixados (não reabrir sem justificativa forte)
+## Princípios de modelagem já fixados (não reabrir sem justificativa forte)
 
 1. **Value Objects embutidos, não entidades**, para dados sem identidade própria
    (ex: `Address` dentro de `Patient`, via `@Embeddable`/`@Embedded`).
@@ -69,19 +69,45 @@ entidade de domínio, antes de propor mudanças de schema.
 4. **"Exclusive arc"**: quando uma entidade pode referenciar uma de duas tabelas
    diferentes (nunca as duas), usar duas FKs nullable + `CHECK` constraint
    garantindo exatamente uma preenchida. Usado em `Contract` e `Consultation` para
-   `groupPlanPriceId` / `groupPlanFrequencyPriceId`.
+   `sessionDurationPriceId` / `sessionFrequencyPriceId`.
 5. **Snapshot de valores financeiros no momento do lançamento.** `Consultation`
    grava `baseValue`, `commissionPercentageApplied` e `repasseValue` mesmo sendo
    tecnicamente deriváveis, porque são obrigação de pagamento já consumada — nunca
    devem mudar retroativamente se o catálogo de preço ou a comissão do prestador
    mudar depois.
 6. **Regra fixa por valor de enum vira método no enum**, não coluna extra no banco
-   (ex: `AppointmentStatus/ConsultationStatus.countsTowardsBilling()`).
+   (ex: `ConsultationStatus.countsTowardsBilling()`).
+7. **Entidade rica, não anêmica: cada validação mora na camada certa.** Critério:
+   *"para verificar essa regra, preciso consultar outros registros no banco?"*
+   - **DTO — formato do request.** Campos obrigatórios, tamanho, e-mail, e
+     combinação de campos do request via `@AssertTrue` (ex: exclusive arc e
+     `weeklyFrequency` em `ContractRequestDTO`). Devolve todos os erros de uma vez.
+   - **Entidade — regras dela, que não precisam do banco.** Ficam nos
+     construtores/fábricas e nos métodos de mudança de estado, para valer em
+     qualquer caminho que crie ou altere a entidade (ex: fábricas
+     `ContractEntity.withDurationPrice/withFrequencyPrice`, comissão 0–100% em
+     `ProviderEntity`). Pergunta sobre si mesma é respondida pela própria entidade
+     (ex: `SessionDurationPrice.isCurrent()`). Lançam `BusinessRuleException` (400).
+   - **Service — regras que dependem do banco + orquestração.** Unicidade e
+     consultas a outros registros (ex: CPF já cadastrado, paciente com contrato
+     vigente), buscar entidades por id, chamar a entidade, salvar.
+   - Construtores de negócio (e fábricas) são a **única porta de entrada**: nunca
+     `@AllArgsConstructor` em entidade — ele gera um construtor público que ignora
+     todas as regras. O construtor sem argumentos fica `protected` (uso do
+     Hibernate). Exceção: value objects (ex: `Address`), cujo construtor com todos
+     os campos é o próprio construtor de negócio.
+   - **Sem `@Setter` em entidade** (nem `protected`, que também libera acesso ao
+     pacote inteiro). Estado só muda por métodos de negócio (`update`,
+     `deactivate`, `updateAddress`...), que aplicam as regras. O Hibernate não
+     precisa de setters: as annotations ficam nos campos.
+   - Regra de negócio pode aparecer no DTO **e** na entidade quando convém
+     (ex: comissão): o DTO dá a mensagem junto com os demais erros de formato; a
+     entidade garante a regra para qualquer chamador.
 
 ## Estado atual (Fase 1 em andamento)
 
 Modelagem de domínio concluída para: `Patient`, `Technique`, `Plan`,
-`PricingGroup`, `GroupPlanPrice`, `GroupPlanFrequencyPrice`, `Contract`, `User`,
+`PricingGroup`, `SessionDurationPrice`, `SessionFrequencyPrice`, `Contract`, `User`,
 `Provider`, `Consultation`. Ver `docs/domain-model.md` para atributos completos.
 
 Pendente, ainda não modelado: domínio de `Payment`/saldo do paciente (Fase 2, visão

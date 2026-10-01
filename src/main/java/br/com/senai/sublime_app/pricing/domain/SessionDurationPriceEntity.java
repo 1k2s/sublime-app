@@ -13,23 +13,21 @@ import jakarta.persistence.JoinColumn;
 import jakarta.persistence.ManyToOne;
 import jakarta.persistence.Table;
 import lombok.AccessLevel;
-import lombok.AllArgsConstructor;
 import lombok.EqualsAndHashCode;
 import lombok.Getter;
 import lombok.NoArgsConstructor;
-import lombok.Setter;
 
-// Regra de unicidade "só uma linha com validTo = null por (pricingGroup, weeklyFrequency, plan)"
-// não é expressa aqui como constraint de banco: MySQL não suporta unique index parcial
-// (com filtro WHERE). Precisa ser garantida na camada de serviço, na hora do reajuste.
+// Regra de unicidade: só uma linha vigente (validTo = null) por (pricingGroup, durationMinutes, plan).
+// MySQL não suporta unique index parcial (com WHERE), então a garantia no banco virá na
+// migration via coluna gerada: current_flag = IF(valid_to IS NULL, 1, NULL) + UNIQUE
+// (pricing_group_id, plan_id, duration_minutes, current_flag) — linhas históricas têm
+// current_flag NULL e ficam fora da regra. Até lá, garantir no service, na hora do reajuste.
 @Entity
-@Table(name = "group_plan_frequency_price")
+@Table(name = "session_duration_price")
 @Getter
-@Setter(AccessLevel.PROTECTED)
 @NoArgsConstructor(access = AccessLevel.PROTECTED)
-@AllArgsConstructor
 @EqualsAndHashCode(onlyExplicitlyIncluded = true)
-public class GroupPlanFrequencyPriceEntity {
+public class SessionDurationPriceEntity {
 
     @Id
     @GeneratedValue(strategy = GenerationType.IDENTITY)
@@ -44,8 +42,8 @@ public class GroupPlanFrequencyPriceEntity {
     @JoinColumn(name = "plan_id", nullable = false)
     private PlanEntity plan;
 
-    @Column(name = "weekly_frequency", nullable = false)
-    private int weeklyFrequency;
+    @Column(name = "duration_minutes", nullable = false)
+    private int durationMinutes;
 
     @Column(name = "session_value", nullable = false, precision = 10, scale = 2)
     private BigDecimal sessionValue;
@@ -56,4 +54,8 @@ public class GroupPlanFrequencyPriceEntity {
     @Column(name = "valid_to")
     private LocalDate validTo;
 
+    // Linha vigente = ainda não encerrada por um reajuste (validTo = null)
+    public boolean isCurrent() {
+        return validTo == null;
+    }
 }
