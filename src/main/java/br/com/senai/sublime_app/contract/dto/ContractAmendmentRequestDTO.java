@@ -7,15 +7,17 @@ import jakarta.validation.constraints.AssertTrue;
 import jakarta.validation.constraints.Min;
 import jakarta.validation.constraints.NotNull;
 
-public record ContractRequestDTO(
-
-        @NotNull(message = "O paciente titular é obrigatório.") 
-        Long patientId,
+// Estado completo da nova versão do contrato (aditivo). O frontend abre o formulário
+// preenchido com a versão atual, o usuário altera o que quiser e envia tudo — assim
+// a nova versão passa pelas mesmas regras da criação e não há ambiguidade entre
+// "campo não enviado" e "campo removido".
+// Não tem patientId: o titular é copiado da versão atual (trocar titular = contrato novo).
+public record ContractAmendmentRequestDTO(
 
         // nullable: Pilates em Dupla / plano Familiar
         Long beneficiaryId,
 
-        @NotNull(message = "A técnica âncora é obrigatória.") 
+        @NotNull(message = "A técnica âncora é obrigatória.")
         Long techniqueId,
 
         // Obrigatória para preço por duração; proibida para preço por frequência
@@ -23,36 +25,31 @@ public record ContractRequestDTO(
         @Min(value = 1, message = "A frequência semanal deve ser de no mínimo 1 sessão.")
         Integer weeklyFrequency,
 
-        @NotNull(message = "A data de início é obrigatória.") 
+        @NotNull(message = "A data de início é obrigatória.")
         LocalDate startDate,
 
-        @NotNull(message = "A data de término é obrigatória.") 
+        @NotNull(message = "A data de término é obrigatória.")
         LocalDate endDate,
 
-        @NotNull(message = "O método de pagamento é obrigatório.") 
+        @NotNull(message = "O método de pagamento é obrigatório.")
         PaymentMethod paymentMethod,
 
-        // exclusive arc: exatamente um dos dois deve ser preenchido. A linha de preço
-        // escolhida é a fonte da verdade: o plano (e, no preço por frequência, a
-        // frequência semanal) do contrato são copiados dela.
+        // exclusive arc: exatamente um dos dois deve ser preenchido. Manter a linha
+        // de preço da versão atual é permitido mesmo após um reajuste; trocar de
+        // linha exige uma linha vigente.
         Long sessionDurationPriceId,
 
         Long sessionFrequencyPriceId
 
 ) {
-    // As validações abaixo tratam do FORMATO do request (combinação de campos).
-    // As regras de negócio do contrato ficam na ContractEntity. @AssertTrue faz o
-    // Bean Validation chamar cada método no @Valid do controller (400 se false).
+    // Mesmas validações de formato do ContractRequestDTO (records não têm herança).
 
-    // Exclusive arc: exatamente um dos dois ids de preço deve ser preenchido.
     @AssertTrue(message = "Informe exatamente um preço: sessionDurationPriceId ou sessionFrequencyPriceId.")
     public boolean isValidExclusiveArc() {
         return (sessionDurationPriceId != null && sessionFrequencyPriceId == null)
                 || (sessionDurationPriceId == null && sessionFrequencyPriceId != null);
     }
 
-    // weeklyFrequency só acompanha preço por duração. No preço por frequência ela
-    // vem da linha de preço — se viesse no request, poderia divergir e seria ignorada.
     @AssertTrue(message = "A frequência semanal é obrigatória para preço por duração e não deve ser enviada para preço por frequência.")
     public boolean isWeeklyFrequencyConsistent() {
         if (sessionDurationPriceId != null && sessionFrequencyPriceId == null) {

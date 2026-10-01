@@ -2,6 +2,7 @@ package br.com.senai.sublime_app.patient.domain;
 
 import java.time.LocalDate;
 
+import br.com.senai.sublime_app.shared.exception.BusinessRuleException;
 import jakarta.persistence.Column;
 import jakarta.persistence.Embedded;
 import jakarta.persistence.Entity;
@@ -10,18 +11,14 @@ import jakarta.persistence.GenerationType;
 import jakarta.persistence.Id;
 import jakarta.persistence.Table;
 import lombok.AccessLevel;
-import lombok.AllArgsConstructor;
 import lombok.EqualsAndHashCode;
 import lombok.Getter;
 import lombok.NoArgsConstructor;
-import lombok.Setter;
 
 @Entity
 @Table(name = "patient")
 @Getter
-@Setter(AccessLevel.PROTECTED)
 @NoArgsConstructor(access = AccessLevel.PROTECTED)
-@AllArgsConstructor
 @EqualsAndHashCode(onlyExplicitlyIncluded = true)
 public class PatientEntity {
 
@@ -51,6 +48,7 @@ public class PatientEntity {
 
     // Construtor de negócio: todo paciente novo nasce ativo e sem id (gerado pelo banco)
     public PatientEntity(String name, String cpf, LocalDate birthDate, String phone, String email, Address address) {
+        validatePersonalInfo(name, cpf, birthDate);
         this.name = name;
         this.cpf = cpf;
         this.birthDate = birthDate;
@@ -62,6 +60,7 @@ public class PatientEntity {
 
     // Dados cadastrais básicos, atualizados juntos no fluxo de edição do paciente
     public void updatePersonalInfo(String name, String cpf, LocalDate birthDate) {
+        validatePersonalInfo(name, cpf, birthDate);
         this.name = name;
         this.cpf = cpf;
         this.birthDate = birthDate;
@@ -86,5 +85,20 @@ public class PatientEntity {
 
     public void deactivate() {
         this.active = false;
+    }
+
+    // Invariantes do paciente, válidas para qualquer caminho que crie ou edite o
+    // cadastro. O CPF é a identidade do paciente (base da checagem de duplicidade),
+    // por isso o formato é garantido aqui e não só no DTO.
+    private static void validatePersonalInfo(String name, String cpf, LocalDate birthDate) {
+        if (name == null || name.isBlank()) {
+            throw new BusinessRuleException("Patient name is required.");
+        }
+        if (cpf == null || !cpf.matches("\\d{11}")) {
+            throw new BusinessRuleException("Patient cpf must have exactly 11 digits.");
+        }
+        if (birthDate == null || birthDate.isAfter(LocalDate.now())) {
+            throw new BusinessRuleException("Patient birthDate is required and cannot be in the future.");
+        }
     }
 }

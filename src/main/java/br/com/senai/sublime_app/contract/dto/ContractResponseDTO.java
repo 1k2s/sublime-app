@@ -16,9 +16,11 @@ public record ContractResponseDTO(
         LocalDate startDate,
         LocalDate endDate,
         PaymentMethod paymentMethod,
-        Long groupPlanPriceId,
-        Long groupPlanFrequencyPriceId,
-        boolean active
+        Long sessionDurationPriceId,
+        Long sessionFrequencyPriceId,
+        boolean active,
+        // versão anterior deste contrato (aditivo); null na primeira versão
+        Long previousContractId
 
 ) {
     public static ContractResponseDTO fromEntity(ContractEntity entity) {
@@ -32,8 +34,9 @@ public record ContractResponseDTO(
                 entity.getStartDate(),
                 entity.getEndDate(),
                 entity.getPaymentMethod(),
-                entity.getGroupPlanPrice() != null ? entity.getGroupPlanPrice().getId() : null,
-                entity.getGroupPlanFrequencyPrice() != null ? entity.getGroupPlanFrequencyPrice().getId() : null,
-                entity.isActive());
+                entity.getSessionDurationPrice() != null ? entity.getSessionDurationPrice().getId() : null,
+                entity.getSessionFrequencyPrice() != null ? entity.getSessionFrequencyPrice().getId() : null,
+                entity.isActive(),
+                entity.getPreviousContract() != null ? entity.getPreviousContract().getId() : null);
     }
 }

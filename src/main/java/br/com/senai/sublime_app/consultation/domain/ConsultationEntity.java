@@ -5,8 +5,8 @@ import java.math.BigDecimal;
 import java.time.LocalDate;
 
 import br.com.senai.sublime_app.patient.domain.PatientEntity;
-import br.com.senai.sublime_app.pricing.domain.GroupPlanFrequencyPriceEntity;
-import br.com.senai.sublime_app.pricing.domain.GroupPlanPriceEntity;
+import br.com.senai.sublime_app.pricing.domain.SessionFrequencyPriceEntity;
+import br.com.senai.sublime_app.pricing.domain.SessionDurationPriceEntity;
 import br.com.senai.sublime_app.pricing.domain.TechniqueEntity;
 import br.com.senai.sublime_app.provider.domain.ProviderEntity;
 import jakarta.persistence.Column;
@@ -21,18 +21,14 @@ import jakarta.persistence.JoinColumn;
 import jakarta.persistence.ManyToOne;
 import jakarta.persistence.Table;
 import lombok.AccessLevel;
-import lombok.AllArgsConstructor;
 import lombok.EqualsAndHashCode;
 import lombok.Getter;
 import lombok.NoArgsConstructor;
-import lombok.Setter;
 
 @Entity
 @Table(name = "consultation")
 @Getter
-@Setter(AccessLevel.PROTECTED)
 @NoArgsConstructor(access = AccessLevel.PROTECTED)
-@AllArgsConstructor
 @EqualsAndHashCode(onlyExplicitlyIncluded = true)
 public class ConsultationEntity {
    
@@ -70,12 +66,12 @@ public class ConsultationEntity {
     private ConsultationStatus status;
 
      @ManyToOne(fetch = FetchType.LAZY)
-    @JoinColumn(name = "group_plan_price_id")
-    private GroupPlanPriceEntity groupPlanPrice;
+    @JoinColumn(name = "session_duration_price_id")
+    private SessionDurationPriceEntity sessionDurationPrice;
  
     @ManyToOne(fetch = FetchType.LAZY)
-    @JoinColumn(name = "group_plan_frequency_price_id")
-    private GroupPlanFrequencyPriceEntity groupPlanFrequencyPrice;
+    @JoinColumn(name = "session_frequency_price_id")
+    private SessionFrequencyPriceEntity sessionFrequencyPrice;
 
     @Column(name = "commission_percentage_applied", nullable = false, precision = 5, scale = 2)
     private BigDecimal commissionPercentageApplied;
@@ -91,8 +87,8 @@ public class ConsultationEntity {
     //         TechniqueEntity technique,
     //         Integer durationMinutes,
     //         LocalDate occurredAt,
-    //         GroupPlanPriceEntity groupPlanPrice,
-    //         GroupPlanFrequencyPriceEntity groupPlanFrequencyPrice,
+    //         SessionDurationPriceEntity sessionDurationPrice,
+    //         SessionFrequencyPriceEntity sessionFrequencyPrice,
     //         BigDecimal baseValue) {
     //     this.patient = patient;
     //     this.contract = contract;
@@ -100,8 +96,8 @@ public class ConsultationEntity {
     //     this.technique = technique;
     //     this.durationMinutes = durationMinutes;
     //     this.occurredAt = occurredAt;
-    //     this.groupPlanPrice = groupPlanPrice;
-    //     this.groupPlanFrequencyPrice = groupPlanFrequencyPrice;
+    //     this.sessionDurationPrice = sessionDurationPrice;
+    //     this.sessionFrequencyPrice = sessionFrequencyPrice;
     //     this.status = ConsultationStatus.SCHEDULED;
  
     //     // snapshot da comissão vigente do provider neste momento

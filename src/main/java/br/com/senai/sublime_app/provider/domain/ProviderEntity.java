@@ -2,6 +2,7 @@ package br.com.senai.sublime_app.provider.domain;
 
 import java.math.BigDecimal;
 
+import br.com.senai.sublime_app.shared.exception.BusinessRuleException;
 import br.com.senai.sublime_app.user.domain.UserEntity;
 import jakarta.persistence.Column;
 import jakarta.persistence.Entity;
@@ -13,20 +14,18 @@ import jakarta.persistence.JoinColumn;
 import jakarta.persistence.OneToOne;
 import jakarta.persistence.Table;
 import lombok.AccessLevel;
-import lombok.AllArgsConstructor;
 import lombok.EqualsAndHashCode;
 import lombok.Getter;
 import lombok.NoArgsConstructor;
-import lombok.Setter;
 
 @Entity
 @Table(name = "provider")
 @Getter
-@Setter(AccessLevel.PROTECTED)
 @NoArgsConstructor(access = AccessLevel.PROTECTED)
-@AllArgsConstructor
 @EqualsAndHashCode(onlyExplicitlyIncluded = true)
 public class ProviderEntity {
+
+    private static final BigDecimal ONE_HUNDRED = new BigDecimal("100");
 
     @Id
     @GeneratedValue(strategy = GenerationType.IDENTITY)
@@ -49,6 +48,12 @@ public class ProviderEntity {
 
     // Construtor publico para criar um provider com os dados obrigatórios
     public ProviderEntity(UserEntity user, String name, BigDecimal commissionPercentage) {
+        // Todo prestador se autentica por um User; o vínculo é fixo (update não o recebe)
+        if (user == null) {
+            throw new BusinessRuleException("Provider must be linked to a user.");
+        }
+        validateName(name);
+        validateCommission(commissionPercentage);
         this.user = user;
         this.name = name;
         this.commissionPercentage = commissionPercentage;
@@ -57,6 +62,8 @@ public class ProviderEntity {
 
     //update publico para atualizar os dados do provider
     public void update(String name, BigDecimal commissionPercentage) {
+        validateName(name);
+        validateCommission(commissionPercentage);
         this.name = name;
         this.commissionPercentage = commissionPercentage;
     }
@@ -67,5 +74,22 @@ public class ProviderEntity {
 
     public void activate() {
         this.active = true;
+    }
+
+    private static void validateName(String name) {
+        if (name == null || name.isBlank()) {
+            throw new BusinessRuleException("Provider name is required.");
+        }
+    }
+
+    // Invariante do prestador: a comissão entra no cálculo do repasse de cada
+    // atendimento, então nunca pode ficar fora de 0–100%, venha de onde vier.
+    // O DTO valida o mesmo intervalo para devolver o erro junto com os demais campos.
+    private static void validateCommission(BigDecimal commissionPercentage) {
+        if (commissionPercentage == null
+                || commissionPercentage.compareTo(BigDecimal.ZERO) < 0
+                || commissionPercentage.compareTo(ONE_HUNDRED) > 0) {
+            throw new BusinessRuleException("commissionPercentage must be between 0 and 100.");
+        }
     }
 }
