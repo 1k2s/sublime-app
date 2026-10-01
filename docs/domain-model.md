@@ -212,8 +212,31 @@ uma única tabela de preço. O grupo é quem carrega o preço; a técnica só ap
 para o grupo. Reajustar o valor do grupo atualiza automaticamente todas as
 técnicas associadas, sem precisar editar cada uma.
 
+**Grupos atuais da clínica:**
+
+| Grupo | Técnicas | `pricingModel` | Tabela de preço |
+|---|---|---|---|
+| Individual Padrão | Liberação Miofascial, RPG, Massoterapia, Pilates Individual | `DURATION_BASED` | `SessionDurationPrice` |
+| Individual Especializado | Quiropraxia, Reabilitação Vestibular | `DURATION_BASED` | `SessionDurationPrice` |
+| Em Dupla | Pilates em Dupla | `DURATION_BASED` | `SessionDurationPrice` |
+| Em Grupo | Pilates em Grupo | `FREQUENCY_BASED` | `SessionFrequencyPrice` |
+
+**Por que esses nomes:** o grupo representa um conjunto de técnicas com o mesmo
+preço, então o nome diz *por que* elas custam igual, e não repete o nome de uma
+técnica (o que confundia grupo e técnica em telas e relatórios — ex: "Quiropraxia"
+era tanto o grupo quanto uma de suas técnicas). Dois fatores definem o preço: o
+**formato do atendimento** (individual, dupla, grupo) e, no individual, o **nível
+de especialização** (padrão × especializado, ligado ao grau de complexidade
+COFFITO). Uma técnica nova com o mesmo preço entra no grupo correspondente (ex:
+um futuro "RPG em dupla" com o preço da dupla entraria em "Em Dupla").
+
+Grupos com uma única técnica (Em Dupla, Em Grupo) são válidos: o grupo existe
+porque carrega uma tabela de preço própria. Note que "Pilates" aparece em três
+grupos diferentes — Pilates Individual é precificado no Individual Padrão, e só o
+Pilates em Grupo é por frequência.
+
 **Por que o discriminador `pricingModel`:** a maioria dos grupos precifica por
-`duração da sessão × plano` (`DURATION_BASED`). O Grupo Pilates precifica por
+`duração da sessão × plano` (`DURATION_BASED`). O Pilates em Grupo precifica por
 `frequência semanal × plano` (`FREQUENCY_BASED`) — o preço por sessão não é uma
 multiplicação simples do valor unitário, é uma tabela de desconto por volume
 publicada à parte (embute cálculo de feriados). As duas estratégias não cabem na
@@ -259,7 +282,7 @@ assinatura.
 **Percentual de desconto nunca é persistido.** É sempre calculado em tempo de
 leitura: `1 − (valorDoPlano / valorDeReferência)`, onde a referência é o Avulso da
 mesma técnica/grupo quando existir, ou o Mensal quando não existir Avulso (caso do
-Grupo Pilates). Guardar os dois campos (valor absoluto e percentual) gera risco de
+grupo Em Grupo). Guardar os dois campos (valor absoluto e percentual) gera risco de
 dessincronia a cada reajuste.
 
 ---
@@ -286,6 +309,14 @@ compartilhando o mesmo saldo) quanto os planos Familiares (dois contratos
 distintos, cada um com seu próprio titular e beneficiário — o grau de parentesco
 entre os titulares é checado manualmente pela clínica na venda, o sistema não
 guarda nem valida isso).
+
+- **Beneficiário não é obrigatório, nem no Pilates em Dupla:** nada impede o
+  paciente de contratar a dupla e usar sozinho. O sistema não exige nem proíbe
+  beneficiário em nenhum plano.
+- **Um paciente pode ser beneficiário e titular ao mesmo tempo:** ser beneficiário
+  de um contrato não impede de ser titular de outro (nem beneficiário de mais de
+  um). Só o titular está sujeito à regra de um contrato vigente. Decisão atual,
+  revisável se surgir necessidade.
 
 **Sobre `techniqueId` ser só "âncora":** o paciente não fica restrito a essa
 técnica. `techniqueId` formaliza com base em qual valor o contrato foi
@@ -376,6 +407,10 @@ qualquer atendimento do prestador, independente da técnica. Pode mudar ao longo
 do tempo com `UPDATE` simples — não precisa de historização própria, porque cada
 `Consultation` já grava o valor aplicado no momento do lançamento
 (`commissionPercentageApplied`).
+
+**Sobre o `User` vinculado:** todo prestador tem exatamente um usuário (1:1, fixo
+após a criação). O usuário pode ter `role` `PROVIDER` **ou `ADMIN`** — um
+administrador da clínica que também atende é um prestador válido.
 
 ---
 
