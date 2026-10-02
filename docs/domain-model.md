@@ -54,7 +54,7 @@ erDiagram
   PLAN {
     bigint id PK
     string name
-    int sessionCount
+    int sessionCount "nullable"
     boolean active
   }
 
@@ -188,11 +188,35 @@ duplicação replicada em cada reajuste, com risco de divergência silenciosa.
 |---|---|---|
 | `id` | Long | auto-increment |
 | `name` | string | |
-| `sessionCount` | int | quantidade de sessões do pacote |
+| `sessionCount` | int, nullable | quantidade de sessões do pacote; `null` nos planos do Pilates em Grupo |
 | `active` | boolean | |
 
+**Planos atuais da clínica:**
+
+| Plano | `sessionCount` | Usado em |
+|---|---|---|
+| Avulso | 1 | grupos `DURATION_BASED` |
+| Essencial | 4 | grupos `DURATION_BASED` |
+| Evolução | 12 | grupos `DURATION_BASED` |
+| Evolução Familiar | 12 | Individual Padrão (por enquanto; os demais grupos depois) |
+| Transformação / Transformação Familiar | 26 | grupos `DURATION_BASED` |
+| Vitalidade / Vitalidade Familiar | 52 | grupos `DURATION_BASED` |
+| Mensal, Trimestral, Semestral, Semestral Familiar, Anual, Anual Familiar | `null` | Em Grupo (`FREQUENCY_BASED`) |
+
+**Por que `sessionCount` é nullable:** no Pilates em Grupo o plano não é um
+pacote de sessões, e sim um valor mensal definido pelo plano e pela frequência
+semanal (ex: Mensal 1x/semana = 4 aulas no mês, 3x/semana = 12). Gravar um número
+fixo seria um dado enganoso, que uma tela ou relatório poderia usar errado. O
+plano não sabe em qual grupo é usado (a ligação é a linha de preço), então a regra
+"preço por duração exige plano com `sessionCount`" é validada na criação da linha
+de preço por duração (que recebe o plano), não no próprio plano.
+
+**Por que o Grupo mantém planos com nomes próprios:** é outro conceito de plano
+(mensalidade por frequência, não pacote de sessões), por isso não compartilha os
+planos dos grupos por duração.
+
 **Por que sem frequência semanal, vigência ou desconto:** um paciente pode
-contratar um plano Anual (52 sessões) com vigência de 6 meses a 2x/semana — a
+contratar um plano Vitalidade (52 sessões) com vigência de 6 meses a 2x/semana — a
 mesma quantidade de sessões pode ser consumida em ritmos diferentes. Frequência e
 vigência são decisão de negociação, vivem em `Contract`. Desconto é sempre
 calculado em tempo de leitura (ver seção de preço abaixo), nunca armazenado.
@@ -255,7 +279,7 @@ de preço separadas (abaixo).
 | `durationMinutes` | int | eixo de duração |
 | `sessionValue` | BigDecimal | |
 | `validFrom` | date | |
-| `validTo` | date, nullable | `null` = vigente |
+| `validTo` | date, nullable | `null` = vigente; **exclusivo** (ver convenção abaixo) |
 
 ## `SessionFrequencyPrice` (grupos `FREQUENCY_BASED`)
 
@@ -267,17 +291,50 @@ de preço separadas (abaixo).
 | `weeklyFrequency` | int | eixo de frequência |
 | `sessionValue` | BigDecimal | |
 | `validFrom` | date | |
-| `validTo` | date, nullable | `null` = vigente |
+| `validTo` | date, nullable | `null` = vigente; **exclusivo** (ver convenção abaixo) |
 
 **Regra de unicidade:** só pode existir uma linha com `validTo IS NULL` por
 combinação de `(pricingGroupId, durationMinutes, planId)` — ou
 `(pricingGroupId, weeklyFrequency, planId)` na tabela de frequência.
 
-**Reajuste nunca é `UPDATE`.** Sempre: fecha a linha vigente (`validTo` = ontem) e
+**Reajuste nunca é `UPDATE`.** Sempre: fecha a linha vigente (`validTo` = hoje) e
 insere uma nova com `validFrom` = hoje. Isso preserva o histórico completo de
 preços — requisito de rastreabilidade do escopo original do projeto — e garante
 que contratos antigos continuem apontando para o valor que estava vigente na
 assinatura.
+
+**Convenção de datas: `validTo` é exclusivo.** A vigência de uma linha de preço é
+o intervalo semiaberto `[validFrom, validTo)`: a linha vale a partir de
+`validFrom` (inclusive) até o dia **anterior** a `validTo`. Ex: `validFrom =
+01/10`, `validTo = 15/10` → valeu de 01/10 a 14/10; em 15/10 já vale a linha nova.
+- Por que: a linha antiga fecha e a nova abre na **mesma data**, sem a conta do
+  "ontem" e sem dois preços valendo no mesmo dia.
+- Dois reajustes no mesmo dia geram uma linha com intervalo vazio
+  (`[15/10, 15/10)`): ela foi substituída no mesmo dia e não vale em nenhum dia.
+  Não é um estado inválido — se um contrato a travou nesse meio-tempo, continua
+  com ela, como em qualquer reajuste. Por isso não há bloqueio de reajuste no
+  mesmo dia (corrigir um valor digitado errado é só cadastrar de novo).
+- Consulta "preço vigente na data X": `validFrom <= X AND (validTo IS NULL OR
+  validTo > X)` — **`>`, nunca `>=`**.
+- ⚠️ **Diferente do `endDate` de `Contract`, que é inclusivo** (o último dia
+  ainda conta). O `endDate` é o "último dia" combinado com o paciente; o
+  `validTo` é o momento de troca de preço. Atenção ao comparar os dois.
+
+**Cadastro de valor (novo preço ou reajuste):** um único fluxo cobre os dois
+casos — para a clínica, ambos significam "a partir de hoje, essa combinação custa
+X". A clínica informa grupo, plano, eixo (duração ou frequência) e valor:
+- **sem linha vigente** para a combinação → cria a linha com `validFrom` = hoje;
+- **com linha vigente** → fecha a atual (`validTo` = hoje) e cria a nova com
+  `validFrom` = hoje.
+
+`validFrom` é sempre hoje, nunca vem do request: como vigente = `validTo` nulo,
+uma linha com início futuro já contaria como vigente antes da hora. Reajuste
+agendado fica como melhoria futura.
+
+Validações do cadastro: o `pricingModel` do grupo corresponde à tabela usada
+(preço por duração só em grupo `DURATION_BASED`, por frequência só em
+`FREQUENCY_BASED`); o plano está ativo; preço por duração exige plano com
+`sessionCount` preenchido; valor maior que zero.
 
 **Percentual de desconto nunca é persistido.** É sempre calculado em tempo de
 leitura: `1 − (valorDoPlano / valorDeReferência)`, onde a referência é o Avulso da
@@ -325,7 +382,8 @@ livremente (ver lógica de resolução de preço em `Consultation`, abaixo). Um
 paciente tem apenas um contrato vigente em seu nome.
 
 **"Ativo" × "vigente":** `active` é o soft delete; vigente é `active = true` **e**
-`endDate >= hoje` (o último dia ainda conta). Só um contrato vigente bloqueia a
+`endDate >= hoje` (o último dia ainda conta — `endDate` é **inclusivo**,
+diferente do `validTo` das linhas de preço, que é exclusivo). Só um contrato vigente bloqueia a
 criação de outro. Um contrato ativo porém vencido não bloqueia: ele aguarda a
 decisão do administrador (prorrogar via aditivo, ou encerrar e levar as sessões
 restantes para o contrato seguinte — regra a detalhar junto com o saldo, em
@@ -454,6 +512,19 @@ regra fixa por valor (`ATTENDED`, `NO_SHOW` e `CANCELLED_WITH_CHARGE` contam;
 `CANCELLED_EARLY` não conta), então vive como método no enum
 (`status.countsTowardsBilling()`), não como dado replicado no banco.
 
+### Saldo depende do modelo de precificação
+
+- **`DURATION_BASED`:** saldo de sessões = `sessionCount` do plano − atendimentos
+  que contam (`countsTowardsBilling`), somando **toda a cadeia de versões** do
+  contrato (`previousContract`).
+- **`FREQUENCY_BASED` (Pilates em Grupo):** não há saldo de sessões — o plano é
+  uma mensalidade, não um pacote (por isso `sessionCount` é `null`). O que importa
+  é se o paciente está **em dia**: a parcela do mês foi paga. Isso depende do
+  domínio `Payment` (Fase 2); na Fase 1 o Grupo não tem cálculo de saldo.
+
+O repasse ao prestador vale igual nos dois modelos — é outra conta (honorário por
+atendimento), independente do saldo do paciente.
+
 ### Lógica de resolução de preço no lançamento
 
 1. Prestador seleciona paciente, duração, técnica e status.
@@ -479,6 +550,7 @@ resolvido de novo, seguindo o fluxo acima.
 
 - **`Payment`** — controle financeiro/saldo do paciente (pagamentos realizados x
   valor consumido nos atendimentos `countsTowardsBilling`). Alimenta a visão da
-  clínica na Fase 2.
+  clínica na Fase 2. Também é a base do "em dia" do Pilates em Grupo (parcela do
+  mês paga), que não usa saldo de sessões.
 - App de consulta de saldo do paciente (Fase 3) — camada de consumo somente
   leitura sobre `consultation` e `payment`, sem entidades novas.
