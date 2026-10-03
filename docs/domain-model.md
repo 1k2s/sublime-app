@@ -277,7 +277,7 @@ de preço separadas (abaixo).
 | `pricingGroupId` | FK → PricingGroup | |
 | `planId` | FK → Plan | |
 | `durationMinutes` | int | eixo de duração |
-| `sessionValue` | BigDecimal | |
+| `sessionValue` | `Money` (VO) | coluna `DECIMAL(10,2)` via `MoneyConverter` |
 | `validFrom` | date | |
 | `validTo` | date, nullable | `null` = vigente; **exclusivo** (ver convenção abaixo) |
 
@@ -289,9 +289,19 @@ de preço separadas (abaixo).
 | `pricingGroupId` | FK → PricingGroup | |
 | `planId` | FK → Plan | |
 | `weeklyFrequency` | int | eixo de frequência |
-| `sessionValue` | BigDecimal | |
+| `sessionValue` | `Money` (VO) | coluna `DECIMAL(10,2)` via `MoneyConverter` |
 | `validFrom` | date | |
 | `validTo` | date, nullable | `null` = vigente; **exclusivo** (ver convenção abaixo) |
+
+**Valor em dinheiro (`Money`):** `sessionValue` é o Value Object `Money`
+(módulo `pricing`), não um `BigDecimal` solto. Regras do próprio `Money`:
+obrigatório, nunca negativo, no máximo 2 casas decimais e escala sempre
+normalizada em 2 (`220` vira `220.00`). Valor com mais de 2 casas (ex: `220.555`)
+é **rejeitado (400), nunca arredondado** — arredondar em silêncio esconderia um
+valor digitado errado. Zero é um `Money` válido; "maior que zero" é regra da
+linha de preço (`Money.isPositive()`), não do dinheiro em si. O modo de
+arredondamento do cálculo de repasse ainda não foi decidido (entra com o
+`Consultation`).
 
 **Regra de unicidade:** só pode existir uma linha com `validTo IS NULL` por
 combinação de `(pricingGroupId, durationMinutes, planId)` — ou

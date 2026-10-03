@@ -2,13 +2,16 @@
 
 > Uso pessoal para iniciar uma sessão do Claude Code (não versionado). Leia também
 > `docs/architecture.md` e `docs/domain-model.md` antes de começar.
-> Atualizado em 2026-10-02.
+> Atualizado em 2026-10-02 (fim do dia).
 
 ## Como eu gosto de trabalhar
 
 - **Explique antes de alterar.** Para cada mudança, diga o que muda e por quê
   (em 1–3 frases) antes de aplicar. Passos pequenos; nada de várias alterações em
   lote sem explicação.
+- **Quando eu mandar algo, pare e leia.** Mensagem minha ou motivo de recusa de
+  uma edição pode ser complemento ou dúvida — responda antes de seguir. Nunca
+  dispare várias edições depois de uma recusa. Dúvida ≠ pedido de mudança.
 - **Ao apontar um problema, mostre o código.** Explicação + trecho exato
   (arquivo:linha) + um exemplo concreto do que dá errado.
 - **Análises longas em partes.** Apresente uma parte, espere meu retorno e só
@@ -18,10 +21,11 @@
   eu decidir — não aplica junto.
 - **Decisões de negócio são minhas.** Quando houver dúvida de regra, pergunte; não
   presuma. Quando houver escolha técnica, dê uma recomendação, não só as opções.
-- **Consulte o projeto antes de sugerir.** Toda recomendação técnica parte de como
-  os módulos existentes já resolvem o mesmo caso (citar o precedente em
-  arquivo:linha) e dos princípios de monolito modular e DDD do `architecture.md`.
-  Se for caso novo, sem precedente, diga isso.
+- **Consulte o projeto antes de sugerir — e antes de escrever.** Toda recomendação
+  técnica parte de como os módulos existentes já resolvem o mesmo caso (citar o
+  precedente em arquivo:linha) e dos princípios de monolito modular e DDD do
+  `architecture.md`. Vale para detalhes pequenos também (ex: comparar `BigDecimal`
+  com `compareTo`, não `signum()`). Se for caso novo, sem precedente, diga isso.
 - **Seguir o princípio 7 do `architecture.md`** (entidade rica: DTO = formato,
   entidade = regras dela, service = regras que dependem do banco + orquestração).
 - **Sem `if` direto no construtor da entidade.** Validações em método privado com
@@ -38,93 +42,95 @@
 
 ## Onde paramos (2026-10-02)
 
-Antes de testar pricing/contract, decidimos criar o **cadastro de planos e de
-preços** (não existia nenhum endpoint de escrita no pricing) e **renomear os
-planos**. Trabalho em 5 passos:
+Cadastro de planos e de preços no pricing, antes de testar pricing/contract:
 
-1. ✅ **Documentação** (`domain-model.md`) — feito.
-2. ✅ **Entidades do pricing** — feito, compila. Nada foi executado ainda.
-3. ⏳ **Service, DTOs e controllers** — próximo passo (detalhe abaixo).
-4. Compilar.
-5. Script SQL + testes pelo Swagger.
+1. ✅ **Documentação** (`domain-model.md`).
+2. ✅ **Entidades do pricing** (commit `13ac5a5`).
+3. ✅ **Service, DTOs e controllers** — feito, compila.
+4. ✅ **Compilar** — ok. **Nada foi executado ainda.**
+5. ⏳ **Script SQL + testes pelo Swagger** — próximo passo (proposta abaixo,
+   aguardando minha confirmação).
 
-**Alterações não commitadas** (branch `dev`): `docs/domain-model.md`,
-`PlanEntity`, `SessionDurationPriceEntity`, `SessionFrequencyPriceEntity`.
+Extra feito nesta sessão: **Value Object `Money`** (ver abaixo).
 
-### Decisões tomadas nesta sessão (já no `domain-model.md`)
+**Branch:** `feat/finalizacaoConsultation`. **Tudo do passo 3 em diante está sem
+commit:** `architecture.md`, `domain-model.md`, `ConsultationEntity` (só remoção
+de código comentado), entidades/repositórios/service/DTO de preço alterados, e os
+novos `PlanController`, `PriceController`, `PlanService`, `Money`,
+`MoneyConverter`, `PlanRequestDTO`, `PlanResponseDTO`, `DurationPriceRequestDTO`,
+`FrequencyPriceRequestDTO`.
 
-- **Planos novos** (14 no total):
-  - Grupos por duração: Avulso (1), Essencial (4), Evolução (12), Evolução
-    Familiar (12, por enquanto só no Individual Padrão), Transformação /
-    Transformação Familiar (26), Vitalidade / Vitalidade Familiar (52).
-  - Pilates em Grupo mantém os nomes antigos: Mensal, Trimestral, Semestral,
-    Semestral Familiar, Anual, Anual Familiar — com `sessionCount = null`.
-- **`Plan.sessionCount` nullable:** no Grupo o plano é mensalidade (plano ×
-  frequência), não pacote de sessões. Preço por duração exige plano com
-  `sessionCount` (validado na linha de preço).
-- **Saldo do Pilates em Grupo:** não usa saldo de sessões; é "em dia" se a parcela
-  do mês foi paga → depende de `Payment` (Fase 2). Na Fase 1 o Grupo não tem saldo.
-  Repasse ao prestador vale igual para todos.
-- **Cadastro de valor = fluxo único (novo preço ou reajuste):** se há linha
-  vigente da combinação, fecha com `validTo = hoje` e cria a nova com
-  `validFrom = hoje`; senão só cria. `validFrom` sempre hoje (não vem do request).
-- **`validTo` é exclusivo** (`[validFrom, validTo)`); **`endDate` do contrato é
-  inclusivo**. Reajuste no mesmo dia gera intervalo vazio — permitido, sem bloqueio.
-  Consulta por data usa `validTo > X`.
+### O que foi feito no passo 3
 
-### O que foi feito no código (passo 2)
+- **Repositórios:** `findByPricingGroupIdAndPlanIdAndDurationMinutesAndValidToIsNull`
+  e `...AndWeeklyFrequencyAndValidToIsNull` (retornam `Optional`).
+- **DTOs:** `PlanRequestDTO`/`PlanResponseDTO`, `DurationPriceRequestDTO`/
+  `FrequencyPriceRequestDTO` (`sessionValue` com `@DecimalMin` exclusivo). Resposta
+  de preço reaproveita o `SessionPriceResponseDTO`.
+- **`PlanService` + `PlanController`:** `POST /api/plans`, `GET /api/plans` (todos,
+  ativos e inativos).
+- **`PricingService.createDurationPrice/createFrequencyPrice` + `PriceController`:**
+  `POST /api/prices/duration` e `POST /api/prices/frequency`. Fluxo único: busca
+  vigente → `close(hoje)` + **`saveAndFlush`** → cria a nova com `validFrom = hoje`.
+  O `saveAndFlush` (método nativo do Spring Data, mantido) grava o fechamento antes
+  do INSERT: o Hibernate executa INSERTs antes de UPDATEs no flush, e com o unique
+  de `current_flag` (migrations) a linha nova colidiria com a antiga.
+- `GET /api/pricing-groups`: fica para o futuro (no teste os ids vêm do SQL).
+- Concorrência no cadastro de preço: tratar junto com as migrations.
 
-- `PlanEntity`: `Integer sessionCount` nullable, nasce `active = true`, construtor
-  com `validateNameAndSessionCount`.
-- `SessionDurationPriceEntity` / `SessionFrequencyPriceEntity`: construtor público
-  (sem fábrica — só há uma forma de criar) com `validatePricingGroupAndPlan`
-  (pricingModel do grupo, plano ativo; na duração também `sessionCount`) e
-  `validateDurationAndSessionValue` / `validateFrequencyAndSessionValue`;
-  `close(validTo)` com `requireCurrent()` + `validateValidTo()` (aceita
-  `validTo == validFrom`).
+### Value Object `Money` (decidido e implementado)
 
-## Próximo passo: passo 3 (service, DTOs, controllers)
+- `pricing/domain/Money.java`: `record Money(BigDecimal amount)`. Obrigatório, não
+  negativo, máx. 2 casas (mais casas → `BusinessRuleException`/400, **nunca
+  arredonda**), escala normalizada em 2. Zero é válido. `Money.of(...)` (mantido) e
+  `isPositive()`.
+- `pricing/domain/MoneyConverter.java`: `AttributeConverter<Money, BigDecimal>`
+  com `autoApply = true`.
+- Usado em `sessionValue` das duas entidades de preço. Service faz
+  `Money.of(dto.sessionValue())` (precedente: `PatientService.toAddress`); DTOs
+  continuam `BigDecimal`; resposta devolve `amount()`.
+- Documentado no `architecture.md` (princípio 1: `@Embeddable`/class para VO de
+  vários campos × `record` + converter para VO de um valor) e no `domain-model.md`.
+- Formatação `R$ 1.234,56` fica no frontend (`Intl.NumberFormat`). Se o backend
+  gerar documento (impressão do contrato), formatar nessa camada, não no `Money`.
 
-Combinado:
-- **Repositórios:** busca da linha vigente da combinação, retornando `Optional`
-  (ex: `findByPricingGroupIdAndPlanIdAndDurationMinutesAndValidToIsNull`, e o
-  equivalente com `WeeklyFrequency`).
-- **DTOs:** `PlanRequestDTO` (`@NotBlank name`, `sessionCount` opcional `@Min(1)`),
-  `PlanResponseDTO`, `DurationPriceRequestDTO` / `FrequencyPriceRequestDTO`
-  (`pricingGroupId`, `planId`, eixo `@Min(1)`, `sessionValue` > 0). Resposta de
-  preço reaproveita o `SessionPriceResponseDTO`.
-- **`PlanService` + `PlanController`:** `POST /api/plans`, `GET /api/plans`.
-- **`PricingService` (existente) + `PriceController`:** `POST /api/prices/duration`
-  e `POST /api/prices/frequency` com o fluxo único (busca vigente →
-  `ifPresent(close(hoje))` → cria a nova). O `PricingService` usa o
-  `PlanRepository` direto (mesmo módulo; precedente: `ContractService` usa
-  `PatientRepository`).
+### Melhorias listadas, aguardando minha decisão
 
-**Aguardando minha confirmação** (recomendação do Claude entre parênteses):
-- `GET /api/pricing-groups` — incluir agora ou depois? (depois: no teste os ids
-  vêm do SQL; o grupo não tem service próprio e o lugar dele não é óbvio).
-- Concorrência no cadastro de preço (duas requisições simultâneas podem criar duas
-  linhas vigentes) — só anotar? (sim: proteção real é o unique com `current_flag`
-  das migrations; só o admin cadastra preço).
+- Bloquear nome de plano duplicado (409)? — regra de negócio.
+- Diagrama ER do `domain-model.md` ainda mostra `BigDecimal sessionValue` (é o tipo
+  da coluna); trocar para `Money`?
 
-## Depois: passo 5 (testar pricing e contract)
+## Próximo passo: passo 5 (script SQL + testes)
 
-- **Recriar o banco** (`docker compose down -v`), subir a aplicação uma vez para o
-  Hibernate criar as tabelas.
-- **Script SQL** (sugestão: `docs/test-data/seed-pricing.sql`), rodado à mão uma
-  vez: `docker exec -i mysql-dev mysql -uroot -proot sublime_db < <arquivo>`.
-  Não usar `data.sql` (com `ddl-auto=update` duplicaria a cada boot).
-  - 4 grupos + 8 técnicas + 1 técnica inativa fictícia (não há endpoint para
-    inativar técnica).
-  - Planos e preços podem ir no SQL (são 62 linhas) — o endpoint de preço é
-    testado criando a **linha histórica via reajuste** (substitui o `UPDATE` manual
-    que estava previsto).
-- **Cadastros pelo Swagger:** usuários (ADMIN e PROVIDER), prestadores (um com
-  cada role), ~5 pacientes (um inativado via DELETE).
-- **Roteiro:** baseado no "Como testar" do PR do contract — caminho feliz (duração
-  e frequência), 400/404/409, contrato vencido não bloqueia, aditivos (manter linha
-  reajustada ok, trocar para linha fechada 400, prorrogar vencido, alterar versão
-  inativa 409).
+**Proposta do script** (aguardando minha confirmação):
+- Arquivo `docs/test-data/seed-pricing.sql`, rodado à mão uma vez:
+  `docker exec -i mysql-dev mysql -uroot -proot sublime_db < docs/test-data/seed-pricing.sql`.
+  Não usar `data.sql` (com `ddl-auto=update` duplicaria a cada boot). Com o Flyway,
+  os dados reais (grupos, técnicas, planos, preços) podem virar migration.
+- Conteúdo: 4 `pricing_group`, 9 `technique` (8 reais + 1 inativa fictícia, em
+  bloco comentado no fim), 14 `plan`, 44 `session_duration_price`
+  (Padrão 8×2, Especializado 7×2, Dupla 7×2), 18 `session_frequency_price` (6×3).
+- Recomendações do Claude:
+  1. Ids explícitos em grupos, técnicas e planos (os testes precisam saber os ids);
+     auto-increment nas linhas de preço.
+  2. `valid_from` fixo no passado (ex: `2026-01-01`), para o reajuste de hoje gerar
+     histórico de verdade.
+  3. Planos pelo SQL; o `POST /api/plans` é testado com 1–2 planos extras + erros.
+  4. Um arquivo só por enquanto.
+
+**Antes:** recriar o banco (`docker compose down -v`) e subir a aplicação uma vez
+para o Hibernate criar as tabelas.
+
+**Cadastros pelo Swagger:** usuários (ADMIN e PROVIDER), prestadores (um com cada
+role), ~5 pacientes (um inativado via DELETE).
+
+**Roteiro:** baseado no "Como testar" do PR do contract — caminho feliz (duração e
+frequência), 400/404/409, contrato vencido não bloqueia, aditivos (manter linha
+reajustada ok, trocar para linha fechada 400, prorrogar vencido, alterar versão
+inativa 409). Somar: cadastro de plano (com/sem `sessionCount`, `sessionCount = 0`
+→ 400), cadastro de preço (novo, reajuste fechando a linha antiga, grupo com
+`pricingModel` errado → 400, plano sem `sessionCount` em preço por duração → 400,
+valor com 3 casas → 400, grupo/plano inexistente → 404).
 
 ### Valores (valor por sessão; 60 min / 30 min)
 
@@ -155,11 +161,14 @@ Combinado:
 | Anual | 63,46 | 55,85 | 48,91 |
 | Anual Familiar | 58,38 | 54,58 | 47,83 |
 
-## Pendências do Consultation (depois dos testes)
+## Pendências do Consultation (depois dos testes — combinado discutir só então)
 
-- `ConsultationEntity` incompleta: FK de `contract` comentada, falta o snapshot
-  do valor de repasse, código comentado usa status que não existem
-  (`SCHEDULED`, `COMPLETED`...). Deve ser desenhada do zero seguindo o princípio 7.
+- `ConsultationEntity`: código comentado do dev anterior **foi removido**. Falta a
+  FK de `contract`, o snapshot do repasse, construtor e métodos de estado. Deve ser
+  desenhada do zero seguindo o princípio 7. `baseValue`/repasse passam a ser `Money`.
+- **Modo de arredondamento do repasse** (decisão de negócio): `HALF_UP`,
+  `HALF_EVEN` ou sempre para baixo? Ex: 35% de R$ 58,91 = R$ 20,6185. O cálculo de
+  percentual entra no `Money` quando isso for decidido.
 - **Status:** definir a diferença entre `CANCELED` e `UNSCHEDULED_WITH_NOTICE` e
   quais status contam para o repasse → implementar `ConsultationStatus.countsTowardsBilling()`
   e alinhar os nomes de status no `domain-model.md` (o texto ainda cita
@@ -167,10 +176,12 @@ Combinado:
 - **`repasseValue` está em português** (viola a convenção de idioma). Sugestões:
   `payoutValue` (recomendado) ou `commissionValue`. Renomear no `domain-model.md`
   antes de implementar.
+- Precisão inconsistente: `session_value` é `DECIMAL(10,2)`, `base_value` é
+  `DECIMAL(12,2)` — alinhar ao redesenhar.
 - **Saldo de sessões** (só grupos `DURATION_BASED`): `sessionCount` do plano −
   atendimentos que contam para o repasse, somando **toda a cadeia de versões** do
   contrato (`previousContract`). Cálculo no módulo `consultation` (contract não
-  pode depender dele). Pilates em Grupo: sem saldo de sessões (ver decisões acima).
+  pode depender dele). Pilates em Grupo: sem saldo de sessões.
 - **Encerramento do contrato (N2):** ao finalizar com sessões restantes, avisar; o
   administrador decide prorrogar (via aditivo) ou levar as sessões para o contrato
   seguinte; essa decisão fica salva; DTO de saldo para o frontend.
@@ -183,13 +194,16 @@ Combinado:
 - Unique de "uma linha de preço vigente": coluna gerada
   `current_flag = IF(valid_to IS NULL, 1, NULL) STORED` + `UNIQUE (pricing_group_id,
   plan_id, duration_minutes|weekly_frequency, current_flag)`. Também resolve a
-  concorrência no cadastro de preço.
+  concorrência no cadastro de preço (o `saveAndFlush` já prepara a ordem certa).
 - Trocar `ddl-auto` para `validate` e zerar o banco local.
+- Seed dos dados reais do pricing pode virar migration.
 
 ## Futuro (anotado, sem prioridade)
-- `GET /api/pricing-groups` (se não entrar no passo 3).
+- `GET /api/pricing-groups`.
 - Evolução Familiar nos grupos Especializado, Em Dupla e Em Grupo.
 - Reajuste agendado (`validFrom` futuro).
+- VO `Percentage` para comissão (hoje `BigDecimal` com validação 0–100 no Provider).
+- Formatação de dinheiro em documentos gerados pelo backend (se houver).
 - Autenticação: senha em texto puro; `SecurityConfig` com `permitAll`.
 - Código de erro nas respostas (ex: `PATIENT_HAS_CURRENT_CONTRACT`) e padronizar o
   idioma das mensagens (DTO em português, entidades em inglês).

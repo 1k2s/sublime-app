@@ -1,6 +1,5 @@
 package br.com.senai.sublime_app.pricing.domain;
 
-import java.math.BigDecimal;
 import java.time.LocalDate;
 
 import br.com.senai.sublime_app.pricing.enums.PricingModel;
@@ -47,8 +46,9 @@ public class SessionFrequencyPriceEntity {
     @Column(name = "weekly_frequency", nullable = false)
     private int weeklyFrequency;
 
+    // Convertido para DECIMAL pelo MoneyConverter (autoApply)
     @Column(name = "session_value", nullable = false, precision = 10, scale = 2)
-    private BigDecimal sessionValue;
+    private Money sessionValue;
 
     @Column(name = "valid_from", nullable = false)
     private LocalDate validFrom;
@@ -60,7 +60,7 @@ public class SessionFrequencyPriceEntity {
     // Construtor publico para criar uma linha de preço vigente a partir de validFrom.
     // Achar e fechar a linha vigente da mesma combinação (reajuste) é orquestração do service.
     public SessionFrequencyPriceEntity(PricingGroupEntity pricingGroup, PlanEntity plan,
-            int weeklyFrequency, BigDecimal sessionValue, LocalDate validFrom) {
+            int weeklyFrequency, Money sessionValue, LocalDate validFrom) {
         validatePricingGroupAndPlan(pricingGroup, plan);
         validateFrequencyAndSessionValue(weeklyFrequency, sessionValue);
         this.pricingGroup = pricingGroup;
@@ -93,11 +93,11 @@ public class SessionFrequencyPriceEntity {
         }
     }
 
-    private static void validateFrequencyAndSessionValue(int weeklyFrequency, BigDecimal sessionValue) {
+    private static void validateFrequencyAndSessionValue(int weeklyFrequency, Money sessionValue) {
         if (weeklyFrequency < 1) {
             throw new BusinessRuleException("weeklyFrequency must be at least 1.");
         }
-        if (sessionValue == null || sessionValue.compareTo(BigDecimal.ZERO) <= 0) {
+        if (sessionValue == null || !sessionValue.isPositive()) {
             throw new BusinessRuleException("sessionValue must be greater than zero.");
         }
     }

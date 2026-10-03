@@ -42,11 +42,7 @@ public class ConsultationEntity {
     @ManyToOne(fetch = FetchType.LAZY, optional = false)
     @JoinColumn(name = "patient_id", nullable = false)
     private PatientEntity patient;
- 
-    // @ManyToOne(fetch = FetchType.LAZY, optional = false)
-    // @JoinColumn(name = "contract_id", nullable = false)
-    // private ContractEntity contract;
- 
+
     @ManyToOne(fetch = FetchType.LAZY, optional = false)
     @JoinColumn(name = "provider_id", nullable = false)
     private ProviderEntity provider;
@@ -78,67 +74,5 @@ public class ConsultationEntity {
  
     @Column(name = "base_value", nullable = false, precision = 12, scale = 2)
     private BigDecimal baseValue;
-    
-    // // Construtor publico para criar uma consulta com os dados obrigatórios
-    // public ConsultationEntity(
-    //         PatientEntity patient,
-    //         ContractEntity contract,
-    //         ProviderEntity provider,
-    //         TechniqueEntity technique,
-    //         Integer durationMinutes,
-    //         LocalDate occurredAt,
-    //         SessionDurationPriceEntity sessionDurationPrice,
-    //         SessionFrequencyPriceEntity sessionFrequencyPrice,
-    //         BigDecimal baseValue) {
-    //     this.patient = patient;
-    //     this.contract = contract;
-    //     this.provider = provider;
-    //     this.technique = technique;
-    //     this.durationMinutes = durationMinutes;
-    //     this.occurredAt = occurredAt;
-    //     this.sessionDurationPrice = sessionDurationPrice;
-    //     this.sessionFrequencyPrice = sessionFrequencyPrice;
-    //     this.status = ConsultationStatus.SCHEDULED;
- 
-    //     // snapshot da comissão vigente do provider neste momento
-    //     this.commissionPercentageApplied = provider.getCommissionPercentage();
-    //     this.baseValue = baseValue;
-    //     this.repasseValue = calculateRepasse();
-    // }
- 
-    // // repasse = baseValue * (comissão / 100), arredondado em 2 casas
-    // private BigDecimal calculateRepasse() {
-    //     return baseValue
-    //             .multiply(commissionPercentageApplied)
-    //             .divide(BigDecimal.valueOf(100), 2, RoundingMode.HALF_UP);
-    // }
- 
-    // // update publico para reagendar/ajustar a consulta (não recalcula os snapshots)
-    // public void update(Integer durationMinutes, LocalDate occurredAt, TechniqueEntity technique) {
-    //     this.durationMinutes = durationMinutes;
-    //     this.occurredAt = occurredAt;
-    //     this.technique = technique;
-    // }
- 
-    // public void complete() {
-    //     requireScheduled();
-    //     this.status = ConsultationStatus.COMPLETED;
-    // }
- 
-    // public void cancel() {
-    //     requireScheduled();
-    //     this.status = ConsultationStatus.CANCELLED;
-    // }
- 
-    // public void markNoShow() {
-    //     requireScheduled();
-    //     this.status = ConsultationStatus.NO_SHOW;
-    // }
- 
-    // private void requireScheduled() {
-    //     if (this.status != ConsultationStatus.SCHEDULED) {
-    //         throw new IllegalStateException("Only scheduled consultations can change status. Current: " + status);
-    //     }
-    // }
 }
 

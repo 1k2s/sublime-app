@@ -59,8 +59,23 @@ entidade de domínio, antes de propor mudanças de schema.
 
 ## Princípios de modelagem já fixados (não reabrir sem justificativa forte)
 
-1. **Value Objects embutidos, não entidades**, para dados sem identidade própria
-   (ex: `Address` dentro de `Patient`, via `@Embeddable`/`@Embedded`).
+1. **Value Objects, não entidades**, para dados sem identidade própria. Duas
+   estratégias de persistência, escolhidas pela quantidade de campos do VO:
+   - **Vários campos → `@Embeddable` + `@Embedded`, como `class`** (ex: `Address`
+     dentro de `Patient`). Cada campo vira uma coluna. Precisa ser `class` porque o
+     Hibernate instancia o VO sozinho: construtor sem argumentos `protected` e
+     campos não-`final`, preenchidos por reflexão.
+   - **Um valor só → `record` + `AttributeConverter` com `autoApply = true`** (ex:
+     `Money` + `MoneyConverter`, no módulo `pricing`). O converter traduz o VO para
+     a coluna e de volta; quem cria o VO é o converter (via `Money.of`), nunca o
+     Hibernate. Por isso o VO pode ser `record`: fica livre de JPA, imutável e
+     com o construtor validado como única porta de entrada. A coluna mantém o nome
+     e a precisão do `@Column` de cada campo, sem `@AttributeOverride`.
+   - Os DTOs continuam com os tipos do JSON (ex: `BigDecimal`); o service monta o
+     VO e o passa à entidade (ex: `PatientService.toAddress`, `Money.of` no
+     `PricingService`).
+   - Formatação de exibição (ex: `R$ 1.234,56`) não é regra de negócio: fica no
+     frontend, nunca no VO. A API devolve número.
 2. **Nunca persistir dado derivável que serve só para exibição** (ex: percentual de
    desconto). Sempre persistir dado que já representa uma obrigação financeira
    consumada (ex: valor de um atendimento já lançado).
