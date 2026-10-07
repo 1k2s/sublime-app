@@ -86,28 +86,28 @@ public class SessionDurationPriceEntity {
     // ter sessionCount: o saldo de sessões dos grupos por duração parte dele.
     private static void validatePricingGroupAndPlan(PricingGroupEntity pricingGroup, PlanEntity plan) {
         if (pricingGroup.getPricingModel() != PricingModel.DURATION_BASED) {
-            throw new BusinessRuleException("Duration-based prices are only allowed for DURATION_BASED pricing groups.");
+            throw new BusinessRuleException("Preço por duração só é permitido em grupos DURATION_BASED.");
         }
         if (!plan.isActive()) {
-            throw new BusinessRuleException("Plan is inactive.");
+            throw new BusinessRuleException("O plano está inativo.");
         }
         if (plan.getSessionCount() == null) {
-            throw new BusinessRuleException("Duration-based prices require a plan with sessionCount.");
+            throw new BusinessRuleException("Preço por duração exige um plano com quantidade de sessões (sessionCount).");
         }
     }
 
     private static void validateDurationAndSessionValue(int durationMinutes, Money sessionValue) {
         if (durationMinutes < 1) {
-            throw new BusinessRuleException("durationMinutes must be at least 1.");
+            throw new BusinessRuleException("A duração da sessão deve ser de no mínimo 1 minuto.");
         }
         if (sessionValue == null || !sessionValue.isPositive()) {
-            throw new BusinessRuleException("sessionValue must be greater than zero.");
+            throw new BusinessRuleException("O valor da sessão deve ser maior que zero.");
         }
     }
 
     private void requireCurrent() {
         if (!isCurrent()) {
-            throw new BusinessRuleException("Price is already closed.");
+            throw new BusinessRuleException("Esta linha de preço já foi encerrada.");
         }
     }
 
@@ -115,7 +115,7 @@ public class SessionDurationPriceEntity {
     // vazio (linha substituída antes de valer um dia inteiro).
     private void validateValidTo(LocalDate validTo) {
         if (validTo.isBefore(validFrom)) {
-            throw new BusinessRuleException("validTo must not be before validFrom.");
+            throw new BusinessRuleException("O fim da vigência não pode ser anterior ao início.");
         }
     }
 }

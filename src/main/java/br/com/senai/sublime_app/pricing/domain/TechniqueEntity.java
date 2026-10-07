@@ -54,10 +54,10 @@ public class TechniqueEntity {
 
     private static void validateNameAndPricingGroup(String name, PricingGroupEntity pricingGroup) {
         if (name == null || name.isBlank()) {
-            throw new BusinessRuleException("Technique name is required.");
+            throw new BusinessRuleException("O nome da técnica é obrigatório.");
         }
         if (pricingGroup == null) {
-            throw new BusinessRuleException("Technique must belong to a pricing group.");
+            throw new BusinessRuleException("A técnica deve pertencer a um grupo de preço.");
         }
     }
 

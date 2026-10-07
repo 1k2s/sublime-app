@@ -92,13 +92,13 @@ public class PatientEntity {
     // por isso o formato é garantido aqui e não só no DTO.
     private static void validatePersonalInfo(String name, String cpf, LocalDate birthDate) {
         if (name == null || name.isBlank()) {
-            throw new BusinessRuleException("Patient name is required.");
+            throw new BusinessRuleException("O nome do paciente é obrigatório.");
         }
         if (cpf == null || !cpf.matches("\\d{11}")) {
-            throw new BusinessRuleException("Patient cpf must have exactly 11 digits.");
+            throw new BusinessRuleException("O CPF deve conter exatamente 11 dígitos, sem pontuação.");
         }
         if (birthDate == null || birthDate.isAfter(LocalDate.now())) {
-            throw new BusinessRuleException("Patient birthDate is required and cannot be in the future.");
+            throw new BusinessRuleException("A data de nascimento é obrigatória e não pode ser futura.");
         }
     }
 }

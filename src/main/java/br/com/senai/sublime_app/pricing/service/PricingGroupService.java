@@ -25,7 +25,7 @@ public class PricingGroupService {
     @Transactional
     public PricingGroupResponseDTO create(PricingGroupRequestDTO dto) {
         if (pricingGroupRepository.existsByName(dto.name())) {
-            throw new ConflictException("A pricing group is already registered with name: " + dto.name());
+            throw new ConflictException("Já existe um grupo de preço cadastrado com o nome: " + dto.name());
         }
 
         PricingGroupEntity pricingGroup = new PricingGroupEntity(dto.name(), dto.pricingModel());

@@ -133,9 +133,9 @@ public class ContractController {
             @ApiResponse(responseCode = "404", description = "Contrato não encontrado", content = @Content)
     })
     @DeleteMapping("/{id}")
-    public ResponseEntity<Void> delete(
+    public ResponseEntity<Void> deactivate(
             @Parameter(description = "Identificador do contrato", required = true, example = "1") @PathVariable Long id) {
-        contractService.delete(id);
+        contractService.deactivate(id);
         return ResponseEntity.noContent().build();
     }
 }

@@ -31,11 +31,11 @@ public class TechniqueService {
     @Transactional
     public TechniqueResponseDTO create(TechniqueRequestDTO dto) {
         if (techniqueRepository.existsByName(dto.name())) {
-            throw new ConflictException("A technique is already registered with name: " + dto.name());
+            throw new ConflictException("Já existe uma técnica cadastrada com o nome: " + dto.name());
         }
 
         PricingGroupEntity pricingGroup = pricingGroupRepository.findById(dto.pricingGroupId())
-                .orElseThrow(() -> new ResourceNotFoundException("Pricing group not found with id: " + dto.pricingGroupId()));
+                .orElseThrow(() -> new ResourceNotFoundException("Grupo de preço não encontrado com id: " + dto.pricingGroupId()));
 
         TechniqueEntity technique = new TechniqueEntity(dto.name(), pricingGroup);
         techniqueRepository.save(technique);
@@ -55,7 +55,7 @@ public class TechniqueService {
     @Transactional
     public void deactivate(Long id) {
         TechniqueEntity technique = techniqueRepository.findById(id)
-                .orElseThrow(() -> new ResourceNotFoundException("Technique not found with id: " + id));
+                .orElseThrow(() -> new ResourceNotFoundException("Técnica não encontrada com id: " + id));
         technique.deactivate();
     }
 }

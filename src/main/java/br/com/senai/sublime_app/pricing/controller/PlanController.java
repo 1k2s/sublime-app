@@ -39,7 +39,8 @@ public class PlanController {
             """)
     @ApiResponses({
             @ApiResponse(responseCode = "201", description = "Plano criado", content = @Content(schema = @Schema(implementation = PlanResponseDTO.class))),
-            @ApiResponse(responseCode = "400", description = "Dados inválidos", content = @Content)
+            @ApiResponse(responseCode = "400", description = "Dados inválidos", content = @Content),
+            @ApiResponse(responseCode = "409", description = "Já existe um plano com esse nome", content = @Content)
     })
     @PostMapping
     public ResponseEntity<PlanResponseDTO> create(@Valid @RequestBody PlanRequestDTO dto) {

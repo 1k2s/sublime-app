@@ -86,25 +86,25 @@ public class SessionFrequencyPriceEntity {
     // de sessionCount: no Grupo o plano é mensalidade, não pacote de sessões.
     private static void validatePricingGroupAndPlan(PricingGroupEntity pricingGroup, PlanEntity plan) {
         if (pricingGroup.getPricingModel() != PricingModel.FREQUENCY_BASED) {
-            throw new BusinessRuleException("Frequency-based prices are only allowed for FREQUENCY_BASED pricing groups.");
+            throw new BusinessRuleException("Preço por frequência só é permitido em grupos FREQUENCY_BASED.");
         }
         if (!plan.isActive()) {
-            throw new BusinessRuleException("Plan is inactive.");
+            throw new BusinessRuleException("O plano está inativo.");
         }
     }
 
     private static void validateFrequencyAndSessionValue(int weeklyFrequency, Money sessionValue) {
         if (weeklyFrequency < 1) {
-            throw new BusinessRuleException("weeklyFrequency must be at least 1.");
+            throw new BusinessRuleException("A frequência semanal deve ser de no mínimo 1 sessão.");
         }
         if (sessionValue == null || !sessionValue.isPositive()) {
-            throw new BusinessRuleException("sessionValue must be greater than zero.");
+            throw new BusinessRuleException("O valor da sessão deve ser maior que zero.");
         }
     }
 
     private void requireCurrent() {
         if (!isCurrent()) {
-            throw new BusinessRuleException("Price is already closed.");
+            throw new BusinessRuleException("Esta linha de preço já foi encerrada.");
         }
     }
 
@@ -112,7 +112,7 @@ public class SessionFrequencyPriceEntity {
     // vazio (linha substituída antes de valer um dia inteiro).
     private void validateValidTo(LocalDate validTo) {
         if (validTo.isBefore(validFrom)) {
-            throw new BusinessRuleException("validTo must not be before validFrom.");
+            throw new BusinessRuleException("O fim da vigência não pode ser anterior ao início.");
         }
     }
 }

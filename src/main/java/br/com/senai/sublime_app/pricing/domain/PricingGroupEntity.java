@@ -44,10 +44,10 @@ public class PricingGroupEntity {
 
     private static void validateNameAndPricingModel(String name, PricingModel pricingModel) {
         if (name == null || name.isBlank()) {
-            throw new BusinessRuleException("Pricing group name is required.");
+            throw new BusinessRuleException("O nome do grupo de preço é obrigatório.");
         }
         if (pricingModel == null) {
-            throw new BusinessRuleException("Pricing group pricingModel is required.");
+            throw new BusinessRuleException("O modelo de precificação do grupo é obrigatório.");
         }
     }
 

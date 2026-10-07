@@ -24,7 +24,7 @@ public class PlanEntity {
     @EqualsAndHashCode.Include
     private Long id;
 
-    @Column(nullable = false)
+    @Column(nullable = false, unique = true)
     private String name;
 
     // Nullable: os planos do Pilates em Grupo são mensalidade, não pacote de sessões.
@@ -48,10 +48,10 @@ public class PlanEntity {
     // quando informado, precisa ter ao menos 1 sessão — o saldo parte dele.
     private static void validateNameAndSessionCount(String name, Integer sessionCount) {
         if (name == null || name.isBlank()) {
-            throw new BusinessRuleException("Plan name is required.");
+            throw new BusinessRuleException("O nome do plano é obrigatório.");
         }
         if (sessionCount != null && sessionCount < 1) {
-            throw new BusinessRuleException("sessionCount must be at least 1 when informed.");
+            throw new BusinessRuleException("A quantidade de sessões, quando informada, deve ser de no mínimo 1.");
         }
     }
 

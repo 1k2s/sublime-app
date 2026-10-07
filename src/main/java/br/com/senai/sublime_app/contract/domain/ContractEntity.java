@@ -133,7 +133,7 @@ public class ContractEntity {
     // ou encerrada. Contrato ativo porém vencido pode (é assim que se prorroga).
     private void requireAmendable() {
         if (!active) {
-            throw new ConflictException("Only active contracts can be amended.");
+            throw new ConflictException("Só a versão ativa do contrato pode ser alterada.");
         }
     }
 
@@ -151,9 +151,7 @@ public class ContractEntity {
                 ? previous.sessionDurationPrice.getId() : null;
         validatePrice(price.isCurrent() || price.getId().equals(previousPriceId),
                 price.getPricingGroup(), technique, PricingModel.DURATION_BASED);
-        if (weeklyFrequency == null || weeklyFrequency < 1) {
-            throw new BusinessRuleException("weeklyFrequency is required for duration-based prices and must be at least 1.");
-        }
+        validateWeeklyFrequency(weeklyFrequency);
         return new ContractEntity(previous, patient, beneficiary, technique, price.getPlan(), weeklyFrequency,
                 startDate, endDate, paymentMethod, price, null);
     }
@@ -208,14 +206,14 @@ public class ContractEntity {
     private static void validatePrice(boolean priceAccepted, PricingGroupEntity priceGroup,
             TechniqueEntity technique, PricingModel expectedModel) {
         if (!priceAccepted) {
-            throw new BusinessRuleException("Selected price is no longer valid. Please use the current price.");
+            throw new BusinessRuleException("O preço selecionado não está mais vigente. Use o preço atual.");
         }
         if (!priceGroup.getId().equals(technique.getPricingGroup().getId())) {
-            throw new BusinessRuleException("Technique does not belong to the pricing group of the selected price.");
+            throw new BusinessRuleException("A técnica não pertence ao grupo de preço do preço selecionado.");
         }
         if (priceGroup.getPricingModel() != expectedModel) {
             throw new BusinessRuleException(
-                    "Selected price table does not match the pricing model of the technique's group.");
+                    "A tabela do preço selecionado não corresponde ao modelo de precificação do grupo da técnica.");
         }
     }
 
@@ -225,16 +223,24 @@ public class ContractEntity {
     private static void validateParties(ContractEntity previous, PatientEntity patient,
             PatientEntity beneficiary, TechniqueEntity technique) {
         if (previous == null && !patient.isActive()) {
-            throw new BusinessRuleException("Patient is inactive.");
+            throw new BusinessRuleException("O paciente titular está inativo.");
         }
         Long previousBeneficiaryId = previous != null && previous.beneficiary != null
                 ? previous.beneficiary.getId() : null;
         if (beneficiary != null && !beneficiary.isActive() && !beneficiary.getId().equals(previousBeneficiaryId)) {
-            throw new BusinessRuleException("Beneficiary is inactive.");
+            throw new BusinessRuleException("O beneficiário está inativo.");
         }
         Long previousTechniqueId = previous != null ? previous.technique.getId() : null;
         if (!technique.isActive() && !technique.getId().equals(previousTechniqueId)) {
-            throw new BusinessRuleException("Technique is inactive.");
+            throw new BusinessRuleException("A técnica está inativa.");
+        }
+    }
+
+    // No preço por duração a frequência é negociação e vem de fora (no preço por
+    // frequência ela é copiada da linha de preço, então não passa por aqui).
+    private static void validateWeeklyFrequency(Integer weeklyFrequency) {
+        if (weeklyFrequency == null || weeklyFrequency < 1) {
+            throw new BusinessRuleException("A frequência semanal é obrigatória para preço por duração e deve ser de no mínimo 1 sessão.");
         }
     }
 
@@ -242,7 +248,7 @@ public class ContractEntity {
     // qualquer caminho que crie ou altere o contrato.
     private static void validatePeriod(LocalDate startDate, LocalDate endDate) {
         if (endDate.isBefore(startDate)) {
-            throw new BusinessRuleException("endDate must not be before startDate.");
+            throw new BusinessRuleException("A data de término não pode ser anterior à data de início.");
         }
     }
 }

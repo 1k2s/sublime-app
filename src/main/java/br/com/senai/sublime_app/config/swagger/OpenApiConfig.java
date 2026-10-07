@@ -24,14 +24,20 @@ public class OpenApiConfig {
                                 
                                 ## Módulos disponíveis
                                 - **Pacientes** — cadastro e gestão de pacientes
+                                - **Grupos de preço** — agrupamento das técnicas que compartilham a mesma tabela de preço
+                                - **Técnicas e preços** — cadastro de técnicas e consulta da tabela de preços vigente
+                                - **Planos** — planos usados nas tabelas de preço
+                                - **Cadastro de preços** — preço novo e reajuste (historizados, nunca alterados)
                                 - **Contratos** — contratos entre paciente e clínica, com snapshot de preço e regra de exclusive arc
                                 - **Prestadores** — cadastro de prestadores de serviço e comissões
-                                - **Usuários** — autenticação e controle de acesso
-                                
+                                - **Usuários** — usuários de acesso ao sistema
+
                                 ## Regras gerais
                                 - Datas no formato `YYYY-MM-DD`
+                                - Valores em reais e percentuais com no máximo 2 casas decimais (mais casas são rejeitadas, nunca arredondadas)
                                 - Soft delete: registros inativados são preservados no histórico
                                 - Preços travados no momento da assinatura do contrato (não retroativos)
+                                - Erros no formato ProblemDetail (RFC 7807), com mensagens em português
                                 """)
                         .version("v1.0.0")
                         .contact(new Contact()

@@ -35,13 +35,13 @@ public record Money(BigDecimal amount) {
     // esconderia um valor digitado errado.
     private static void validateAmount(BigDecimal amount) {
         if (amount == null) {
-            throw new BusinessRuleException("Amount is required.");
+            throw new BusinessRuleException("O valor é obrigatório.");
         }
         if (amount.compareTo(BigDecimal.ZERO) < 0) {
-            throw new BusinessRuleException("Amount must not be negative.");
+            throw new BusinessRuleException("O valor não pode ser negativo.");
         }
         if (amount.stripTrailingZeros().scale() > SCALE) {
-            throw new BusinessRuleException("Amount must have at most " + SCALE + " decimal places.");
+            throw new BusinessRuleException("O valor deve ter no máximo " + SCALE + " casas decimais.");
         }
     }
 }

@@ -1,32 +1,39 @@
 package br.com.senai.sublime_app.patient.dto;
 
 import br.com.senai.sublime_app.patient.domain.Address;
-import lombok.AllArgsConstructor;
-import lombok.Data;
-import lombok.NoArgsConstructor;
+import jakarta.validation.constraints.NotBlank;
+import jakarta.validation.constraints.Pattern;
 
 // Usado tanto na entrada quanto na saída: o endereço não tem identidade própria,
-// então não há motivo para separar em request/response.
-@Data
-@NoArgsConstructor
-@AllArgsConstructor
-public class AddressDTO {
+// então não há motivo para separar em request/response. A conversão para o Value
+// Object (entrada) fica no PatientService.
+public record AddressDTO(
 
-    private String street;
-    private String numberHouse;
-    private String city;
-    private String complement;
-    private String cep;
+        @NotBlank(message = "A rua é obrigatória.")
+        String street,
 
-    public AddressDTO(Address address) {
-        this.street = address.getStreet();
-        this.numberHouse = address.getNumberHouse();
-        this.city = address.getCity();
-        this.complement = address.getComplement();
-        this.cep = address.getCep();
-    }
+        // Texto livre para aceitar "S/N"
+        @NotBlank(message = "O número é obrigatório.")
+        String numberHouse,
 
-    public Address toValueObject() {
-        return new Address(street, numberHouse, city, complement, cep);
+        @NotBlank(message = "A cidade é obrigatória.")
+        String city,
+
+        // Único campo opcional do endereço
+        String complement,
+
+        // Somente os 8 dígitos, sem hífen
+        @NotBlank(message = "O CEP é obrigatório.")
+        @Pattern(regexp = "\\d{8}", message = "O CEP deve conter exatamente 8 dígitos, sem hífen.")
+        String cep
+
+) {
+    public static AddressDTO fromValueObject(Address address) {
+        return new AddressDTO(
+                address.getStreet(),
+                address.getNumberHouse(),
+                address.getCity(),
+                address.getComplement(),
+                address.getCep());
     }
 }

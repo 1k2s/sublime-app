@@ -9,33 +9,30 @@ import jakarta.validation.constraints.NotNull;
 import jakarta.validation.constraints.Past;
 import jakarta.validation.constraints.Pattern;
 import jakarta.validation.constraints.Size;
-import lombok.AllArgsConstructor;
-import lombok.Data;
-import lombok.NoArgsConstructor;
 
-@Data
-@NoArgsConstructor
-@AllArgsConstructor
-public class PatientRequestDTO {
+public record PatientRequestDTO(
 
-    @NotBlank
-    @Size(min = 3, max = 255)
-    private String name;
+        @NotBlank(message = "O nome do paciente é obrigatório.")
+        @Size(min = 3, max = 255, message = "O nome do paciente deve ter entre 3 e 255 caracteres.")
+        String name,
 
-    // Somente os 11 dígitos, sem pontuação
-    @NotBlank
-    @Pattern(regexp = "\\d{11}")
-    private String cpf;
+        // Somente os 11 dígitos, sem pontuação
+        @NotBlank(message = "O CPF é obrigatório.")
+        @Pattern(regexp = "\\d{11}", message = "O CPF deve conter exatamente 11 dígitos, sem pontuação.")
+        String cpf,
 
-    @NotNull
-    @Past
-    private LocalDate birthDate;
+        @NotNull(message = "A data de nascimento é obrigatória.")
+        @Past(message = "A data de nascimento deve estar no passado.")
+        LocalDate birthDate,
 
-    private String phone;
+        String phone,
 
-    @Email
-    private String email;
+        @Email(message = "O e-mail informado é inválido.")
+        String email,
 
-    @Valid
-    private AddressDTO address;
+        // Opcional no cadastro
+        @Valid
+        AddressDTO address
+
+) {
 }

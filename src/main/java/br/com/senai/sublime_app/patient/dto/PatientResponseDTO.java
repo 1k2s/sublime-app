@@ -3,32 +3,28 @@ package br.com.senai.sublime_app.patient.dto;
 import java.time.LocalDate;
 
 import br.com.senai.sublime_app.patient.domain.PatientEntity;
-import lombok.AllArgsConstructor;
-import lombok.Data;
-import lombok.NoArgsConstructor;
 
-@Data
-@NoArgsConstructor
-@AllArgsConstructor
-public class PatientResponseDTO {
+public record PatientResponseDTO(
 
-    private Long id;
-    private String name;
-    private String cpf;
-    private LocalDate birthDate;
-    private String phone;
-    private String email;
-    private AddressDTO address;
-    private boolean active;
+        Long id,
+        String name,
+        String cpf,
+        LocalDate birthDate,
+        String phone,
+        String email,
+        AddressDTO address,
+        boolean active
 
-    public PatientResponseDTO(PatientEntity patient) {
-        this.id = patient.getId();
-        this.name = patient.getName();
-        this.cpf = patient.getCpf();
-        this.birthDate = patient.getBirthDate();
-        this.phone = patient.getPhone();
-        this.email = patient.getEmail();
-        this.address = patient.getAddress() != null ? new AddressDTO(patient.getAddress()) : null;
-        this.active = patient.isActive();
+) {
+    public static PatientResponseDTO fromEntity(PatientEntity entity) {
+        return new PatientResponseDTO(
+                entity.getId(),
+                entity.getName(),
+                entity.getCpf(),
+                entity.getBirthDate(),
+                entity.getPhone(),
+                entity.getEmail(),
+                entity.getAddress() != null ? AddressDTO.fromValueObject(entity.getAddress()) : null,
+                entity.isActive());
     }
 }

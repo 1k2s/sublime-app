@@ -57,7 +57,7 @@ public class PricingService {
     @Transactional(readOnly = true)
     public TechniquePriceTableResponseDTO findCurrentPriceTable(Long techniqueId) {
         TechniqueEntity technique = techniqueRepository.findById(techniqueId)
-                .orElseThrow(() -> new ResourceNotFoundException("Technique not found with id: " + techniqueId));
+                .orElseThrow(() -> new ResourceNotFoundException("Técnica não encontrada com id: " + techniqueId));
 
         Long pricingGroupId = technique.getPricingGroup().getId();
 
@@ -134,11 +134,11 @@ public class PricingService {
 
     private PricingGroupEntity findPricingGroup(Long id) {
         return pricingGroupRepository.findById(id)
-                .orElseThrow(() -> new ResourceNotFoundException("Pricing group not found with id: " + id));
+                .orElseThrow(() -> new ResourceNotFoundException("Grupo de preço não encontrado com id: " + id));
     }
 
     private PlanEntity findPlan(Long id) {
         return planRepository.findById(id)
-                .orElseThrow(() -> new ResourceNotFoundException("Plan not found with id: " + id));
+                .orElseThrow(() -> new ResourceNotFoundException("Plano não encontrado com id: " + id));
     }
 }
