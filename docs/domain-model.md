@@ -144,6 +144,11 @@ preenchido, nunca os dois. `Money` e `Percentage` são Value Objects persistidos
 coluna `unique`. Os valores de `Consultation` ainda são `BigDecimal`: passam a
 `Money`/`Percentage` no redesenho do módulo.
 
+**Soft delete:** `Patient`, `Technique`, `Contract`, `User` e `Provider` nunca são
+removidos do banco; o `DELETE` só inativa (`active = false`). Inativar um registro
+que **já está inativo** é rejeitado com 409 — a regra fica no `deactivate()` da
+própria entidade, que conhece o próprio estado.
+
 **Unicidade de nome e CPF:** nome de `PricingGroup`, `Technique` e `Plan`, CPF de
 `Patient` e e-mail de `User` são únicos. A garantia real é o `unique` da coluna; o
 service checa antes (`existsBy...`) só para devolver um 409 com mensagem clara. A

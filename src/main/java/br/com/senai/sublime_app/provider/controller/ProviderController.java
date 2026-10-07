@@ -106,7 +106,8 @@ public class ProviderController {
             """)
     @ApiResponses({
             @ApiResponse(responseCode = "204", description = "Prestador inativado com sucesso"),
-            @ApiResponse(responseCode = "404", description = "Prestador não encontrado", content = @Content)
+            @ApiResponse(responseCode = "404", description = "Prestador não encontrado", content = @Content),
+            @ApiResponse(responseCode = "409", description = "O prestador já está inativo", content = @Content)
     })
     @DeleteMapping("/{id}")
     public ResponseEntity<Void> deactivate(

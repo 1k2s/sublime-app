@@ -3,6 +3,7 @@ package br.com.senai.sublime_app.patient.domain;
 import java.time.LocalDate;
 
 import br.com.senai.sublime_app.shared.exception.BusinessRuleException;
+import br.com.senai.sublime_app.shared.exception.ConflictException;
 import jakarta.persistence.Column;
 import jakarta.persistence.Embedded;
 import jakarta.persistence.Entity;
@@ -84,7 +85,15 @@ public class PatientEntity {
     }
 
     public void deactivate() {
+        requireActive();
         this.active = false;
+    }
+
+    // Inativar duas vezes não é uma operação válida: 409 avisa que o estado já era esse
+    private void requireActive() {
+        if (!active) {
+            throw new ConflictException("O paciente já está inativo.");
+        }
     }
 
     // Invariantes do paciente, válidas para qualquer caminho que crie ou edite o

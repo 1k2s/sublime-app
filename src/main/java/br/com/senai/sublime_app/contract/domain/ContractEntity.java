@@ -190,8 +190,17 @@ public class ContractEntity {
         this.active = true;
     }
 
+    // Soft delete da versão. Uma versão já inativa (substituída por aditivo ou já
+    // encerrada) não pode ser inativada de novo: mesmo 409 do requireAmendable.
     public void deactivate() {
+        requireActive();
         this.active = false;
+    }
+
+    private void requireActive() {
+        if (!active) {
+            throw new ConflictException("O contrato já está inativo.");
+        }
     }
 
     /**

@@ -130,7 +130,8 @@ public class ContractController {
             """)
     @ApiResponses({
             @ApiResponse(responseCode = "204", description = "Contrato inativado com sucesso"),
-            @ApiResponse(responseCode = "404", description = "Contrato não encontrado", content = @Content)
+            @ApiResponse(responseCode = "404", description = "Contrato não encontrado", content = @Content),
+            @ApiResponse(responseCode = "409", description = "O contrato já está inativo (substituído por aditivo ou já encerrado)", content = @Content)
     })
     @DeleteMapping("/{id}")
     public ResponseEntity<Void> deactivate(

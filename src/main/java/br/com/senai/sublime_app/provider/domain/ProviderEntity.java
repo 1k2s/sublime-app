@@ -1,6 +1,7 @@
 package br.com.senai.sublime_app.provider.domain;
 
 import br.com.senai.sublime_app.shared.exception.BusinessRuleException;
+import br.com.senai.sublime_app.shared.exception.ConflictException;
 import br.com.senai.sublime_app.user.domain.UserEntity;
 import jakarta.persistence.Column;
 import jakarta.persistence.Entity;
@@ -63,11 +64,19 @@ public class ProviderEntity {
     }
 
     public void deactivate() {
+        requireActive();
         this.active = false;
     }
 
     public void activate() {
         this.active = true;
+    }
+
+    // Inativar duas vezes não é uma operação válida: 409 avisa que o estado já era esse
+    private void requireActive() {
+        if (!active) {
+            throw new ConflictException("O prestador já está inativo.");
+        }
     }
 
     // Todo prestador se autentica por um User; o vínculo é fixo (update não o recebe).

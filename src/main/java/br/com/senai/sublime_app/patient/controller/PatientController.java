@@ -96,7 +96,8 @@ public class PatientController {
             """)
     @ApiResponses({
             @ApiResponse(responseCode = "204", description = "Paciente inativado com sucesso"),
-            @ApiResponse(responseCode = "404", description = "Paciente não encontrado", content = @Content)
+            @ApiResponse(responseCode = "404", description = "Paciente não encontrado", content = @Content),
+            @ApiResponse(responseCode = "409", description = "O paciente já está inativo", content = @Content)
     })
     @DeleteMapping("/{id}")
     public ResponseEntity<Void> deactivate(

@@ -1,6 +1,7 @@
 package br.com.senai.sublime_app.user.domain;
 
 import br.com.senai.sublime_app.shared.exception.BusinessRuleException;
+import br.com.senai.sublime_app.shared.exception.ConflictException;
 import br.com.senai.sublime_app.user.enums.Role;
 import jakarta.persistence.Column;
 import jakarta.persistence.Entity;
@@ -59,7 +60,15 @@ public class UserEntity {
     // Soft delete: o usuário pode estar vinculado a um prestador com atendimentos
     // lançados, então nunca é removido do banco
     public void deactivate() {
+        requireActive();
         this.active = false;
+    }
+
+    // Inativar duas vezes não é uma operação válida: 409 avisa que o estado já era esse
+    private void requireActive() {
+        if (!active) {
+            throw new ConflictException("O usuário já está inativo.");
+        }
     }
 
     // Invariantes mínimas do usuário. Formato do e-mail fica no DTO (@Email);
