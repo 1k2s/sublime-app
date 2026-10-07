@@ -16,7 +16,6 @@ import br.com.senai.sublime_app.pricing.dto.DurationPriceRequestDTO;
 import br.com.senai.sublime_app.pricing.dto.FrequencyPriceRequestDTO;
 import br.com.senai.sublime_app.pricing.dto.SessionPriceResponseDTO;
 import br.com.senai.sublime_app.pricing.dto.TechniquePriceTableResponseDTO;
-import br.com.senai.sublime_app.pricing.dto.TechniqueResponseDTO;
 import br.com.senai.sublime_app.pricing.repository.PlanRepository;
 import br.com.senai.sublime_app.pricing.repository.PricingGroupRepository;
 import br.com.senai.sublime_app.pricing.repository.SessionDurationPriceRepository;
@@ -45,13 +44,6 @@ public class PricingService {
         this.planRepository = planRepository;
         this.sessionDurationPriceRepository = sessionDurationPriceRepository;
         this.sessionFrequencyPriceRepository = sessionFrequencyPriceRepository;
-    }
-
-    @Transactional(readOnly = true)
-    public List<TechniqueResponseDTO> findActiveTechniques() {
-        return techniqueRepository.findByActiveTrue().stream()
-                .map(TechniqueResponseDTO::fromEntity)
-                .toList();
     }
 
     /**

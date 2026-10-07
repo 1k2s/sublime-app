@@ -14,4 +14,8 @@ public interface TechniqueRepository extends JpaRepository<TechniqueEntity, Long
     // sem isso, o Hibernate faria uma consulta extra por técnica (N+1).
     @EntityGraph(attributePaths = "pricingGroup")
     List<TechniqueEntity> findByActiveTrue();
+
+    // Checagem prévia de nome no cadastro. A garantia real é o unique da coluna;
+    // este método só permite devolver uma mensagem clara em vez de um erro do banco.
+    boolean existsByName(String name);
 }

@@ -10,24 +10,23 @@
 ```mermaid
 erDiagram
   PRICING_GROUP ||--o{ TECHNIQUE : classifica
-  PRICING_GROUP ||--o{ SESSION_DURATION_PRICE : precifica
-  PRICING_GROUP ||--o{ SESSION_FREQUENCY_PRICE : precifica
-  PLAN ||--o{ SESSION_DURATION_PRICE : precifica
-  PLAN ||--o{ SESSION_FREQUENCY_PRICE : precifica
-  CONTRACT |o--o| CONTRACT : versao_anterior
+  PRICING_GROUP ||--o{ GROUP_PLAN_PRICE : precifica
+  PRICING_GROUP ||--o{ GROUP_PLAN_FREQUENCY_PRICE : precifica
+  PLAN ||--o{ GROUP_PLAN_PRICE : precifica
+  PLAN ||--o{ GROUP_PLAN_FREQUENCY_PRICE : precifica
   PATIENT ||--o{ CONTRACT : titular
-  PATIENT |o--o{ CONTRACT : beneficiario
+  PATIENT ||--o{ CONTRACT : beneficiario
   TECHNIQUE ||--o{ CONTRACT : ancora
   PLAN ||--o{ CONTRACT : contratado
-  SESSION_DURATION_PRICE |o--o{ CONTRACT : trava
-  SESSION_FREQUENCY_PRICE |o--o{ CONTRACT : trava
+  GROUP_PLAN_PRICE |o--o{ CONTRACT : trava
+  GROUP_PLAN_FREQUENCY_PRICE |o--o{ CONTRACT : trava
   USER ||--o| PROVIDER : autentica
   PATIENT ||--o{ CONSULTATION : atendido
   CONTRACT ||--o{ CONSULTATION : consome_saldo
   PROVIDER ||--o{ CONSULTATION : realiza
   TECHNIQUE ||--o{ CONSULTATION : executada
-  SESSION_DURATION_PRICE |o--o{ CONSULTATION : aplicado
-  SESSION_FREQUENCY_PRICE |o--o{ CONSULTATION : aplicado
+  GROUP_PLAN_PRICE |o--o{ CONSULTATION : aplicado
+  GROUP_PLAN_FREQUENCY_PRICE |o--o{ CONSULTATION : aplicado
 
   PATIENT {
     bigint id PK
@@ -54,7 +53,7 @@ erDiagram
   PLAN {
     bigint id PK
     string name
-    int sessionCount "nullable"
+    int sessionCount
     boolean active
   }
 
@@ -64,22 +63,22 @@ erDiagram
     string pricingModel
   }
 
-  SESSION_DURATION_PRICE {
+  GROUP_PLAN_PRICE {
     bigint id PK
     bigint pricingGroupId FK
     bigint planId FK
     int durationMinutes
-    BigDecimal sessionValue
+    decimal sessionValue
     date validFrom
     date validTo
   }
 
-  SESSION_FREQUENCY_PRICE {
+  GROUP_PLAN_FREQUENCY_PRICE {
     bigint id PK
     bigint pricingGroupId FK
     bigint planId FK
     int weeklyFrequency
-    BigDecimal sessionValue
+    decimal sessionValue
     date validFrom
     date validTo
   }
@@ -94,10 +93,9 @@ erDiagram
     date startDate
     date endDate
     string paymentMethod
-    bigint sessionDurationPriceId FK
-    bigint sessionFrequencyPriceId FK
+    bigint groupPlanPriceId FK
+    bigint groupPlanFrequencyPriceId FK
     boolean active
-    bigint previousContractId FK
   }
 
   USER {
@@ -120,15 +118,17 @@ erDiagram
     bigint patientId FK
     bigint contractId FK
     bigint providerId FK
+
+
     bigint techniqueId FK
     int durationMinutes
     date occurredAt
-    string status "ENUM"
-    bigint sessionDurationPriceId FK
-    bigint sessionFrequencyPriceId FK
-    BigDecimal commissionPercentageApplied
-    BigDecimal baseValue
-    BigDecimal repasseValue
+    string status (ENUM)
+    bigint groupPlanPriceId FK
+    bigint groupPlanFrequencyPriceId FK
+    decimal commissionPercentageApplied
+    decimal baseValue
+    decimal repasseValue
   }
 ```
 
@@ -136,7 +136,7 @@ Legenda: `addressStreet`/`addressNumberHouse`/`addressCity`/`addressComplement`/
 `addressCep` em `Patient` são um Value Object embutido (`@Embeddable`), não uma
 tabela própria (`cep`, não `zipCode` — é um conceito específico do endereçamento
 brasileiro, não uma tradução literal de "zip code"). `pricingModel`, `role`,
-`paymentMethod` e `status` são ENUMs. `sessionDurationPriceId`/`sessionFrequencyPriceId`
+`paymentMethod` e `status` são ENUMs. `groupPlanPriceId`/`groupPlanFrequencyPriceId`
 (em `Contract` e `Consultation`) são nullable, em padrão "exclusive arc": sempre um
 preenchido, nunca os dois.
 
@@ -188,35 +188,11 @@ duplicação replicada em cada reajuste, com risco de divergência silenciosa.
 |---|---|---|
 | `id` | Long | auto-increment |
 | `name` | string | |
-| `sessionCount` | int, nullable | quantidade de sessões do pacote; `null` nos planos do Pilates em Grupo |
+| `sessionCount` | int | quantidade de sessões do pacote |
 | `active` | boolean | |
 
-**Planos atuais da clínica:**
-
-| Plano | `sessionCount` | Usado em |
-|---|---|---|
-| Avulso | 1 | grupos `DURATION_BASED` |
-| Essencial | 4 | grupos `DURATION_BASED` |
-| Evolução | 12 | grupos `DURATION_BASED` |
-| Evolução Familiar | 12 | Individual Padrão (por enquanto; os demais grupos depois) |
-| Transformação / Transformação Familiar | 26 | grupos `DURATION_BASED` |
-| Vitalidade / Vitalidade Familiar | 52 | grupos `DURATION_BASED` |
-| Mensal, Trimestral, Semestral, Semestral Familiar, Anual, Anual Familiar | `null` | Em Grupo (`FREQUENCY_BASED`) |
-
-**Por que `sessionCount` é nullable:** no Pilates em Grupo o plano não é um
-pacote de sessões, e sim um valor mensal definido pelo plano e pela frequência
-semanal (ex: Mensal 1x/semana = 4 aulas no mês, 3x/semana = 12). Gravar um número
-fixo seria um dado enganoso, que uma tela ou relatório poderia usar errado. O
-plano não sabe em qual grupo é usado (a ligação é a linha de preço), então a regra
-"preço por duração exige plano com `sessionCount`" é validada na criação da linha
-de preço por duração (que recebe o plano), não no próprio plano.
-
-**Por que o Grupo mantém planos com nomes próprios:** é outro conceito de plano
-(mensalidade por frequência, não pacote de sessões), por isso não compartilha os
-planos dos grupos por duração.
-
 **Por que sem frequência semanal, vigência ou desconto:** um paciente pode
-contratar um plano Vitalidade (52 sessões) com vigência de 6 meses a 2x/semana — a
+contratar um plano Anual (52 sessões) com vigência de 6 meses a 2x/semana — a
 mesma quantidade de sessões pode ser consumida em ritmos diferentes. Frequência e
 vigência são decisão de negociação, vivem em `Contract`. Desconto é sempre
 calculado em tempo de leitura (ver seção de preço abaixo), nunca armazenado.
@@ -236,31 +212,8 @@ uma única tabela de preço. O grupo é quem carrega o preço; a técnica só ap
 para o grupo. Reajustar o valor do grupo atualiza automaticamente todas as
 técnicas associadas, sem precisar editar cada uma.
 
-**Grupos atuais da clínica:**
-
-| Grupo | Técnicas | `pricingModel` | Tabela de preço |
-|---|---|---|---|
-| Individual Padrão | Liberação Miofascial, RPG, Massoterapia, Pilates Individual | `DURATION_BASED` | `SessionDurationPrice` |
-| Individual Especializado | Quiropraxia, Reabilitação Vestibular | `DURATION_BASED` | `SessionDurationPrice` |
-| Em Dupla | Pilates em Dupla | `DURATION_BASED` | `SessionDurationPrice` |
-| Em Grupo | Pilates em Grupo | `FREQUENCY_BASED` | `SessionFrequencyPrice` |
-
-**Por que esses nomes:** o grupo representa um conjunto de técnicas com o mesmo
-preço, então o nome diz *por que* elas custam igual, e não repete o nome de uma
-técnica (o que confundia grupo e técnica em telas e relatórios — ex: "Quiropraxia"
-era tanto o grupo quanto uma de suas técnicas). Dois fatores definem o preço: o
-**formato do atendimento** (individual, dupla, grupo) e, no individual, o **nível
-de especialização** (padrão × especializado, ligado ao grau de complexidade
-COFFITO). Uma técnica nova com o mesmo preço entra no grupo correspondente (ex:
-um futuro "RPG em dupla" com o preço da dupla entraria em "Em Dupla").
-
-Grupos com uma única técnica (Em Dupla, Em Grupo) são válidos: o grupo existe
-porque carrega uma tabela de preço própria. Note que "Pilates" aparece em três
-grupos diferentes — Pilates Individual é precificado no Individual Padrão, e só o
-Pilates em Grupo é por frequência.
-
 **Por que o discriminador `pricingModel`:** a maioria dos grupos precifica por
-`duração da sessão × plano` (`DURATION_BASED`). O Pilates em Grupo precifica por
+`duração da sessão × plano` (`DURATION_BASED`). O Grupo Pilates precifica por
 `frequência semanal × plano` (`FREQUENCY_BASED`) — o preço por sessão não é uma
 multiplicação simples do valor unitário, é uma tabela de desconto por volume
 publicada à parte (embute cálculo de feriados). As duas estratégias não cabem na
@@ -269,7 +222,7 @@ de preço separadas (abaixo).
 
 ---
 
-## `SessionDurationPrice` (grupos `DURATION_BASED`)
+## `GroupPlanPrice` (grupos `DURATION_BASED`)
 
 | Atributo | Tipo | Observação |
 |---|---|---|
@@ -277,11 +230,11 @@ de preço separadas (abaixo).
 | `pricingGroupId` | FK → PricingGroup | |
 | `planId` | FK → Plan | |
 | `durationMinutes` | int | eixo de duração |
-| `sessionValue` | `Money` (VO) | coluna `DECIMAL(10,2)` via `MoneyConverter` |
+| `sessionValue` | decimal | |
 | `validFrom` | date | |
-| `validTo` | date, nullable | `null` = vigente; **exclusivo** (ver convenção abaixo) |
+| `validTo` | date, nullable | `null` = vigente |
 
-## `SessionFrequencyPrice` (grupos `FREQUENCY_BASED`)
+## `GroupPlanFrequencyPrice` (grupos `FREQUENCY_BASED`)
 
 | Atributo | Tipo | Observação |
 |---|---|---|
@@ -289,67 +242,24 @@ de preço separadas (abaixo).
 | `pricingGroupId` | FK → PricingGroup | |
 | `planId` | FK → Plan | |
 | `weeklyFrequency` | int | eixo de frequência |
-| `sessionValue` | `Money` (VO) | coluna `DECIMAL(10,2)` via `MoneyConverter` |
+| `sessionValue` | decimal | |
 | `validFrom` | date | |
-| `validTo` | date, nullable | `null` = vigente; **exclusivo** (ver convenção abaixo) |
-
-**Valor em dinheiro (`Money`):** `sessionValue` é o Value Object `Money`
-(módulo `pricing`), não um `BigDecimal` solto. Regras do próprio `Money`:
-obrigatório, nunca negativo, no máximo 2 casas decimais e escala sempre
-normalizada em 2 (`220` vira `220.00`). Valor com mais de 2 casas (ex: `220.555`)
-é **rejeitado (400), nunca arredondado** — arredondar em silêncio esconderia um
-valor digitado errado. Zero é um `Money` válido; "maior que zero" é regra da
-linha de preço (`Money.isPositive()`), não do dinheiro em si. O modo de
-arredondamento do cálculo de repasse ainda não foi decidido (entra com o
-`Consultation`).
+| `validTo` | date, nullable | `null` = vigente |
 
 **Regra de unicidade:** só pode existir uma linha com `validTo IS NULL` por
 combinação de `(pricingGroupId, durationMinutes, planId)` — ou
 `(pricingGroupId, weeklyFrequency, planId)` na tabela de frequência.
 
-**Reajuste nunca é `UPDATE`.** Sempre: fecha a linha vigente (`validTo` = hoje) e
+**Reajuste nunca é `UPDATE`.** Sempre: fecha a linha vigente (`validTo` = ontem) e
 insere uma nova com `validFrom` = hoje. Isso preserva o histórico completo de
 preços — requisito de rastreabilidade do escopo original do projeto — e garante
 que contratos antigos continuem apontando para o valor que estava vigente na
 assinatura.
 
-**Convenção de datas: `validTo` é exclusivo.** A vigência de uma linha de preço é
-o intervalo semiaberto `[validFrom, validTo)`: a linha vale a partir de
-`validFrom` (inclusive) até o dia **anterior** a `validTo`. Ex: `validFrom =
-01/10`, `validTo = 15/10` → valeu de 01/10 a 14/10; em 15/10 já vale a linha nova.
-- Por que: a linha antiga fecha e a nova abre na **mesma data**, sem a conta do
-  "ontem" e sem dois preços valendo no mesmo dia.
-- Dois reajustes no mesmo dia geram uma linha com intervalo vazio
-  (`[15/10, 15/10)`): ela foi substituída no mesmo dia e não vale em nenhum dia.
-  Não é um estado inválido — se um contrato a travou nesse meio-tempo, continua
-  com ela, como em qualquer reajuste. Por isso não há bloqueio de reajuste no
-  mesmo dia (corrigir um valor digitado errado é só cadastrar de novo).
-- Consulta "preço vigente na data X": `validFrom <= X AND (validTo IS NULL OR
-  validTo > X)` — **`>`, nunca `>=`**.
-- ⚠️ **Diferente do `endDate` de `Contract`, que é inclusivo** (o último dia
-  ainda conta). O `endDate` é o "último dia" combinado com o paciente; o
-  `validTo` é o momento de troca de preço. Atenção ao comparar os dois.
-
-**Cadastro de valor (novo preço ou reajuste):** um único fluxo cobre os dois
-casos — para a clínica, ambos significam "a partir de hoje, essa combinação custa
-X". A clínica informa grupo, plano, eixo (duração ou frequência) e valor:
-- **sem linha vigente** para a combinação → cria a linha com `validFrom` = hoje;
-- **com linha vigente** → fecha a atual (`validTo` = hoje) e cria a nova com
-  `validFrom` = hoje.
-
-`validFrom` é sempre hoje, nunca vem do request: como vigente = `validTo` nulo,
-uma linha com início futuro já contaria como vigente antes da hora. Reajuste
-agendado fica como melhoria futura.
-
-Validações do cadastro: o `pricingModel` do grupo corresponde à tabela usada
-(preço por duração só em grupo `DURATION_BASED`, por frequência só em
-`FREQUENCY_BASED`); o plano está ativo; preço por duração exige plano com
-`sessionCount` preenchido; valor maior que zero.
-
 **Percentual de desconto nunca é persistido.** É sempre calculado em tempo de
 leitura: `1 − (valorDoPlano / valorDeReferência)`, onde a referência é o Avulso da
 mesma técnica/grupo quando existir, ou o Mensal quando não existir Avulso (caso do
-grupo Em Grupo). Guardar os dois campos (valor absoluto e percentual) gera risco de
+Grupo Pilates). Guardar os dois campos (valor absoluto e percentual) gera risco de
 dessincronia a cada reajuste.
 
 ---
@@ -362,14 +272,13 @@ dessincronia a cada reajuste.
 | `patientId` | FK → Patient | titular, obrigatório |
 | `beneficiaryId` | FK → Patient, nullable | Pilates em Dupla / plano Familiar |
 | `techniqueId` | FK → Technique | técnica-âncora (define com base em qual valor o contrato foi fechado) |
-| `planId` | FK → Plan | copiado da linha de preço travada, nunca recebido do request |
-| `weeklyFrequency` | int | preço por duração: negociação, informada no request; preço por frequência: copiada da linha de preço |
+| `planId` | FK → Plan | |
+| `weeklyFrequency` | int | decisão de negociação, independente do preço |
 | `startDate` / `endDate` | date | vigência negociada |
 | `paymentMethod` | ENUM | |
-| `sessionDurationPriceId` | FK → SessionDurationPrice, nullable | exclusive arc |
-| `sessionFrequencyPriceId` | FK → SessionFrequencyPrice, nullable | exclusive arc |
+| `groupPlanPriceId` | FK → GroupPlanPrice, nullable | exclusive arc |
+| `groupPlanFrequencyPriceId` | FK → GroupPlanFrequencyPrice, nullable | exclusive arc |
 | `active` | boolean | |
-| `previousContractId` | FK → Contract, nullable, unique | versão anterior (aditivo); null na primeira versão |
 
 **Sobre `beneficiaryId`:** cobre tanto o Pilates em Dupla (titular + acompanhante
 compartilhando o mesmo saldo) quanto os planos Familiares (dois contratos
@@ -377,71 +286,16 @@ distintos, cada um com seu próprio titular e beneficiário — o grau de parent
 entre os titulares é checado manualmente pela clínica na venda, o sistema não
 guarda nem valida isso).
 
-- **Beneficiário não é obrigatório, nem no Pilates em Dupla:** nada impede o
-  paciente de contratar a dupla e usar sozinho. O sistema não exige nem proíbe
-  beneficiário em nenhum plano.
-- **Um paciente pode ser beneficiário e titular ao mesmo tempo:** ser beneficiário
-  de um contrato não impede de ser titular de outro (nem beneficiário de mais de
-  um). Só o titular está sujeito à regra de um contrato vigente. Decisão atual,
-  revisável se surgir necessidade.
-
 **Sobre `techniqueId` ser só "âncora":** o paciente não fica restrito a essa
 técnica. `techniqueId` formaliza com base em qual valor o contrato foi
 inicialmente fechado; o paciente pode usar qualquer técnica do seu plano
 livremente (ver lógica de resolução de preço em `Consultation`, abaixo). Um
 paciente tem apenas um contrato vigente em seu nome.
 
-**"Ativo" × "vigente":** `active` é o soft delete; vigente é `active = true` **e**
-`endDate >= hoje` (o último dia ainda conta — `endDate` é **inclusivo**,
-diferente do `validTo` das linhas de preço, que é exclusivo). Só um contrato vigente bloqueia a
-criação de outro. Um contrato ativo porém vencido não bloqueia: ele aguarda a
-decisão do administrador (prorrogar via aditivo, ou encerrar e levar as sessões
-restantes para o contrato seguinte — regra a detalhar junto com o saldo, em
-`Consultation`). Por isso um paciente pode ter, temporariamente, mais de um
-contrato ativo.
-
-**Cadastros inativos:** paciente titular, beneficiário e técnica precisam estar
-ativos para um contrato novo. A vigência exige `endDate >= startDate`.
-
-**Versionamento (aditivos):** o contrato nunca é editado no lugar. Cada
-alteração gera uma **nova versão** — novo registro com `previousContractId`
-apontando para a versão atual, que é inativada (`POST /api/contracts/{id}/amendments`).
-Motivo: o contrato é um compromisso assinado; cada versão será impressa para nova
-assinatura, e o histórico completo precisa ser preservado (mesma lógica da
-historização de preços). Regras:
-- O request traz o **estado completo** da nova versão (o frontend abre o
-  formulário preenchido com a versão atual). Nova versão passa pelas mesmas
-  regras da criação.
-- O **titular nunca muda** (é copiado): trocar o titular é um contrato novo.
-- **O que for igual à versão anterior é aceito como está; o que for novo precisa
-  ser válido.** Manter a mesma linha de preço é permitido mesmo após um reajuste
-  (o contrato mantém o valor combinado); trocar de linha exige uma linha vigente.
-  O mesmo vale para técnica e beneficiário inativos.
-- Só a versão **ativa** pode ser alterada. Ativa porém vencida pode — é assim
-  que se prorroga (novo `endDate`).
-- `previousContractId` é `unique`: cada versão tem no máximo uma sucessora
-  (impede duas alterações simultâneas da mesma versão).
-- O número da versão (1, 2, 3…) não é persistido: é derivável pela cadeia.
-
-*Impacto no `Consultation`:* atendimentos de um mesmo acordo ficam distribuídos
-entre as versões da cadeia; o saldo de sessões precisa considerar a cadeia
-inteira, não só a versão ativa.
-
 **Sobre as duas FKs de preço:** o contrato trava, no momento da assinatura, a
 linha de preço vigente naquele instante — mesmo que o catálogo seja reajustado
 depois, o contrato mantém o valor combinado até o fim da vigência. Constraint de
-banco (`CHECK`) garante que exatamente uma das duas FKs esteja preenchida
-(*pendente: entra junto com as migrations do Flyway; até lá, garantida no código*).
-
-**A linha de preço é a fonte da verdade.** Na criação, a clínica escolhe a
-técnica-âncora e uma linha de preço vigente do grupo dela
-(`GET /api/techniques/{id}/prices`). Tudo que a linha já contém é copiado dela,
-nunca recebido do request: o `planId` sempre, e a `weeklyFrequency` quando o
-preço é por frequência. Receber esses dados separados criaria redundância — o
-request poderia mandar um plano ou frequência diferente do preço travado, e o
-contrato nasceria incoerente. Pelo mesmo motivo, o sistema valida que a técnica
-pertence ao grupo da linha de preço e que o grupo usa a tabela de onde a linha
-veio (`pricingModel`).
+banco (`CHECK`) garante que exatamente uma das duas FKs esteja preenchida.
 
 ---
 
@@ -451,7 +305,7 @@ veio (`pricingModel`).
 |---|---|---|
 | `id` | Long | auto-increment |
 | `email` | string | |
-| `password` | string | |
+| `passwordHash` | string | |
 | `role` | ENUM: `ADMIN` \| `PROVIDER` | |
 
 **Por que separado de `Provider`:** autenticação é preocupação genérica; dado de
@@ -467,7 +321,7 @@ acoplaria o módulo de login a regras que não são dele.
 | `id` | Long | auto-increment |
 | `userId` | FK → User | |
 | `name` | string | |
-| `commissionPercentage` | BigDecimal | uniforme, não varia por técnica |
+| `commissionPercentage` | decimal | uniforme, não varia por técnica |
 | `active` | boolean | |
 
 **Sobre `commissionPercentage`:** o percentual de repasse é o mesmo para
@@ -475,10 +329,6 @@ qualquer atendimento do prestador, independente da técnica. Pode mudar ao longo
 do tempo com `UPDATE` simples — não precisa de historização própria, porque cada
 `Consultation` já grava o valor aplicado no momento do lançamento
 (`commissionPercentageApplied`).
-
-**Sobre o `User` vinculado:** todo prestador tem exatamente um usuário (1:1, fixo
-após a criação). O usuário pode ter `role` `PROVIDER` **ou `ADMIN`** — um
-administrador da clínica que também atende é um prestador válido.
 
 ---
 
@@ -493,12 +343,12 @@ administrador da clínica que também atende é um prestador válido.
 | `techniqueId` | FK → Technique | técnica clinicamente executada |
 | `durationMinutes` | int | dado de agenda; só participa do cálculo se o grupo for `DURATION_BASED` |
 | `occurredAt` | date | (não usar `date` como nome de campo — ambíguo com o tipo em alguns parsers) |
-| `status` | ENUM: `ATTENDED` \| `CANCELED` \| `UNSCHEDULED_WITH_NOTICE` \| `UNSCHEDULED_WITH_CHARGE` \| `MISSED` | |
-| `sessionDurationPriceId` | FK → SessionDurationPrice, nullable | exclusive arc |
-| `sessionFrequencyPriceId` | FK → SessionFrequencyPrice, nullable | exclusive arc |
-| `commissionPercentageApplied` | BigDecimal | snapshot |
-| `baseValue` | BigDecimal | snapshot |
-| `repasseValue` | BigDecimal | snapshot |
+| `status` | ENUM: `ATTENDED` \| `CANCELED` \| `UNSCHEDULED_WITH_NOTICE` \| `UNSCHEDULED_WITH_CHARGE` \| `MISSED`  
+ `groupPlanPriceId` | FK → GroupPlanPrice, nullable | exclusive arc |
+| `groupPlanFrequencyPriceId` | FK → GroupPlanFrequencyPrice, nullable | exclusive arc |
+| `commissionPercentageApplied` | decimal | snapshot |
+| `baseValue` | decimal | snapshot |
+| `repasseValue` | decimal | snapshot |
 
 **Por que `patientId` e `contractId` são dois campos separados:** no Pilates em
 Dupla, quando o titular não comparece, o prestador pode lançar o atendimento no
@@ -522,19 +372,6 @@ regra fixa por valor (`ATTENDED`, `NO_SHOW` e `CANCELLED_WITH_CHARGE` contam;
 `CANCELLED_EARLY` não conta), então vive como método no enum
 (`status.countsTowardsBilling()`), não como dado replicado no banco.
 
-### Saldo depende do modelo de precificação
-
-- **`DURATION_BASED`:** saldo de sessões = `sessionCount` do plano − atendimentos
-  que contam (`countsTowardsBilling`), somando **toda a cadeia de versões** do
-  contrato (`previousContract`).
-- **`FREQUENCY_BASED` (Pilates em Grupo):** não há saldo de sessões — o plano é
-  uma mensalidade, não um pacote (por isso `sessionCount` é `null`). O que importa
-  é se o paciente está **em dia**: a parcela do mês foi paga. Isso depende do
-  domínio `Payment` (Fase 2); na Fase 1 o Grupo não tem cálculo de saldo.
-
-O repasse ao prestador vale igual nos dois modelos — é outra conta (honorário por
-atendimento), independente do saldo do paciente.
-
 ### Lógica de resolução de preço no lançamento
 
 1. Prestador seleciona paciente, duração, técnica e status.
@@ -545,8 +382,8 @@ atendimento), independente do saldo do paciente.
      plano equivalente no grupo da nova técnica (ex: Avulso, 6 sessões, 12
      sessões, para Quiropraxia). *Decisão atual: escolha livre do prestador, sem
      validação da clínica — trava/validação é melhoria futura.*
-3. Busca o preço vigente na tabela correta (`SessionDurationPrice` se
-   `DURATION_BASED`, `SessionFrequencyPrice` se `FREQUENCY_BASED`).
+3. Busca o preço vigente na tabela correta (`GroupPlanPrice` se
+   `DURATION_BASED`, `GroupPlanFrequencyPrice` se `FREQUENCY_BASED`).
 4. Grava o snapshot: `baseValue`, `commissionPercentageApplied`, `repasseValue`.
 
 **Nota:** o preço travado em `Contract` é uma referência de cobrança, não
@@ -560,7 +397,6 @@ resolvido de novo, seguindo o fluxo acima.
 
 - **`Payment`** — controle financeiro/saldo do paciente (pagamentos realizados x
   valor consumido nos atendimentos `countsTowardsBilling`). Alimenta a visão da
-  clínica na Fase 2. Também é a base do "em dia" do Pilates em Grupo (parcela do
-  mês paga), que não usa saldo de sessões.
+  clínica na Fase 2.
 - App de consulta de saldo do paciente (Fase 3) — camada de consumo somente
   leitura sobre `consultation` e `payment`, sem entidades novas.
