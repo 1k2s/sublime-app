@@ -22,6 +22,7 @@ erDiagram
   SESSION_DURATION_PRICE |o--o{ CONTRACT : trava
   SESSION_FREQUENCY_PRICE |o--o{ CONTRACT : trava
   USER ||--o| PROVIDER : autentica
+  PROVIDER |o--o{ PATIENT : trouxe
   PATIENT ||--o{ CONSULTATION : atendido
   CONTRACT ||--o{ CONSULTATION : consome_saldo
   PROVIDER ||--o{ CONSULTATION : realiza
@@ -41,6 +42,7 @@ erDiagram
     string addressCity
     string addressComplement
     string addressCep
+    bigint referringProviderId FK "nullable"
     boolean active
   }
 
@@ -113,6 +115,7 @@ erDiagram
     bigint userId FK, UK
     string name
     Percentage commissionPercentage
+    Percentage referralCommissionPercentage
     boolean active
   }
 
@@ -168,7 +171,22 @@ collation padrão do MySQL ignora maiúsculas e acentos na comparação, então
 | `phone` | string, nullable | opcional |
 | `email` | string, nullable | opcional; formato validado quando informado |
 | `address` | VO embutido (street, numberHouse, city, complement, cep), nullable | `@Embeddable`/`@Embedded`, imutável (sem setter); opcional |
+| `referringProviderId` | FK → Provider, nullable | origem: prestador que trouxe o paciente; `null` = paciente da clínica |
 | `active` | boolean | soft delete |
+
+**Origem do paciente (`referringProviderId`):** define o percentual de repasse dos
+atendimentos (ver `Provider` e `Consultation`).
+- **`null`** → paciente da clínica (já estava na clínica, ou chegou por ela).
+- **preenchido** → paciente trazido por aquele prestador (veio pela influência dele).
+- Por que `null` e não um "id da clínica": um valor especial exigiria um prestador
+  fictício na tabela, ou um número que não aponta para nada. O nulo diz "não foi
+  trazido por ninguém", e a FK garante que, quando preenchido, o prestador existe.
+- **Pode ser alterada** (ex: corrigir um cadastro errado). Os atendimentos já
+  lançados não mudam: o percentual aplicado é snapshot no `Consultation`.
+- Ao **atribuir** um prestador (novo ou diferente do atual), ele precisa existir
+  (404) e estar ativo (400). Manter o mesmo prestador, mesmo que ele tenha sido
+  inativado depois, é permitido — mesma ideia do aditivo de contrato: o que é novo
+  precisa ser válido.
 
 **Por que endereço é Value Object, não entidade própria:** não existe caso de uso
 em que precisamos rastrear a identidade de um endereço ao longo do tempo — trocar
@@ -185,12 +203,20 @@ repetida no `AddressDTO` para os erros saírem junto com os demais campos.
 no request (`phone`/`email` nulos apagam o valor). O endereço é a exceção: `address`
 nulo **mantém** o endereço atual; preenchido, substitui o atual por inteiro (é um
 Value Object — não dá para mandar só o `cep`). *Consequência aceita: não existe
-caminho para remover um endereço depois de cadastrado.*
+caminho para remover um endereço depois de cadastrado.* `referringProviderId`
+segue a regra geral: nulo no `PUT` torna o paciente **da clínica** — o frontend
+deve sempre reenviar a origem atual (formulário preenchido).
 
 **Por que `Patient` não referencia `Contract`:** o relacionamento é sempre
 unidirecional `Contract → Patient`. Se `Patient` tivesse uma coleção de contratos,
 o módulo `patient` passaria a depender do módulo `contract`, criando ciclo (já que
 o inverso é verdadeiro por natureza).
+
+**Por que a origem fica no `Patient` (e não no `Contract`):** a origem é do
+**paciente**, não de um contrato — no contrato, ela teria que ser preenchida de novo
+a cada renovação, e um esquecimento pagaria o percentual errado. O custo: o módulo
+`patient` passa a depender de `provider` (deixa de ser módulo de base). Continua
+unidirecional — `provider` nunca referencia `patient` — então não há ciclo.
 
 ---
 
@@ -511,13 +537,35 @@ acoplaria o módulo de login a regras que não são dele.
 | `id` | Long | auto-increment |
 | `userId` | FK → User, unique | fixo após a criação |
 | `name` | string | |
-| `commissionPercentage` | `Percentage` (VO) | uniforme, não varia por técnica; coluna `DECIMAL(5,2)` via `PercentageConverter` |
+| `commissionPercentage` | `Percentage` (VO) | padrão: pacientes da clínica ou de outros prestadores; default **40%**; coluna `DECIMAL(5,2)` via `PercentageConverter` |
+| `referralCommissionPercentage` | `Percentage` (VO) | pacientes que **ele trouxe**; default **45%**; nunca menor que o `commissionPercentage` |
 | `active` | boolean | soft delete |
 
-**Sobre `commissionPercentage`:** o percentual de repasse é o mesmo para
-qualquer atendimento do prestador, independente da técnica. Pode mudar ao longo
-do tempo com `UPDATE` simples — não precisa de historização própria, porque cada
-`Consultation` já grava o valor aplicado no momento do lançamento
+**Dois percentuais, pela origem do paciente:** o repasse de um atendimento depende
+de quem trouxe o **titular do contrato** (`Patient.referringProviderId`):
+- titular trazido **pelo prestador que atendeu** → `referralCommissionPercentage`;
+- titular da clínica (`null`) ou trazido por **outro** prestador →
+  `commissionPercentage`.
+
+Nenhum dos dois varia por técnica.
+
+**Padrão da clínica com exceção caso a caso:** os dois campos são opcionais no
+cadastro; se não informados, o prestador nasce com o padrão da clínica — 40% e 45%,
+constantes no `ProviderEntity`. Informados, valem os informados (ex: estagiário ou
+prestador em treinamento com 30% e 35%).
+- Mudar o padrão da clínica exige alterar as constantes; prestadores já
+  cadastrados mantêm o que foi combinado com eles.
+- *Alternativas descartadas:* percentual fixo único no código (não permite
+  exceção para estagiários) e dois campos obrigatórios (o admin digitaria 40/45
+  em todo cadastro). *Evolução possível:* categorias de prestador (Padrão,
+  Estagiário...) com o par de percentuais, se surgirem muitas faixas.
+
+**Invariante:** `referralCommissionPercentage >= commissionPercentage` — quem
+trouxe o paciente nunca recebe menos que o padrão dele. Validado na entidade
+(400), na criação e na alteração.
+
+**Mudança de percentual:** `UPDATE` simples — não precisa de historização própria,
+porque cada `Consultation` grava o percentual aplicado no momento do lançamento
 (`commissionPercentageApplied`).
 
 **Percentual (`Percentage`):** Value Object do módulo `provider`, no mesmo desenho
@@ -562,10 +610,10 @@ vínculo posterior.)*
 | `techniqueId` | FK → Technique | técnica clinicamente executada |
 | `durationMinutes` | int | dado de agenda; só participa do cálculo se o grupo for `DURATION_BASED` |
 | `occurredAt` | date | (não usar `date` como nome de campo — ambíguo com o tipo em alguns parsers) |
-| `status` | ENUM: `ATTENDED` \| `CANCELED` \| `UNSCHEDULED_WITH_NOTICE` \| `UNSCHEDULED_WITH_CHARGE` \| `MISSED` | |
+| `status` | ENUM: `ATTENDED` \| `NO_SHOW` \| `CANCELED_LATE` | por que a sessão foi cobrada (ver abaixo) |
 | `sessionDurationPriceId` | FK → SessionDurationPrice, nullable | exclusive arc |
 | `sessionFrequencyPriceId` | FK → SessionFrequencyPrice, nullable | exclusive arc |
-| `commissionPercentageApplied` | BigDecimal | snapshot |
+| `commissionPercentageApplied` | BigDecimal | snapshot; `referralCommissionPercentage` do prestador se ele trouxe o titular do contrato, senão `commissionPercentage` |
 | `baseValue` | BigDecimal | snapshot |
 | `repasseValue` | BigDecimal | snapshot |
 
@@ -586,16 +634,43 @@ assim que lançada (sem fluxo de aprovação). Um reajuste futuro no catálogo d
 preço, ou uma mudança na comissão do prestador, nunca deve alterar
 retroativamente o valor de um atendimento já lançado.
 
-**Por que `status` não tem uma coluna extra de "conta para o repasse":** é uma
-regra fixa por valor (`ATTENDED`, `NO_SHOW` e `CANCELLED_WITH_CHARGE` contam;
-`CANCELLED_EARLY` não conta), então vive como método no enum
-(`status.countsTowardsBilling()`), não como dado replicado no banco.
+### Status: só o que é cobrado e gera repasse
+
+| Status | Significado |
+|---|---|
+| `ATTENDED` | O atendimento aconteceu. |
+| `NO_SHOW` | O paciente faltou sem nenhum aviso. |
+| `CANCELED_LATE` | O paciente desmarcou **fora do prazo mínimo de 6h** de antecedência (ex: 3h, 15min antes). |
+
+**Todo atendimento lançado é cobrado do paciente e gera repasse ao prestador** —
+nos três status, com o mesmo cálculo (valor cheio × percentual do prestador).
+"Cobrar o paciente" num plano de pacote significa consumir uma das sessões
+contratadas.
+
+**Por que só três status:** o sistema existe para controlar o repasse ao prestador
+e o saldo do paciente. O prestador lança apenas o que vai receber. Os casos sem
+cobrança — paciente que desmarcou **dentro** do prazo de 6h, ou atendimento
+cancelado pela clínica / por fato externo — simplesmente **não são lançados**, então
+não têm status. Consequências:
+- não existe método de "conta para o repasse" no enum (seria sempre `true`) — o
+  status diz **por que** a sessão foi cobrada, útil para relatórios (ex: "faltas
+  sem aviso no mês");
+- a regra das 6h é aplicada por quem lança (escolhe `CANCELED_LATE` ou não lança
+  nada); o sistema não precisa da hora do atendimento nem da hora do aviso;
+- taxa de desmarcação e histórico de cancelamentos sem cobrança ficam no software
+  de agendamento que a clínica já usa. *(Alternativa descartada: manter
+  `CANCELED_ON_TIME` e `CANCELED_BY_CLINIC` no enum — nunca seriam lançados.)*
+
+**Nomes em inglês:** `NO_SHOW` e *late cancellation* são os termos usados nas
+políticas de cancelamento de clínicas. Os nomes anteriores (`MISSED`,
+`UNSCHEDULED_WITH_NOTICE/CHARGE`, `CANCELED`) foram trocados: *unscheduled* em
+inglês significa "não agendado" (encaixe), o oposto de "desmarcado".
 
 ### Saldo depende do modelo de precificação
 
 - **`DURATION_BASED`:** saldo de sessões = `sessionCount` do plano − atendimentos
-  que contam (`countsTowardsBilling`), somando **toda a cadeia de versões** do
-  contrato (`previousContract`).
+  lançados (todos são cobrados, qualquer que seja o status), somando **toda a
+  cadeia de versões** do contrato (`previousContract`).
 - **`FREQUENCY_BASED` (Pilates em Grupo):** não há saldo de sessões — o plano é
   uma mensalidade, não um pacote (por isso `sessionCount` é `null`). O que importa
   é se o paciente está **em dia**: a parcela do mês foi paga. Isso depende do
@@ -628,8 +703,12 @@ resolvido de novo, seguindo o fluxo acima.
 ## Não modelado ainda (fora do escopo da Fase 1)
 
 - **`Payment`** — controle financeiro/saldo do paciente (pagamentos realizados x
-  valor consumido nos atendimentos `countsTowardsBilling`). Alimenta a visão da
+  valor consumido nos atendimentos lançados). Alimenta a visão da
   clínica na Fase 2. Também é a base do "em dia" do Pilates em Grupo (parcela do
   mês paga), que não usa saldo de sessões.
 - App de consulta de saldo do paciente (Fase 3) — camada de consumo somente
   leitura sobre `consultation` e `payment`, sem entidades novas.
+- **Agendamento** (sem fase definida) — hoje a clínica usa outro software para
+  agenda, onde ficam também as desmarcações sem cobrança e a taxa de desmarcação.
+  Se um dia for integrado ao sistema, os cancelamentos sem cobrança voltam a ter
+  onde ser registrados (ver "Status" em `Consultation`).

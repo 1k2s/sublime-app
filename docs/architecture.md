@@ -42,14 +42,22 @@ domínio sem tradução fiel), não conveniência.
 ### Mapa de módulos (Fase 1)
 
 ```
-patient   pricing   user       ← módulos de base, sem dependência entre si
-   \         /        |
-    contract       provider    ← dependem só da camada de base
-        \            /
-         consultation          ← depende de todos os anteriores
+pricing          user          ← módulos de base, sem dependência
+   |               |
+   |           provider        ← referencia user
+   |               |
+   |           patient         ← referencia provider (origem do paciente)
+    \             /
+     contract                  ← referencia patient + pricing
+         \
+       consultation            ← depende de todos os anteriores
 ```
 
-- `patient`: cadastro de pacientes (`Patient`).
+- `patient`: cadastro de pacientes (`Patient`), referencia `provider` — a origem
+  do paciente (`referringProviderId`, prestador que o trouxe; `null` = clínica)
+  define o percentual de repasse. Até a decisão da comissão pela origem, `patient`
+  era módulo de base; a dependência nova é unidirecional (`provider` nunca
+  referencia `patient`).
 - `pricing`: técnicas, planos e catálogo de preços (`Technique`, `Plan`,
   `PricingGroup`, `SessionDurationPrice`, `SessionFrequencyPrice`). Ficam juntos porque
   mudam sempre em conjunto e nenhum outro módulo deve conhecer a fiação interna
@@ -100,7 +108,10 @@ entidade de domínio, antes de propor mudanças de schema.
    devem mudar retroativamente se o catálogo de preço ou a comissão do prestador
    mudar depois.
 6. **Regra fixa por valor de enum vira método no enum**, não coluna extra no banco
-   (ex: `ConsultationStatus.countsTowardsBilling()`).
+   (ex: se um valor de `ConsultationStatus` passar a ter regra própria, como um
+   repasse diferente, ela vira método do enum). Hoje não há caso no código: o
+   `countsTowardsBilling()` previsto deixou de existir porque todo atendimento
+   lançado é cobrado (ver `Consultation` no `domain-model.md`).
 7. **Entidade rica, não anêmica: cada validação mora na camada certa.** Critério:
    *"para verificar essa regra, preciso consultar outros registros no banco?"*
    - **DTO — formato do request.** Campos obrigatórios, tamanho, e-mail, e
