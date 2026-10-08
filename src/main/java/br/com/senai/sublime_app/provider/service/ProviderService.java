@@ -3,23 +3,29 @@ package br.com.senai.sublime_app.provider.service;
 import java.util.List;
 
 import org.springframework.stereotype.Service;
+import org.springframework.transaction.annotation.Transactional;
 
+import br.com.senai.sublime_app.provider.domain.Percentage;
 import br.com.senai.sublime_app.provider.domain.ProviderEntity;
 import br.com.senai.sublime_app.provider.dto.ProviderRequestDTO;
 import br.com.senai.sublime_app.provider.dto.ProviderResponseDTO;
+import br.com.senai.sublime_app.provider.dto.ProviderUpdateRequestDTO;
 import br.com.senai.sublime_app.provider.repository.ProviderRepository;
 import br.com.senai.sublime_app.shared.exception.ConflictException;
 import br.com.senai.sublime_app.shared.exception.ResourceNotFoundException;
 import br.com.senai.sublime_app.user.domain.UserEntity;
 import br.com.senai.sublime_app.user.repository.UserRepository;
-import lombok.RequiredArgsConstructor;
 
 @Service
-@RequiredArgsConstructor
 public class ProviderService {
 
     private final ProviderRepository providerRepository;
     private final UserRepository userRepository;
+
+    public ProviderService(ProviderRepository providerRepository, UserRepository userRepository) {
+        this.providerRepository = providerRepository;
+        this.userRepository = userRepository;
+    }
 
     /**
      * Cria um novo prestador de serviço vinculado a um usuário existente:
@@ -28,73 +34,63 @@ public class ProviderService {
      * 3. Cria a entidade pelo construtor de domínio (mantendo o encapsulamento).
      * 4. Persiste no banco e retorna o DTO de resposta.
      */
+    @Transactional
     public ProviderResponseDTO create(ProviderRequestDTO dto) {
-        // Busca o usuário associado
-        UserEntity user = userRepository.findById(dto.getUserId())
-                .orElseThrow(() -> new ResourceNotFoundException("User not found with id: " + dto.getUserId()));
+        UserEntity user = userRepository.findById(dto.userId())
+                .orElseThrow(() -> new ResourceNotFoundException("Usuário não encontrado com id: " + dto.userId()));
 
-        // Valida se este usuário já possui vínculo com outro prestador
-        if (providerRepository.existsByUserId(dto.getUserId())) {
-            throw new ConflictException("A provider is already linked to user id: " + dto.getUserId());
+        if (providerRepository.existsByUserId(dto.userId())) {
+            throw new ConflictException("Já existe um prestador vinculado ao usuário de id: " + dto.userId());
         }
 
-        // Instancia a entidade pelo construtor de negócio
-        ProviderEntity provider = new ProviderEntity(user, dto.getName(), dto.getCommissionPercentage());
-
-        // Salva no banco e converte para DTO de resposta
-        ProviderEntity saved = providerRepository.save(provider);
-        return toResponse(saved);
+        ProviderEntity provider = new ProviderEntity(user, dto.name(), Percentage.of(dto.commissionPercentage()));
+        providerRepository.save(provider);
+        return ProviderResponseDTO.fromEntity(provider);
     }
 
     /**
-     * Lista todos os prestadores cadastrados, convertendo cada entidade para seu DTO de resposta.
+     * Lista todos os prestadores cadastrados, ativos e inativos.
      */
+    @Transactional(readOnly = true)
     public List<ProviderResponseDTO> findAll() {
-        return providerRepository.findAll()
-                .stream()
-                .map(this::toResponse)
+        return providerRepository.findAll().stream()
+                .map(ProviderResponseDTO::fromEntity)
                 .toList();
     }
 
     /**
-     * Busca um prestador por ID e retorna seu DTO correspondente.
+     * Busca um prestador por ID, mesmo que esteja inativo.
      */
+    @Transactional(readOnly = true)
     public ProviderResponseDTO findById(Long id) {
-        ProviderEntity provider = providerRepository.findById(id)
-                .orElseThrow(() -> new ResourceNotFoundException("Provider not found with id: " + id));
-        return toResponse(provider);
+        return ProviderResponseDTO.fromEntity(getProviderOrThrow(id));
     }
 
     /**
-     * Atualiza os dados de negócio do prestador (nome e comissão) usando o método de domínio:
-     * O vínculo com o usuário original é preservado.
+     * Atualiza os dados de negócio do prestador (nome e comissão) pelo método de
+     * domínio. O vínculo com o usuário é fixo: o DTO de alteração nem o recebe.
+     * Gravado pelo dirty checking do Hibernate.
      */
-    public ProviderResponseDTO update(Long id, ProviderRequestDTO dto) {
-        ProviderEntity provider = providerRepository.findById(id)
-                .orElseThrow(() -> new ResourceNotFoundException("Provider not found with id: " + id));
-
-        // Atualização via método de domínio da entidade (encapsulado)
-        provider.update(dto.getName(), dto.getCommissionPercentage());
-
-        ProviderEntity saved = providerRepository.save(provider);
-        return toResponse(saved);
+    @Transactional
+    public ProviderResponseDTO update(Long id, ProviderUpdateRequestDTO dto) {
+        ProviderEntity provider = getProviderOrThrow(id);
+        provider.update(dto.name(), Percentage.of(dto.commissionPercentage()));
+        return ProviderResponseDTO.fromEntity(provider);
     }
 
     /**
      * Soft delete: o prestador é desativado, não removido do banco, para preservar
-     * o histórico de atendimentos que o referenciam.
+     * o histórico de atendimentos que o referenciam. Gravado pelo dirty checking.
      */
-    public void delete(Long id) {
-        ProviderEntity provider = providerRepository.findById(id)
-                .orElseThrow(() -> new ResourceNotFoundException("Provider not found with id: " + id));
+    @Transactional
+    public void deactivate(Long id) {
+        ProviderEntity provider = getProviderOrThrow(id);
         provider.deactivate();
-        providerRepository.save(provider);
     }
 
-    /**
-     * Converte a entidade de banco ProviderEntity no DTO de resposta público ProviderResponseDTO.
-     */
-    private ProviderResponseDTO toResponse(ProviderEntity provider) {
-        return new ProviderResponseDTO(provider);
+    // Centraliza a busca + erro de "não encontrado", usada por findById, update e deactivate
+    private ProviderEntity getProviderOrThrow(Long id) {
+        return providerRepository.findById(id)
+                .orElseThrow(() -> new ResourceNotFoundException("Prestador não encontrado com id: " + id));
     }
 }

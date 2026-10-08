@@ -1,8 +1,9 @@
 package br.com.senai.sublime_app.pricing.domain;
 
-import java.math.BigDecimal;
 import java.time.LocalDate;
 
+import br.com.senai.sublime_app.pricing.enums.PricingModel;
+import br.com.senai.sublime_app.shared.exception.BusinessRuleException;
 import jakarta.persistence.Column;
 import jakarta.persistence.Entity;
 import jakarta.persistence.FetchType;
@@ -45,17 +46,73 @@ public class SessionFrequencyPriceEntity {
     @Column(name = "weekly_frequency", nullable = false)
     private int weeklyFrequency;
 
+    // Convertido para DECIMAL pelo MoneyConverter (autoApply)
     @Column(name = "session_value", nullable = false, precision = 10, scale = 2)
-    private BigDecimal sessionValue;
+    private Money sessionValue;
 
     @Column(name = "valid_from", nullable = false)
     private LocalDate validFrom;
 
+    // Exclusivo: a linha vale em [validFrom, validTo). Ver domain-model.md.
     @Column(name = "valid_to")
     private LocalDate validTo;
+
+    // Construtor publico para criar uma linha de preço vigente a partir de validFrom.
+    // Achar e fechar a linha vigente da mesma combinação (reajuste) é orquestração do service.
+    public SessionFrequencyPriceEntity(PricingGroupEntity pricingGroup, PlanEntity plan,
+            int weeklyFrequency, Money sessionValue, LocalDate validFrom) {
+        validatePricingGroupAndPlan(pricingGroup, plan);
+        validateFrequencyAndSessionValue(weeklyFrequency, sessionValue);
+        this.pricingGroup = pricingGroup;
+        this.plan = plan;
+        this.weeklyFrequency = weeklyFrequency;
+        this.sessionValue = sessionValue;
+        this.validFrom = validFrom;
+    }
 
     // Linha vigente = ainda não encerrada por um reajuste (validTo = null)
     public boolean isCurrent() {
         return validTo == null;
+    }
+
+    // Encerra a linha num reajuste. validTo é exclusivo, então a linha nova abre na mesma data.
+    public void close(LocalDate validTo) {
+        requireCurrent();
+        validateValidTo(validTo);
+        this.validTo = validTo;
+    }
+
+    // A linha precisa estar na tabela do pricingModel do grupo. O plano não precisa
+    // de sessionCount: no Grupo o plano é mensalidade, não pacote de sessões.
+    private static void validatePricingGroupAndPlan(PricingGroupEntity pricingGroup, PlanEntity plan) {
+        if (pricingGroup.getPricingModel() != PricingModel.FREQUENCY_BASED) {
+            throw new BusinessRuleException("Preço por frequência só é permitido em grupos FREQUENCY_BASED.");
+        }
+        if (!plan.isActive()) {
+            throw new BusinessRuleException("O plano está inativo.");
+        }
+    }
+
+    private static void validateFrequencyAndSessionValue(int weeklyFrequency, Money sessionValue) {
+        if (weeklyFrequency < 1) {
+            throw new BusinessRuleException("A frequência semanal deve ser de no mínimo 1 sessão.");
+        }
+        if (sessionValue == null || !sessionValue.isPositive()) {
+            throw new BusinessRuleException("O valor da sessão deve ser maior que zero.");
+        }
+    }
+
+    private void requireCurrent() {
+        if (!isCurrent()) {
+            throw new BusinessRuleException("Esta linha de preço já foi encerrada.");
+        }
+    }
+
+    // validTo igual a validFrom é aceito: reajuste no mesmo dia gera um intervalo
+    // vazio (linha substituída antes de valer um dia inteiro).
+    private void validateValidTo(LocalDate validTo) {
+        if (validTo.isBefore(validFrom)) {
+            throw new BusinessRuleException("O fim da vigência não pode ser anterior ao início.");
+        }
     }
 }

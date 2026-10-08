@@ -1,6 +1,7 @@
 package br.com.senai.sublime_app.pricing.domain;
 
 import br.com.senai.sublime_app.pricing.enums.PricingModel;
+import br.com.senai.sublime_app.shared.exception.BusinessRuleException;
 import jakarta.persistence.Column;
 import jakarta.persistence.Entity;
 import jakarta.persistence.EnumType;
@@ -25,11 +26,29 @@ public class PricingGroupEntity {
     @EqualsAndHashCode.Include
     private Long id;
 
-    @Column(nullable = false)
+    @Column(nullable = false, unique = true)
     private String name;
 
+    // Fixo após a criação (sem método que o altere): as linhas de preço do grupo
+    // já estão na tabela correspondente a ele.
     @Enumerated(EnumType.STRING)
     @Column(name = "pricing_model", nullable = false)
     private PricingModel pricingModel;
+
+    // Construtor publico para criar um grupo de preço com os dados obrigatórios
+    public PricingGroupEntity(String name, PricingModel pricingModel) {
+        validateNameAndPricingModel(name, pricingModel);
+        this.name = name;
+        this.pricingModel = pricingModel;
+    }
+
+    private static void validateNameAndPricingModel(String name, PricingModel pricingModel) {
+        if (name == null || name.isBlank()) {
+            throw new BusinessRuleException("O nome do grupo de preço é obrigatório.");
+        }
+        if (pricingModel == null) {
+            throw new BusinessRuleException("O modelo de precificação do grupo é obrigatório.");
+        }
+    }
 
 }

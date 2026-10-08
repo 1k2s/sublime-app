@@ -56,11 +56,11 @@ public class ContractService {
         // Contrato ativo porém vencido não bloqueia um novo.
         if (contractRepository.existsByPatientIdAndActiveTrueAndEndDateGreaterThanEqual(
                 dto.patientId(), LocalDate.now())) {
-            throw new ConflictException("Patient already has a current contract.");
+            throw new ConflictException("O paciente já possui um contrato vigente.");
         }
 
         PatientEntity patient = patientRepository.findById(dto.patientId())
-                .orElseThrow(() -> new ResourceNotFoundException("Patient not found"));
+                .orElseThrow(() -> new ResourceNotFoundException("Paciente não encontrado com id: " + dto.patientId()));
         PatientEntity beneficiary = findBeneficiary(dto.beneficiaryId());
         TechniqueEntity technique = findTechnique(dto.techniqueId());
 
@@ -89,8 +89,7 @@ public class ContractService {
      */
     @Transactional
     public ContractResponseDTO amend(Long id, ContractAmendmentRequestDTO dto) {
-        ContractEntity current = contractRepository.findById(id)
-                .orElseThrow(() -> new ResourceNotFoundException("Contract not found"));
+        ContractEntity current = getContractOrThrow(id);
         PatientEntity beneficiary = findBeneficiary(dto.beneficiaryId());
         TechniqueEntity technique = findTechnique(dto.techniqueId());
 
@@ -120,16 +119,21 @@ public class ContractService {
 
     @Transactional(readOnly = true)
     public ContractResponseDTO findById(Long id) {
-        ContractEntity contract = contractRepository.findById(id)
-                .orElseThrow(() -> new ResourceNotFoundException("Contract not found"));
-        return ContractResponseDTO.fromEntity(contract);
+        return ContractResponseDTO.fromEntity(getContractOrThrow(id));
     }
 
+    // Soft delete: a versão é inativada, nunca removida (o histórico de versões e
+    // os atendimentos continuam apontando para ela). Gravado pelo dirty checking.
     @Transactional
-    public void delete(Long id) {
-        ContractEntity contract = contractRepository.findById(id)
-                .orElseThrow(() -> new ResourceNotFoundException("Contract not found"));
+    public void deactivate(Long id) {
+        ContractEntity contract = getContractOrThrow(id);
         contract.deactivate();
+    }
+
+    // Centraliza a busca + erro de "não encontrado", usada por amend, findById e deactivate
+    private ContractEntity getContractOrThrow(Long id) {
+        return contractRepository.findById(id)
+                .orElseThrow(() -> new ResourceNotFoundException("Contrato não encontrado com id: " + id));
     }
 
     // Buscas compartilhadas por create e amend (404 se o id não existir)
@@ -139,21 +143,21 @@ public class ContractService {
             return null;
         }
         return patientRepository.findById(beneficiaryId)
-                .orElseThrow(() -> new ResourceNotFoundException("Beneficiary not found"));
+                .orElseThrow(() -> new ResourceNotFoundException("Beneficiário não encontrado com id: " + beneficiaryId));
     }
 
     private TechniqueEntity findTechnique(Long techniqueId) {
         return techniqueRepository.findById(techniqueId)
-                .orElseThrow(() -> new ResourceNotFoundException("Technique not found"));
+                .orElseThrow(() -> new ResourceNotFoundException("Técnica não encontrada com id: " + techniqueId));
     }
 
     private SessionDurationPriceEntity findDurationPrice(Long priceId) {
         return sessionDurationPriceRepository.findById(priceId)
-                .orElseThrow(() -> new ResourceNotFoundException("SessionDurationPrice not found"));
+                .orElseThrow(() -> new ResourceNotFoundException("Preço por duração não encontrado com id: " + priceId));
     }
 
     private SessionFrequencyPriceEntity findFrequencyPrice(Long priceId) {
         return sessionFrequencyPriceRepository.findById(priceId)
-                .orElseThrow(() -> new ResourceNotFoundException("SessionFrequencyPrice not found"));
+                .orElseThrow(() -> new ResourceNotFoundException("Preço por frequência não encontrado com id: " + priceId));
     }
 }

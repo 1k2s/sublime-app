@@ -14,6 +14,13 @@ Toda nomenclatura de código — classes, atributos, métodos, pacotes — em **
 Comentários no código e toda documentação/discussão em **português**. Não misturar:
 nunca criar uma classe ou atributo com nome em português.
 
+**Mensagens ao usuário em português.** Todo texto que chega na resposta da API é
+em português: mensagens das exceptions (`BusinessRuleException`,
+`ConflictException`, `ResourceNotFoundException`), mensagens de validação dos DTOs
+(`message = "..."`) e os textos do `GlobalExceptionHandler`. Nomes de campo citados
+na mensagem aparecem como no JSON (ex: "`weeklyFrequency` é obrigatória"), porque
+são o que o frontend envia.
+
 **Exceção deliberada:** conceitos específicos do contexto brasileiro sem
 equivalente correto em inglês mantêm o nome em português — ex: `cep` em
 `Address` (não é o mesmo conceito de um "zip code" americano, então traduzir
@@ -59,8 +66,25 @@ entidade de domínio, antes de propor mudanças de schema.
 
 ## Princípios de modelagem já fixados (não reabrir sem justificativa forte)
 
-1. **Value Objects embutidos, não entidades**, para dados sem identidade própria
-   (ex: `Address` dentro de `Patient`, via `@Embeddable`/`@Embedded`).
+1. **Value Objects, não entidades**, para dados sem identidade própria. Duas
+   estratégias de persistência, escolhidas pela quantidade de campos do VO:
+   - **Vários campos → `@Embeddable` + `@Embedded`, como `class`** (ex: `Address`
+     dentro de `Patient`). Cada campo vira uma coluna. Precisa ser `class` porque o
+     Hibernate instancia o VO sozinho: construtor sem argumentos `protected` e
+     campos não-`final`, preenchidos por reflexão.
+   - **Um valor só → `record` + `AttributeConverter` com `autoApply = true`** (ex:
+     `Money` + `MoneyConverter`, no módulo `pricing`; `Percentage` +
+     `PercentageConverter`, no módulo `provider`). O VO fica no módulo dono do
+     conceito, sem criar dependência nova entre módulos. O converter traduz o VO para
+     a coluna e de volta; quem cria o VO é o converter (via `Money.of`), nunca o
+     Hibernate. Por isso o VO pode ser `record`: fica livre de JPA, imutável e
+     com o construtor validado como única porta de entrada. A coluna mantém o nome
+     e a precisão do `@Column` de cada campo, sem `@AttributeOverride`.
+   - Os DTOs continuam com os tipos do JSON (ex: `BigDecimal`); o service monta o
+     VO e o passa à entidade (ex: `PatientService.toAddress`, `Money.of` no
+     `PricingService`).
+   - Formatação de exibição (ex: `R$ 1.234,56`) não é regra de negócio: fica no
+     frontend, nunca no VO. A API devolve número.
 2. **Nunca persistir dado derivável que serve só para exibição** (ex: percentual de
    desconto). Sempre persistir dado que já representa uma obrigação financeira
    consumada (ex: valor de um atendimento já lançado).
@@ -85,17 +109,25 @@ entidade de domínio, antes de propor mudanças de schema.
    - **Entidade — regras dela, que não precisam do banco.** Ficam nos
      construtores/fábricas e nos métodos de mudança de estado, para valer em
      qualquer caminho que crie ou altere a entidade (ex: fábricas
-     `ContractEntity.withDurationPrice/withFrequencyPrice`, comissão 0–100% em
-     `ProviderEntity`). Pergunta sobre si mesma é respondida pela própria entidade
-     (ex: `SessionDurationPrice.isCurrent()`). Lançam `BusinessRuleException` (400).
+     `ContractEntity.withDurationPrice/withFrequencyPrice`, endereço completo em
+     `Address`). Regra de um valor isolado mora no VO dele (ex: comissão 0–100% no
+     `Percentage`, valor não negativo no `Money`). Pergunta sobre si mesma é
+     respondida pela própria entidade (ex: `SessionDurationPrice.isCurrent()`).
+     Lançam `BusinessRuleException` (400).
+   - **Validação em método privado com nome descritivo**, nunca `if` direto no
+     corpo do construtor/fábrica: o construtor só chama os validadores e atribui
+     os campos (ex: `PatientEntity.validatePersonalInfo`,
+     `PlanEntity.validateNameAndSessionCount`). Métodos de mudança de estado
+     seguem o mesmo padrão (ex: `requireCurrent()`, `requireAmendable()`).
    - **Service — regras que dependem do banco + orquestração.** Unicidade e
      consultas a outros registros (ex: CPF já cadastrado, paciente com contrato
      vigente), buscar entidades por id, chamar a entidade, salvar.
    - Construtores de negócio (e fábricas) são a **única porta de entrada**: nunca
      `@AllArgsConstructor` em entidade — ele gera um construtor público que ignora
      todas as regras. O construtor sem argumentos fica `protected` (uso do
-     Hibernate). Exceção: value objects (ex: `Address`), cujo construtor com todos
-     os campos é o próprio construtor de negócio.
+     Hibernate). Value objects seguem a mesma ideia: o construtor com todos os
+     campos é o próprio construtor de negócio e valida o VO (`Address` escrito à
+     mão; `Money`/`Percentage` no construtor compacto do `record`).
    - **Sem `@Setter` em entidade** (nem `protected`, que também libera acesso ao
      pacote inteiro). Estado só muda por métodos de negócio (`update`,
      `deactivate`, `updateAddress`...), que aplicam as regras. O Hibernate não
@@ -115,8 +147,9 @@ da clínica cruzando pagamentos com atendimentos).
 
 ## Ordem de implementação recomendada
 
-1. `patient`, `pricing`, `user` — entidades e repositórios, pode popular via
-   fixtures/`data.sql` em vez de tela de cadastro completa.
+1. `patient`, `pricing`, `user` — entidades e repositórios. Dados de teste são
+   criados **pela API** (não por `INSERT`/`data.sql`), para passar pelas regras
+   do domínio; scripts de apoio ficam em `scripts/`.
 2. `provider` (depende de `user`) e `contract` (depende de `patient` + `pricing`).
 3. `consultation` — aqui sim com atenção total, é o módulo com a lógica de negócio
    mais densa e o alvo do frontend de teste desta fase.

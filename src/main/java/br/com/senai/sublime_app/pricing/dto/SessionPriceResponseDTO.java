@@ -29,7 +29,7 @@ public record SessionPriceResponseDTO(
                 entity.getPlan().getSessionCount(),
                 entity.getDurationMinutes(),
                 null,
-                entity.getSessionValue(),
+                entity.getSessionValue().amount(),
                 entity.getValidFrom());
     }
 
@@ -41,7 +41,7 @@ public record SessionPriceResponseDTO(
                 entity.getPlan().getSessionCount(),
                 null,
                 entity.getWeeklyFrequency(),
-                entity.getSessionValue(),
+                entity.getSessionValue().amount(),
                 entity.getValidFrom());
     }
 }

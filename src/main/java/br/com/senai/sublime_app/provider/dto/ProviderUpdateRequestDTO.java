@@ -8,12 +8,9 @@ import jakarta.validation.constraints.NotBlank;
 import jakarta.validation.constraints.NotNull;
 import jakarta.validation.constraints.Size;
 
-// Cadastro do prestador. A alteração usa o ProviderUpdateRequestDTO, sem userId:
-// o vínculo com o usuário é fixo após a criação.
-public record ProviderRequestDTO(
-
-        @NotNull(message = "O usuário do prestador é obrigatório.")
-        Long userId,
+// Alteração do prestador. Não recebe userId: o vínculo com o usuário é fixo após a
+// criação (mesma lógica do ContractAmendmentRequestDTO, que não recebe o titular).
+public record ProviderUpdateRequestDTO(
 
         @NotBlank(message = "O nome do prestador é obrigatório.")
         @Size(min = 3, max = 100, message = "O nome do prestador deve ter entre 3 e 100 caracteres.")

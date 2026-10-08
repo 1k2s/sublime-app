@@ -37,31 +37,42 @@ public class UserEntity {
     @Column(nullable = false)
     private Role role;
 
+    @Column(nullable = false)
+    private boolean active = true;
+
+    // Construtor publico para criar um usuário com os dados obrigatórios
     public UserEntity(String email, String password, Role role) {
-        validate(email, password, role);
+        validateEmailPasswordAndRole(email, password, role);
+        this.email = email;
+        this.password = password;
+        this.role = role;
+        this.active = true;
+    }
+
+    public void update(String email, String password, Role role) {
+        validateEmailPasswordAndRole(email, password, role);
         this.email = email;
         this.password = password;
         this.role = role;
     }
 
-    public void update(String email, String password, Role role) {
-        validate(email, password, role);
-        this.email = email;
-        this.password = password;
-        this.role = role;
+    // Soft delete: o usuário pode estar vinculado a um prestador com atendimentos
+    // lançados, então nunca é removido do banco
+    public void deactivate() {
+        this.active = false;
     }
 
     // Invariantes mínimas do usuário. Formato do e-mail fica no DTO (@Email);
     // regras de senha (tamanho, hash) virão com o módulo de autenticação.
-    private static void validate(String email, String password, Role role) {
+    private static void validateEmailPasswordAndRole(String email, String password, Role role) {
         if (email == null || email.isBlank()) {
-            throw new BusinessRuleException("User email is required.");
+            throw new BusinessRuleException("O e-mail é obrigatório.");
         }
         if (password == null || password.isBlank()) {
-            throw new BusinessRuleException("User password is required.");
+            throw new BusinessRuleException("A senha é obrigatória.");
         }
         if (role == null) {
-            throw new BusinessRuleException("User role is required.");
+            throw new BusinessRuleException("O perfil do usuário é obrigatório.");
         }
     }
 }
