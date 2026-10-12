@@ -1,14 +1,20 @@
-// Tela de login
-import { useNavigate } from "react-router-dom";
+import { Navigate, useLocation } from "react-router-dom";
+import { useLogin } from "../api/useLogin";
 import { LoginForm } from "../components/LoginForm";
+import { useAuth } from "../context/useAuth";
 import styles from "./LoginPage.module.css";
 
 export function LoginPage() {
-  const navigate = useNavigate();
+  const { user, signIn } = useAuth();
+  const { mutate: login, isPending, error } = useLogin();
+  const location = useLocation();
 
-  // Provisório: ainda não autentica, só entra no app. O login de verdade entra com o AuthContext
-  function handleSubmit() {
-    navigate("/");
+  if (user) {
+    return <Navigate to={location.state?.from?.pathname ?? "/"} replace />;
+  }
+
+  function handleSubmit(credentials) {
+    login(credentials, { onSuccess: signIn });
   }
 
   return (
@@ -21,7 +27,13 @@ export function LoginPage() {
 
         <h1 className={styles.title}>Acesse sua conta</h1>
 
-        <LoginForm onSubmit={handleSubmit} />
+        {error && (
+          <p className={styles.error} role="alert">
+            {error.message}
+          </p>
+        )}
+
+        <LoginForm onSubmit={handleSubmit} isSubmitting={isPending} />
       </section>
     </main>
   );
