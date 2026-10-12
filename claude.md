@@ -133,6 +133,18 @@ Extras em `consultation`: `hooks/`, `components/wizard/` e `consultationStatus.j
 - A camada `app/` pode importar de qualquer domínio.
 - Usado em um domínio só: `domain/<modulo>/components/`. Genérico e sem regra de negócio: `shared/ui/`.
  
+### Onde guardar cada tipo de estado
+ 
+| Tipo de dado | Exemplo | Onde fica |
+|---|---|---|
+| Vem da API | Pacientes, contratos, preços, lançamentos | React Query (hooks `useXxx` em `domain/<modulo>/api/`) |
+| Estado global do app, que não vem de listagem | Sessão do usuário, tema | Contexto, com o provider em `app/providers.jsx` |
+| Estado de uma tela ou fluxo | Passo atual do wizard de lançamento | `useState` ou um hook local (por exemplo, `useConsultationWizard`) |
+ 
+- Dados do servidor nunca vão em contexto: o cache do React Query já compartilha a mesma lista entre os componentes, com carregamento, erro e invalidação.
+- Todo provider global é aninhado no `AppProviders` (`app/providers.jsx`); o `main.jsx` não monta providers direto. Quem fica por dentro pode usar quem está por fora.
+- Um provider que serve a uma tela só é montado em volta dela, e não no `AppProviders`.
+ 
 ### Convenções de nomes
  
 - Componentes e pages: `PascalCase.jsx`.
@@ -147,6 +159,23 @@ Dois tipos de arquivo:
 |---|---|---|
 | `xxxApi.js` | Funções que chamam o backend, uma por endpoint | `httpClient` |
 | `useXxx.js` | Hooks do TanStack Query | `xxxApi.js` e o React Query |
+ 
+### Camada
+ 
+```
+api (xxxApi.js)  →  hook (useXxx.js)  →  components / pages
+```
+ 
+| Camada | O que faz | O que não sabe |
+|---|---|---|
+| API | Faz a chamada e devolve os dados | Que existe React |
+| Hook | Transforma a chamada em estado de tela (carregando, erro, dados) | Como a tela é desenhada |
+| Components / pages | Mostram os dados e disparam as ações | De onde os dados vêm |
+ 
+Cada camada só conhece a anterior. Trocar um mock pelo endpoint real mexe só na camada de API.
+ 
+- Leitura usa `useQuery`: roda quando o componente aparece e guarda o resultado em cache.
+- Ação que altera algo (login, criar, editar, apagar) usa `useMutation`: só roda quando a tela chama `mutate`.
  
 ```js
 // domain/patient/api/patientApi.js
