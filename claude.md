@@ -438,7 +438,7 @@ Dica: fazer um módulo por vez, com a tela funcionando de ponta a ponta, em vez 
  
 ## 8. Estado atual do projeto
  
-Projeto `sublime-app-front` criado e rodando no Vite. Atualizado em 2026-10-12. O projeto está no passo 6 da seção 7: tela de login e contexto de autenticação prontos; falta ligar o login, proteger as rotas e integrar a sidebar.
+Projeto `sublime-app-front` criado e rodando no Vite. Atualizado em 2026-10-12. O passo 6 da seção 7 (módulo `auth`) está concluído com login mockado. O próximo é o passo 7 (`patient` e `pricing`).
  
 | Item | Situação |
 |---|---|
@@ -447,13 +447,13 @@ Projeto `sublime-app-front` criado e rodando no Vite. Atualizado em 2026-10-12. 
 | `main.jsx` | Pronto. Monta `AppProviders` e `RouterProvider` (data router) |
 | `app/providers.jsx` | Pronto: `AppProviders` agrupa `QueryClientProvider` e `AuthProvider` |
 | `index.css` | Variáveis de 6.6 aplicadas, incluindo `--color-accent` (barra do item ativo do menu) e `--color-danger` (erros de formulário) |
-| `app/router.jsx` | Pronto com `createBrowserRouter`, rotas `lazy` e imports com `@/`: `/login`, `/patients`, `/pricing`, `/providers`, `/contracts`, `/consultations` e `*`. A rota `/` redireciona para `/consultations`. Ainda sem `ProtectedRoute` |
+| `app/router.jsx` | Pronto com `createBrowserRouter`, rotas `lazy` e imports com `@/`: `/login`, `/patients`, `/pricing`, `/providers`, `/contracts`, `/consultations` e `*`. Um `ProtectedRoute` envolve o `AppLayout` e todas as rotas internas: sem sessão, vai para `/login`. A rota `/` redireciona para `/consultations`, independente do papel. Não há bloqueio de rota por papel |
 | `app/layout/` | `AppLayout` (sidebar + conteúdo com rolagem própria), `AppSidebar` (`react-pro-sidebar` + `NavLink`) e `navigationItems.js` prontos. Falta `Topbar`, se o design tiver barra superior |
-| Menu lateral | Mostra a união dos menus de admin e prestador. Cada item tem `roles` em `navigationItems.js`, mas o filtro por papel ainda não é aplicado. Dashboard e Configurações estão desabilitados (sem tela). Logo em texto, e usuário e logout ainda fixos. O `navigationItems.js` tem uma cópia própria de `ROLES`, a trocar pela de `domain/auth/roles.js` |
+| Menu lateral | Filtrado pelo papel do usuário logado, pelo campo `roles` de `navigationItems.js` (que usa o `ROLES` de `domain/auth/roles.js`). O rodapé mostra o nome e o papel da sessão, e o botão de sair chama o `signOut`. Dashboard e Configurações estão desabilitados (sem tela). Logo em texto |
 | `shared/http/httpClient.js` | Pronto: token do `localStorage` (`sublime.authToken`), tratamento de 401 e `setUnauthorizedHandler`, registrado pelo `AuthProvider` com o `signOut` |
 | `shared/utils/` | `money.js`, `date.js` e `masks.js` prontos |
 | `shared/ui/` | `Button`, `Input` e `FormField` prontos, com `.module.css`. `PageLoader` e `RouteError` ainda usam estilo inline. Faltam `Card`, `Select`, `Stepper`, `Badge` e `PageHeader` |
-| `domain/auth/` | Prontos: tela de login (`LoginPage`, `LoginForm`, `loginSchema.js`), `roles.js`, `authApi.js` (login mockado: `admin@sublime.com` e `prestador@sublime.com`, senha com 6+ caracteres), `useLogin`, `useAuth` e `AuthProvider` (sessão no `localStorage`). Faltam: a `LoginPage` chamar o login de verdade (hoje o envio válido só navega para `/`) e o `ProtectedRoute` |
+| `domain/auth/` | Prontos: tela de login (`LoginPage`, `LoginForm`, `loginSchema.js`), `roles.js`, `authApi.js` (login mockado: `admin@sublime.com` e `prestador@sublime.com`, senha com 6+ caracteres), `useLogin`, `useAuth`, `AuthProvider` (sessão no `localStorage`) e `ProtectedRoute` (só verifica se há sessão). A `LoginPage` autentica com `useLogin` + `signIn` e volta para a rota que o usuário tentou abrir. `getHomePath` e o campo `homePath` de `roles.js` estão sem uso |
 | `domain/<modulo>/pages/` | Uma page placeholder em `patient`, `pricing`, `provider`, `contract` e `consultation`. Faltam `api/`, `components/` e `schemas/` em todos. `domain/user/` ainda não tem arquivos |
 | `src/pages/NotFoundPage.jsx` | Existe fora da estrutura da seção 3. Decidir para onde mover (por exemplo, `app/`) |
 | `assets/`, `App.css`, `App.jsx` do template | Apagados. Resta `public/icons.svg`, sem uso |
@@ -466,6 +466,9 @@ Projeto `sublime-app-front` criado e rodando no Vite. Atualizado em 2026-10-12. 
 - **Dashboard** é Fase 2 e **Configurações** não tem tela definida. Os dois ficam no menu, desabilitados.
 - **Prestadores:** a rota `/providers` existe, mas não está no menu do design. Falta definir onde entra.
 - **Contrato de login:** ainda não definido pelo backend. O front assume e-mail e senha, resposta `{ token, user: { id, name, role } }` e papéis `admin` e `provider`.
+- **Papéis vêm do backend.** O front só lê o `user.role` da sessão e decide o que cada papel vê. Os valores em `domain/auth/roles.js` (campo `value`) precisam ser idênticos aos que o backend devolve; se não baterem, o menu fica vazio.
+- **Autorização é do backend.** O filtro do menu é só visual, e as rotas do front não bloqueiam por papel: qualquer usuário logado abre qualquer rota pela URL, e o papel no `localStorage` pode ser editado no navegador. Cada endpoint precisa conferir o papel a partir do token.
+- **Admin depois do login:** cai em `/consultations`, que não está no menu de admin, então nenhum item fica marcado. Rever quando o destino inicial por papel for definido.
 - **Valores monetários** sempre como string vinda da API. O cálculo oficial fica no backend (`BigDecimal`).
 - **Preços historizados:** nunca editar. O reajuste fecha a linha antiga (`validTo`) e abre uma nova.
 - **Exclusive arc** (`groupPlanPriceId` / `groupPlanFrequencyPriceId`): validado no schema Zod do front, com a `CHECK` constraint no banco como garantia final.
@@ -487,10 +490,9 @@ Projeto `sublime-app-front` criado e rodando no Vite. Atualizado em 2026-10-12. 
 - [x] Criar `Button`, `Input` e `FormField` em `shared/ui/` e a tela de login em `domain/auth/`.
 - [ ] Criar os demais componentes de `shared/ui/` conforme as telas precisarem e migrar `PageLoader` e `RouteError` para CSS Modules.
 - [x] Módulo `auth`: `roles.js`, API de login (mock), `useLogin`, `useAuth`, `AuthProvider` e `app/providers.jsx` na raiz.
-- [ ] Módulo `auth`: `ProtectedRoute` no router, com bloqueio por sessão e por papel.
-- [ ] Módulo `auth`: sidebar filtrada por papel, com nome do usuário e logout reais.
-- [ ] Módulo `auth`: `LoginPage` chamando `useLogin` e `signIn`.
+- [x] Módulo `auth`: `ProtectedRoute` no router (bloqueio só por sessão), sidebar filtrada por papel com nome e logout reais, e `LoginPage` chamando `useLogin` e `signIn`.
+- [ ] Decidir se as rotas do front também bloqueiam por papel e para onde cada papel vai depois do login (hoje todos vão para `/consultations`). Conforme a decisão, usar ou remover `getHomePath` e `homePath` de `roles.js`.
 - [ ] Criar a `Topbar`, se o design tiver barra superior.
-- [ ] Trocar o mock de `authApi.js` pelo endpoint real quando o backend definir o contrato de login.
+- [ ] Trocar o mock de `authApi.js` pelo endpoint real quando o backend definir o contrato de login, e ajustar os valores dos papéis em `roles.js`.
 - [ ] Escrever o README do repositório do front.
 - [ ] Alinhar com o time o contrato OpenAPI e a convenção de branches.
