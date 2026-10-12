@@ -61,7 +61,7 @@ npm i axios date-fns decimal.js
 Total: 10 dependências de runtime. O template do Vite já traz `react`, `react-dom`, `vite`, `@vitejs/plugin-react` e ESLint.
  
 Pontos de atenção:
-- Confirmar no npm se a versão do `react-pro-sidebar` é compatível com a versão do React instalada (a manutenção dela é irregular).
+- O `react-pro-sidebar` 1.1.0 está em uso com React 19 e o build passa. A manutenção dela é irregular: conferir a compatibilidade de novo antes de subir a versão do React.
 - Sem TypeScript, o Zod e o JSDoc compensam a falta de tipos.
 - Alternativas descartadas por ora: Tailwind, shadcn/ui, router e ícones próprios.
  
@@ -78,7 +78,7 @@ src/
 │   └── layout/
 │       ├── AppLayout.jsx
 │       ├── AppSidebar.jsx
-│       ├── Topbar.jsx
+│       ├── Topbar.jsx             # ainda não existe: o design da sidebar não tem barra superior
 │       └── navigationItems.js
 │
 ├── shared/                        # sem regra de negócio
@@ -95,7 +95,7 @@ src/
 └── domain/                        # um diretório por módulo do backend
     ├── patient/                   # nível 1
     ├── pricing/                   # nível 1
-    ├── auth/                      # nível 1: sessão, login e proteção de rota (+ context/)
+    ├── auth/                      # nível 1: sessão, login e proteção de rota (+ context/ e roles.js)
     ├── user/                      # nível 1: gestão de usuários
     ├── provider/                  # nível 2 (depende de user)
     ├── contract/                  # nível 2 (depende de patient + pricing)
@@ -103,6 +103,7 @@ src/
 ```
  
 Dentro de cada domínio: `api/`, `components/`, `schemas/`, `pages/`.
+Extras em `auth`: `context/` e `roles.js`.
 Extras em `consultation`: `hooks/`, `components/wizard/` e `consultationStatus.js`.
  
 ### Conteúdo por domínio
@@ -111,7 +112,7 @@ Extras em `consultation`: `hooks/`, `components/wizard/` e `consultationStatus.j
 |---|---|
 | `patient` | `PatientForm`, `AddressFields`, `PatientTable`, `PatientSearchInput`, `patientSchema.js` |
 | `pricing` | `TechniqueTable`, `PlanTable`, `PriceHistoryTable`, `PriceAdjustmentForm`, `PricingCatalogPage` |
-| `auth` | `LoginForm`, `ProtectedRoute`, `AuthContext`, `useAuth`, `loginSchema.js`, `LoginPage`. Exceção à regra de um diretório por módulo do backend: a sessão atravessa o app inteiro, então fica separada de `user` |
+| `auth` | `LoginForm`, `ProtectedRoute`, `AuthContext`, `useAuth`, `authApi.js`, `useLogin`, `roles.js`, `loginSchema.js`, `LoginPage`. Exceção à regra de um diretório por módulo do backend: a sessão atravessa o app inteiro, então fica separada de `user` |
 | `user` | Gestão de usuários (cadastro e contas). Ainda sem arquivos |
 | `provider` | `ProviderForm` (inclui percentual de comissão), `ProviderTable` |
 | `contract` | `ContractForm`, `PriceSelector`, `ContractTable`, `contractSchema.js` (exclusive arc) |
@@ -129,6 +130,8 @@ Extras em `consultation`: `hooks/`, `components/wizard/` e `consultationStatus.j
 ### Regras de dependência
  
 - `consultation` importa de `contract`, `provider`, `patient`, `pricing` e `user`. Nunca o contrário.
+- Qualquer domínio pode importar de `auth` (sessão e papéis). `auth` não importa de nenhum outro domínio.
+- `domain/` nunca importa de `app/`.
 - `shared/` nunca importa de `domain/`.
 - A camada `app/` pode importar de qualquer domínio.
 - Usado em um domínio só: `domain/<modulo>/components/`. Genérico e sem regra de negócio: `shared/ui/`.
@@ -309,12 +312,12 @@ mkdir -p app/layout
 mkdir -p shared/{http,ui,utils}
  
 # Pasta de cada domínio
-for d in patient pricing user provider contract consultation; do
+for d in patient pricing auth user provider contract consultation; do
   mkdir -p domain/$d/{api,components,schemas,pages}
 done
  
 # Extras
-mkdir -p domain/user/context
+mkdir -p domain/auth/context
 mkdir -p domain/consultation/{hooks,components/wizard}
  
 cd ..
@@ -326,12 +329,12 @@ cd ..
 cd src
 Remove-Item -Recurse -Force assets, App.css, App.jsx
 New-Item -ItemType Directory -Force app/layout, shared/http, shared/ui, shared/utils
-foreach ($d in "patient","pricing","user","provider","contract","consultation") {
+foreach ($d in "patient","pricing","auth","user","provider","contract","consultation") {
   foreach ($s in "api","components","schemas","pages") {
     New-Item -ItemType Directory -Force "domain/$d/$s"
   }
 }
-New-Item -ItemType Directory -Force domain/user/context, domain/consultation/hooks, domain/consultation/components/wizard
+New-Item -ItemType Directory -Force domain/auth/context, domain/consultation/hooks, domain/consultation/components/wizard
 cd ..
 ```
  
@@ -346,6 +349,8 @@ O `mkdir -p` ignora pastas que já existem. O Git não versiona pastas vazias; p
   --color-surface: #ffffff;
   --color-primary: #5f7a58;
   --color-primary-soft: #dfe8dc;
+  --color-accent: #3f6fb5;
+  --color-danger: #b42318;
   --color-border: #e5e0d5;
   --color-text: #374151;
   --color-muted: #6b7280;
@@ -389,6 +394,8 @@ createRoot(document.getElementById("root")).render(
  
 Rode `npm run dev`. Se o título aparecer sobre fundo creme, o setup está pronto.
  
+Este arquivo serve só para validar o setup. O `main.jsx` atual do projeto usa `AppProviders` (`app/providers.jsx`) e `RouterProvider` com o router de `app/router.jsx`.
+ 
 ### 6.8 Versionar
  
 ```bash
@@ -431,21 +438,22 @@ Dica: fazer um módulo por vez, com a tela funcionando de ponta a ponta, em vez 
  
 ## 8. Estado atual do projeto
  
-Projeto `sublime-app-front` criado e rodando no Vite. Atualizado em 2026-10-12. O projeto está no passo 6 da seção 7: tela de login pronta, autenticação pendente.
+Projeto `sublime-app-front` criado e rodando no Vite. Atualizado em 2026-10-12. O projeto está no passo 6 da seção 7: tela de login e contexto de autenticação prontos; falta ligar o login, proteger as rotas e integrar a sidebar.
  
 | Item | Situação |
 |---|---|
 | `jsconfig.json`, `.env`, `vite.config.js` | Criados na raiz, alias `@/` configurado |
 | Dependências da seção 2 | Todas instaladas (React 19, React Router 7, Zod 4) |
-| `main.jsx` | Pronto. Usa `RouterProvider` (data router) no lugar do `BrowserRouter` de 6.7, com o `QueryClient` criado inline |
-| `index.css` | Variáveis de 6.6 aplicadas, mais `--color-accent` (barra do item ativo do menu) |
+| `main.jsx` | Pronto. Monta `AppProviders` e `RouterProvider` (data router) |
+| `app/providers.jsx` | Pronto: `AppProviders` agrupa `QueryClientProvider` e `AuthProvider` |
+| `index.css` | Variáveis de 6.6 aplicadas, incluindo `--color-accent` (barra do item ativo do menu) e `--color-danger` (erros de formulário) |
 | `app/router.jsx` | Pronto com `createBrowserRouter`, rotas `lazy` e imports com `@/`: `/login`, `/patients`, `/pricing`, `/providers`, `/contracts`, `/consultations` e `*`. A rota `/` redireciona para `/consultations`. Ainda sem `ProtectedRoute` |
-| `app/layout/` | `AppLayout` (sidebar + conteúdo com rolagem própria), `AppSidebar` (`react-pro-sidebar` + `NavLink`) e `navigationItems.js` prontos. Faltam `Topbar` e `providers.jsx` |
-| Menu lateral | Mostra a união dos menus de admin e prestador. Cada item tem `roles` em `navigationItems.js`, mas o filtro por papel ainda não é aplicado. Dashboard e Configurações estão desabilitados (sem tela). Logo em texto, e usuário e logout fixos até existir o `AuthContext` |
-| `shared/http/httpClient.js` | Pronto: token do `localStorage` (`sublime.authToken`), tratamento de 401 e `setUnauthorizedHandler` à espera do `AuthContext` |
+| `app/layout/` | `AppLayout` (sidebar + conteúdo com rolagem própria), `AppSidebar` (`react-pro-sidebar` + `NavLink`) e `navigationItems.js` prontos. Falta `Topbar`, se o design tiver barra superior |
+| Menu lateral | Mostra a união dos menus de admin e prestador. Cada item tem `roles` em `navigationItems.js`, mas o filtro por papel ainda não é aplicado. Dashboard e Configurações estão desabilitados (sem tela). Logo em texto, e usuário e logout ainda fixos. O `navigationItems.js` tem uma cópia própria de `ROLES`, a trocar pela de `domain/auth/roles.js` |
+| `shared/http/httpClient.js` | Pronto: token do `localStorage` (`sublime.authToken`), tratamento de 401 e `setUnauthorizedHandler`, registrado pelo `AuthProvider` com o `signOut` |
 | `shared/utils/` | `money.js`, `date.js` e `masks.js` prontos |
 | `shared/ui/` | `Button`, `Input` e `FormField` prontos, com `.module.css`. `PageLoader` e `RouteError` ainda usam estilo inline. Faltam `Card`, `Select`, `Stepper`, `Badge` e `PageHeader` |
-| `domain/auth/` | Tela de login pronta (`LoginPage`, `LoginForm`, `loginSchema.js`), só com visual e validação: o envio válido apenas navega para `/`. Faltam `AuthContext`, `useAuth`, `ProtectedRoute` e a API de login |
+| `domain/auth/` | Prontos: tela de login (`LoginPage`, `LoginForm`, `loginSchema.js`), `roles.js`, `authApi.js` (login mockado: `admin@sublime.com` e `prestador@sublime.com`, senha com 6+ caracteres), `useLogin`, `useAuth` e `AuthProvider` (sessão no `localStorage`). Faltam: a `LoginPage` chamar o login de verdade (hoje o envio válido só navega para `/`) e o `ProtectedRoute` |
 | `domain/<modulo>/pages/` | Uma page placeholder em `patient`, `pricing`, `provider`, `contract` e `consultation`. Faltam `api/`, `components/` e `schemas/` em todos. `domain/user/` ainda não tem arquivos |
 | `src/pages/NotFoundPage.jsx` | Existe fora da estrutura da seção 3. Decidir para onde mover (por exemplo, `app/`) |
 | `assets/`, `App.css`, `App.jsx` do template | Apagados. Resta `public/icons.svg`, sem uso |
@@ -454,8 +462,10 @@ Projeto `sublime-app-front` criado e rodando no Vite. Atualizado em 2026-10-12. 
 ## 9. Pontos de atenção do modelo
  
 - **Nomenclatura:** `repasseValue` está em português. Renomear no backend e no front para algo como `providerPayoutValue`.
-- **"Agendamentos"** aparece no menu do design, mas não existe no mapa de módulos do backend. Deixar o item desabilitado até definir.
-- **Dashboard e Relatórios** são Fase 2. Manter só o item de menu, desabilitado.
+- **Menu do design:** o design da sidebar (2026-10-09) tem Dashboard, Pacientes, Contratos, Preços e Configurações para admin, e Lançamentos e Configurações para prestador. "Agendamentos" e "Relatórios" não aparecem nele e não estão no menu.
+- **Dashboard** é Fase 2 e **Configurações** não tem tela definida. Os dois ficam no menu, desabilitados.
+- **Prestadores:** a rota `/providers` existe, mas não está no menu do design. Falta definir onde entra.
+- **Contrato de login:** ainda não definido pelo backend. O front assume e-mail e senha, resposta `{ token, user: { id, name, role } }` e papéis `admin` e `provider`.
 - **Valores monetários** sempre como string vinda da API. O cálculo oficial fica no backend (`BigDecimal`).
 - **Preços historizados:** nunca editar. O reajuste fecha a linha antiga (`validTo`) e abre uma nova.
 - **Exclusive arc** (`groupPlanPriceId` / `groupPlanFrequencyPriceId`): validado no schema Zod do front, com a `CHECK` constraint no banco como garantia final.
@@ -471,12 +481,16 @@ Projeto `sublime-app-front` criado e rodando no Vite. Atualizado em 2026-10-12. 
 - [x] Remover a centralização de `#root` no `index.css`.
 - [x] Montar `AppLayout`, `AppSidebar` e `navigationItems.js`.
 - [ ] Criar as subpastas que faltam nos domínios.
-- [ ] Sidebar: trocar a logo em texto pelo arquivo da marca e filtrar os itens por papel (`roles`) quando houver usuário logado.
-- [ ] Definir as telas de Dashboard e Configurações e o lugar de Prestadores no menu (a rota `/providers` existe, mas não está no design).
+- [ ] Sidebar: trocar a logo em texto pelo arquivo da marca.
+- [ ] Definir as telas de Dashboard e Configurações e o lugar de Prestadores no menu.
 - [ ] Mover o `NotFoundPage` para dentro da estrutura da seção 3.
 - [x] Criar `Button`, `Input` e `FormField` em `shared/ui/` e a tela de login em `domain/auth/`.
 - [ ] Criar os demais componentes de `shared/ui/` conforme as telas precisarem e migrar `PageLoader` e `RouteError` para CSS Modules.
-- [ ] Completar a casca (`providers.jsx` e `Topbar`, se o design tiver barra superior).
-- [ ] Módulo `auth`, etapa 2: `AuthContext` + `useAuth`, `providers.jsx` na raiz, API de login (mock), `ProtectedRoute` no router e ligação do `setUnauthorizedHandler`.
+- [x] Módulo `auth`: `roles.js`, API de login (mock), `useLogin`, `useAuth`, `AuthProvider` e `app/providers.jsx` na raiz.
+- [ ] Módulo `auth`: `ProtectedRoute` no router, com bloqueio por sessão e por papel.
+- [ ] Módulo `auth`: sidebar filtrada por papel, com nome do usuário e logout reais.
+- [ ] Módulo `auth`: `LoginPage` chamando `useLogin` e `signIn`.
+- [ ] Criar a `Topbar`, se o design tiver barra superior.
+- [ ] Trocar o mock de `authApi.js` pelo endpoint real quando o backend definir o contrato de login.
 - [ ] Escrever o README do repositório do front.
 - [ ] Alinhar com o time o contrato OpenAPI e a convenção de branches.
