@@ -2,6 +2,8 @@
 import { NavLink } from "react-router-dom";
 import { Menu, MenuItem, Sidebar, sidebarClasses } from "react-pro-sidebar";
 import { LogOut, User } from "lucide-react";
+import { useAuth } from "@/domain/auth/context/useAuth";
+import { getRole } from "@/domain/auth/roles";
 import { navigationItems } from "./navigationItems";
 import styles from "./AppSidebar.module.css";
 
@@ -34,6 +36,9 @@ const menuItemStyles = {
 };
 
 export function AppSidebar() {
+  const { user, signOut } = useAuth();
+  const visibleItems = navigationItems.filter((item) => item.roles.includes(user.role));
+
   return (
     <Sidebar width="240px" backgroundColor="var(--color-surface)" rootStyles={sidebarRootStyles}>
       <div className={styles.brand}>
@@ -42,7 +47,7 @@ export function AppSidebar() {
       </div>
 
       <Menu menuItemStyles={menuItemStyles}>
-        {navigationItems.map(({ label, path, icon: Icon, disabled }) => (
+        {visibleItems.map(({ label, path, icon: Icon, disabled }) => (
           <MenuItem
             key={path}
             icon={<Icon size={18} />}
@@ -58,10 +63,10 @@ export function AppSidebar() {
           <User size={18} />
         </span>
         <div className={styles.userInfo}>
-          <span className={styles.userName}>Administrador</span>
-          <span className={styles.userRole}>Sistema</span>
+          <span className={styles.userName}>{user.name}</span>
+          <span className={styles.userRole}>{getRole(user.role)?.label}</span>
         </div>
-        <button type="button" className={styles.logout} aria-label="Sair" title="Sair" disabled>
+        <button type="button" className={styles.logout} aria-label="Sair" title="Sair" onClick={signOut}>
           <LogOut size={18} />
         </button>
       </div>
