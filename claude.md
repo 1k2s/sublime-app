@@ -95,7 +95,8 @@ src/
 └── domain/                        # um diretório por módulo do backend
     ├── patient/                   # nível 1
     ├── pricing/                   # nível 1
-    ├── user/                      # nível 1 (+ context/AuthContext.jsx)
+    ├── auth/                      # nível 1: sessão, login e proteção de rota (+ context/)
+    ├── user/                      # nível 1: gestão de usuários
     ├── provider/                  # nível 2 (depende de user)
     ├── contract/                  # nível 2 (depende de patient + pricing)
     └── consultation/              # nível 3 (depende de todos)
@@ -110,7 +111,8 @@ Extras em `consultation`: `hooks/`, `components/wizard/` e `consultationStatus.j
 |---|---|
 | `patient` | `PatientForm`, `AddressFields`, `PatientTable`, `PatientSearchInput`, `patientSchema.js` |
 | `pricing` | `TechniqueTable`, `PlanTable`, `PriceHistoryTable`, `PriceAdjustmentForm`, `PricingCatalogPage` |
-| `user` | `LoginForm`, `ProtectedRoute`, `AuthContext`, `loginSchema.js`, `LoginPage` |
+| `auth` | `LoginForm`, `ProtectedRoute`, `AuthContext`, `useAuth`, `loginSchema.js`, `LoginPage`. Exceção à regra de um diretório por módulo do backend: a sessão atravessa o app inteiro, então fica separada de `user` |
+| `user` | Gestão de usuários (cadastro e contas). Ainda sem arquivos |
 | `provider` | `ProviderForm` (inclui percentual de comissão), `ProviderTable` |
 | `contract` | `ContractForm`, `PriceSelector`, `ContractTable`, `contractSchema.js` (exclusive arc) |
 | `consultation` | `ConsultationWizard`, `PatientStep`, `ConfirmationStep`, `SuccessStep`, `ConsultationPreview`, `ConsultationTable`, `ConsultationFilters`, `StatusBadge`, `useConsultationWizard`, `consultationStatus.js` |
@@ -378,7 +380,7 @@ Confira se o `.gitignore` inclui `node_modules` e `dist` (e o `.env`, se tiver d
 3. **Estilo global e pastas:** variáveis CSS, limpar o template e criar a árvore.
 4. **Camada `shared/`:** `httpClient`, `money`, `date`, `masks` e os componentes de `ui/` usados pela tela de Lançamentos (`Card`, `Button`, `FormField`, `Input`, `Select`, `Stepper`, `Badge`, `PageHeader`).
 5. **Camada `app/`:** providers, router, `AppLayout`, sidebar e topbar. Marco: a casca abre com menu e página vazia.
-6. **Módulo `user`:** login, `AuthContext`, `ProtectedRoute` (pode começar com usuário mock).
+6. **Módulo `auth`:** login, `AuthContext`, `ProtectedRoute` (pode começar com usuário mock).
 7. **Módulos `patient` e `pricing`:** api, hooks, schema, componentes e pages. Criar já o `PatientSearchInput`.
 8. **Módulos `provider` e `contract`:** o contrato valida o exclusive arc (exatamente um dos dois preços preenchido).
 9. **Módulo `consultation`:** status, api, wizard de 3 passos, prévia e a página de Lançamentos.
@@ -400,7 +402,7 @@ Dica: fazer um módulo por vez, com a tela funcionando de ponta a ponta, em vez 
  
 ## 8. Estado atual do projeto
  
-Projeto `sublime-app-front` criado e rodando no Vite. Atualizado em 2026-10-09. O projeto está entre os passos 4 e 5 da seção 7.
+Projeto `sublime-app-front` criado e rodando no Vite. Atualizado em 2026-10-12. O projeto está no passo 6 da seção 7: tela de login pronta, autenticação pendente.
  
 | Item | Situação |
 |---|---|
@@ -413,8 +415,9 @@ Projeto `sublime-app-front` criado e rodando no Vite. Atualizado em 2026-10-09. 
 | Menu lateral | Mostra a união dos menus de admin e prestador. Cada item tem `roles` em `navigationItems.js`, mas o filtro por papel ainda não é aplicado. Dashboard e Configurações estão desabilitados (sem tela). Logo em texto, e usuário e logout fixos até existir o `AuthContext` |
 | `shared/http/httpClient.js` | Pronto: token do `localStorage` (`sublime.authToken`), tratamento de 401 e `setUnauthorizedHandler` à espera do `AuthContext` |
 | `shared/utils/` | `money.js`, `date.js` e `masks.js` prontos |
-| `shared/ui/` | Só `PageLoader` e `RouteError`, ambos com estilo inline em vez de `.module.css`. Faltam os componentes da seção 7, passo 4 |
-| `domain/<modulo>/pages/` | Uma page placeholder por domínio (título + `Outlet`). Faltam `api/`, `components/` e `schemas/` em todos |
+| `shared/ui/` | `Button`, `Input` e `FormField` prontos, com `.module.css`. `PageLoader` e `RouteError` ainda usam estilo inline. Faltam `Card`, `Select`, `Stepper`, `Badge` e `PageHeader` |
+| `domain/auth/` | Tela de login pronta (`LoginPage`, `LoginForm`, `loginSchema.js`), só com visual e validação: o envio válido apenas navega para `/`. Faltam `AuthContext`, `useAuth`, `ProtectedRoute` e a API de login |
+| `domain/<modulo>/pages/` | Uma page placeholder em `patient`, `pricing`, `provider`, `contract` e `consultation`. Faltam `api/`, `components/` e `schemas/` em todos. `domain/user/` ainda não tem arquivos |
 | `src/pages/NotFoundPage.jsx` | Existe fora da estrutura da seção 3. Decidir para onde mover (por exemplo, `app/`) |
 | `assets/`, `App.css`, `App.jsx` do template | Apagados. Resta `public/icons.svg`, sem uso |
 | `README.md` | Ainda é o do template do Vite |
@@ -442,8 +445,9 @@ Projeto `sublime-app-front` criado e rodando no Vite. Atualizado em 2026-10-09. 
 - [ ] Sidebar: trocar a logo em texto pelo arquivo da marca e filtrar os itens por papel (`roles`) quando houver usuário logado.
 - [ ] Definir as telas de Dashboard e Configurações e o lugar de Prestadores no menu (a rota `/providers` existe, mas não está no design).
 - [ ] Mover o `NotFoundPage` para dentro da estrutura da seção 3.
-- [ ] Criar os componentes básicos de `shared/ui/` (com `.module.css`) e migrar `PageLoader` e `RouteError` para CSS Modules.
+- [x] Criar `Button`, `Input` e `FormField` em `shared/ui/` e a tela de login em `domain/auth/`.
+- [ ] Criar os demais componentes de `shared/ui/` conforme as telas precisarem e migrar `PageLoader` e `RouteError` para CSS Modules.
 - [ ] Completar a casca (`providers.jsx` e `Topbar`, se o design tiver barra superior).
-- [ ] Módulo `user`: `AuthContext`, `ProtectedRoute` e login, ligando o `setUnauthorizedHandler`.
+- [ ] Módulo `auth`, etapa 2: `AuthContext` + `useAuth`, `providers.jsx` na raiz, API de login (mock), `ProtectedRoute` no router e ligação do `setUnauthorizedHandler`.
 - [ ] Escrever o README do repositório do front.
 - [ ] Alinhar com o time o contrato OpenAPI e a convenção de branches.

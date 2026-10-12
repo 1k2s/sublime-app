@@ -6,7 +6,7 @@ export const router = createBrowserRouter([
   {
     path: '/login',
     lazy: async () => {
-      const { LoginPage } = await import('@/domain/user/pages/LoginPage');
+      const { LoginPage } = await import('@/domain/auth/pages/LoginPage');
       return { Component: LoginPage };
     },
     errorElement: <RouteError />
