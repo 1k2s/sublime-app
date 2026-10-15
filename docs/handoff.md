@@ -2,7 +2,7 @@
 
 > Uso pessoal para iniciar uma sessão do Claude Code. Leia também
 > `docs/architecture.md` e `docs/domain-model.md` antes de começar.
-> Atualizado em 2026-10-08.
+> Atualizado em 2026-10-15.
 >
 > ⚠️ Está **versionado** na branch `feature/consultation` (entrou via `git add -f`).
 > Antes de abrir o PR: `git rm --cached docs/handoff.md` + commit (o
@@ -56,80 +56,143 @@
 | Unicidade | `unique = true` na coluna + `existsBy...` no service (409) | `PatientRepository.existsByCpf` |
 | Erros | `GlobalExceptionHandler`: ProblemDetail; DTO → `errors` (campo→mensagem); exceptions → `detail`; JSON ilegível e parâmetro de URL inválido → 400 em português | — |
 
-## Onde paramos (2026-10-08)
+## Onde paramos (2026-10-15)
 
-- **PR aberto** da branch `feature/testeFluxoCrud`: 409 ao inativar registro já
-  inativo (código) + definições do `Consultation` (só docs).
-- **Testes manuais pelo Swagger: abandonados.** Os testes serão feitos pela
-  **interface gráfica**, que será criada depois de finalizar o `Consultation`.
-  Nada do backend foi executado ainda desde a padronização (inclusive o 409).
-- **Branch atual:** `feature/consultation` (último commit `0696dd1`), working tree
-  limpo. Nenhum código do `Consultation` escrito ainda.
+- **Branch:** `feature/consultation` (último commit `9754d47 feat: handoff`),
+  working tree limpo. **Nenhum código escrito** nesta branch.
+- Estamos **definindo as regras de negócio** do `Consultation` e, com isso, a
+  **reestruturação do `Contract`** (contrato com itens). Tudo abaixo de "Decidido
+  na conversa" **ainda NÃO está no `domain-model.md`** — documentar antes de
+  qualquer código.
+- Testes: serão feitos pela interface gráfica, depois do `Consultation`. Nada do
+  backend foi executado desde a padronização.
 
-### Definição do `Consultation` — o que já está decidido (no `domain-model.md`)
+### Já documentado no `domain-model.md` (commit `0696dd1`)
 
 1. **Status: só 3** — `ATTENDED`, `NO_SHOW`, `CANCELED_LATE` (desmarcou com menos
-   de 6h). O prestador só lança o que gera repasse → **todo atendimento lançado é
-   cobrado (consome sessão) e gera repasse cheio**. Desmarcação dentro do prazo e
-   cancelamento pela clínica não são lançados (ficam no software de agendamento
-   da clínica). Sem `countsTowardsBilling()`. Regra das 6h aplicada por quem lança.
-2. **Comissão pela origem do paciente:**
-   - `Patient.referringProviderId` (FK nullable): prestador que trouxe o paciente;
-     `null` = paciente da clínica. Pode ser alterada; ao **atribuir** um prestador,
-     ele precisa existir (404) e estar ativo (400); manter o mesmo é permitido.
-     No `PUT`, nulo torna o paciente "da clínica".
-   - `Provider`: `commissionPercentage` (padrão **40%**) e
-     `referralCommissionPercentage` (padrão **45%**), opcionais no cadastro (vazio
-     = padrão, constantes no `ProviderEntity`), ajustáveis por prestador (ex:
-     estagiário). Invariante: referral **nunca menor** que o padrão (400).
-   - No lançamento: se o prestador que atendeu trouxe o **titular do contrato** →
-     referral; senão → padrão. Vai para o snapshot `commissionPercentageApplied`.
-   - Mapa de módulos mudou: `patient` passa a referenciar `provider` (sem ciclo).
+   de 6h). Todo atendimento lançado é cobrado e gera repasse cheio. O resto não é
+   lançado. Sem `countsTowardsBilling()`.
+2. **Comissão pela origem do paciente:** `Patient.referringProviderId` (nullable,
+   `null` = clínica); `Provider` com `commissionPercentage` (padrão 40%) e
+   `referralCommissionPercentage` (padrão 45%), referral nunca menor. Vale o
+   referral se o prestador que atendeu trouxe o **titular do contrato**.
 
-### Próximo passo: implementação do que já foi decidido (aguardando minha aprovação)
+### Decidido na conversa (falta documentar)
 
-Plano proposto pelo Claude (eu ainda não aprovei):
+**Estrutura nova do contrato — opção "contrato com itens":**
 
-| Passo | O quê |
-|---|---|
-| 1 | `ConsultationStatus` com os 3 valores + comentários em português |
-| 2 | `Provider`: campo `referralCommissionPercentage`; constantes 40/45; padrão aplicado na criação quando vier nulo; `validateReferralNotBelowCommission` (400); `Percentage.isLessThan(other)`; DTO de cadastro com os dois opcionais; resposta com os dois |
-| 3 | `Patient`: `referringProvider` (`@ManyToOne` LAZY, nullable); `updateReferringProvider(provider)` na entidade com a regra "ativo ao atribuir, salvo se o mesmo de antes"; service busca o prestador (404) via `ProviderRepository`; request com `referringProviderId` opcional; resposta com id **e nome** do prestador (precedente: `TechniqueResponseDTO.pricingGroupName`) |
+- **`Contract` (raiz do agregado):** titular, beneficiário (nullable), vigência
+  **única**, forma de pagamento **única**, **plano único** (ex: Evolução),
+  `active`, `previousContract` (aditivo = nova versão do contrato inteiro). **Um
+  contrato vigente por titular** (regra atual mantida).
+- **`ContractItem` (um por grupo de preço, `unique (contrato, grupo)`):** linha de
+  preço travada (o **exclusive arc sai do contrato e vai para o item**), técnica
+  escolhida **só como informação** (aparece no contrato impresso, ex: "Liberação
+  Miofascial e Quiropraxia"; precisa ser do grupo da linha; nova precisa estar
+  ativa), frequência. O plano do item é o plano do contrato no grupo dele (mesmo
+  plano nos grupos por duração; equivalente do de-para no Pilates em Grupo).
+- **Saldo por item:** cada item de grupo por duração tem as `sessionCount` do
+  plano (contrato Evolução com RPG + Quiro = 12 de RPG **e** 12 de Quiro), somando
+  a cadeia de versões. Item do Pilates em Grupo não tem saldo de sessões.
 
-**Decisão técnica pendente (recomendação do Claude):** no `PUT` do prestador, os
-dois percentuais são **obrigatórios** — o padrão só vale na criação; senão um
-estagiário 30/35 voltaria para 40/45 por um campo esquecido.
+**De-para de planos (duração ⇄ Pilates em Grupo), independente da frequência:**
+Essencial ⇄ Mensal · Evolução ⇄ Trimestral · **Evolução Familiar → Trimestral** ·
+Transformação ⇄ Semestral · Transformação Familiar ⇄ Semestral Familiar ·
+Vitalidade ⇄ Anual · Vitalidade Familiar ⇄ Anual Familiar. Avulso **não tem
+equivalente no Grupo** (Grupo exige contrato). Vou cadastrar todos os planos em
+todos os grupos por duração (ex: Evolução Familiar no Especializado e na Dupla).
 
-Depois: `docker compose down -v` (coluna nova obrigatória em `provider`).
+**Lançamento do atendimento (`Consultation`):**
 
-### Definição do `Consultation` — o que falta (retomar antes de escrever a entidade)
+- O prestador lança o **paciente que realmente compareceu**.
+- **Contratos elegíveis:** vigentes em que o paciente é **titular ou
+  beneficiário** e que têm item do grupo da técnica atendida. Nenhum → caso 2/3;
+  um → automático; **mais de um → modal** para o prestador escolher. Estrutura
+  proposta: `GET /api/consultations/eligible-contracts?patientId&techniqueId`
+  (lista com titular, item e saldo) + o lançamento recebe `contractId`; backend
+  revalida (precisa ser elegível; se existir elegível, `contractId` é obrigatório).
+- **Caso 1 — grupo contratado:** debita o saldo do item. Grupo por duração: mesma
+  duração da linha travada → **preço travado**; outra duração → **linha atual do
+  mesmo plano**; sem linha → 400. Grupo por frequência → linha travada.
+- **Caso 2 — paciente tem contrato, mas não do grupo atendido:** **de-para** a
+  partir do plano do contrato → linha **atual** do grupo atendido (pela duração do
+  atendimento; no Pilates em Grupo, **sempre 1x/semana** — aula experimental; se
+  quiser continuar, o admin inclui o Grupo no contrato). **Não debita saldo**;
+  valor vai para o saldo financeiro do paciente (módulo futuro). Sem linha → 400.
+- **Caso 3 — paciente sem contrato:** grupo por duração → **Avulso** vigente na
+  duração do atendimento; Pilates em Grupo → **400** (exige contrato).
+- Saldo e comissão sempre do **titular do contrato escolhido** (sem contrato: o
+  próprio paciente). `Consultation` referencia o **`Contract` (raiz)**, não o
+  item — item = contrato + grupo da linha usada; `contractId` nulo = avulso.
+- Sem modal de escolha de preço (o de-para substitui).
 
-- **Parte 2 — resolução de preço** (adiada por mim). Já respondido, **ainda não
-  documentado**:
-  - o atendimento usa o **preço do contrato** (linha travada), não o vigente no
-    dia; reajuste só vale para contratos novos/renovados;
-  - técnica de outro grupo → usa o **mesmo plano** no grupo da técnica atendida
-    (ex: Essencial do Individual Padrão → Essencial do Individual Especializado);
-    substitui o "modal de escolha livre" do `domain-model.md` (corrigir também o
-    passo 3, que diz "busca o preço vigente").
-  - **Perguntas abertas:** (a) de qual data é a linha do outro grupo — proposta:
-    a vigente no `startDate` da versão do contrato; (b) duração diferente no
-    mesmo grupo (60 → 30 min) segue a mesma lógica?; (c) plano inexistente no
-    outro grupo (Evolução Familiar só no Padrão; Pilates em Grupo × grupos por
-    duração têm planos e eixos diferentes) — bloquear, usar Avulso, ou outra regra?
-- **Parte 3 — repasse:** cálculo (`baseValue` × percentual), **modo de
-  arredondamento** (ex: 35% de R$ 58,91 = R$ 20,6185), renomear `repasseValue` →
-  `payoutValue` (sugestão), `Percentage.applyTo(Money)`.
-- **Parte 4 — contrato do atendimento:** achar o contrato vigente de quem foi
-  atendido (titular **ou** beneficiário); contrato vencido ou inexistente.
-- **Parte 5 — saldo:** `sessionCount` − atendimentos lançados na cadeia de versões
-  do contrato (só `DURATION_BASED`); encerramento com sessões restantes (N2).
-- **Parte 6 — ciclo de vida do lançamento:** atendimento lançado pode ser
-  alterado/excluído? (gera repasse na hora, sem aprovação).
-- **Parte 7 — quem lança** (deixei para depois): desenhar com `providerId`
-  explícito no request; avaliar `launchedByUserId`. Se o admin passar a lançar,
-  rever o "usuário obrigatório" do prestador.
+**Preço:** o contrato congela o preço **do grupo contratado** (qualquer técnica do
+grupo, mesma duração) até o fim; o resto paga o preço atual. Mantido o modelo de
+linhas individuais com `validFrom`/`validTo` (ideia de "tabela de preço anual"
+foi **descartada**). O grupo do contrato não é salvo: vem da linha travada /
+técnica (derivável).
+
+**Frequência × vigência (em definição):**
+
+- Novo enum (ex: `SessionFrequency`) para grupos por duração: `MONTHLY` (1x/mês),
+  `BIWEEKLY` (quinzenal), `WEEKLY`, `TWICE_WEEKLY`, `THREE_TIMES_WEEKLY`
+  (substitui o `weeklyFrequency` inteiro, que não representa quinzenal/mensal).
+  No Pilates em Grupo, a frequência continua sendo o eixo do preço (1x/2x/3x).
+- **Limite de vigência do item = sessões × intervalo da frequência, teto de 12
+  meses** (cálculo como método do enum — princípio 6). Reproduz a tabela da
+  clínica: Essencial 1/2/4 meses (semanal/quinzenal/mensal); Evolução 3/6/12;
+  Transformação 6/12 (mensal ❌); Vitalidade 12 (quinzenal/mensal ❌). Frequências
+  mais rápidas reduzem proporcionalmente (Vitalidade 2x/semana = 6 meses).
+- **Vigência do contrato = a maior entre as dos itens** (itens mais rápidos só
+  esgotam o saldo antes). Item do Pilates em Grupo fica fora do cálculo.
+  → o `endDate` passaria a ser **calculado pelo sistema** (usuário informa início,
+  plano e frequência de cada item).
+
+### Perguntas em aberto (minha resposta pendente)
+
+1. **`endDate` totalmente calculado?** E a **prorrogação** por aditivo (paciente
+   doente, por exemplo) continua existindo, mesmo passando do calculado, ou o que
+   sobra no fim vai sempre para o saldo do paciente?
+2. **Contrato só com Pilates em Grupo:** vigência vem do prazo do plano do Grupo
+   (Mensal 1 mês, Trimestral 3, Semestral 6, Anual 12)?
+3. **Frequências oferecidas:** até 3x/semana, ou existe 4x+?
+4. **Arredondamento em dias** nos ritmos rápidos (ex: 26 sessões a 3x/semana =
+   8,67 semanas): arredondar para cima (61 dias)?
+
+### Ainda a definir depois
+
+- **Repasse (Parte 3):** cálculo, **modo de arredondamento** (ex: 35% de
+  R$ 58,91 = R$ 20,6185), renomear `repasseValue` → `payoutValue` (sugestão),
+  `Percentage.applyTo(Money)`.
+- **Ciclo de vida do lançamento (Parte 6):** atendimento lançado pode ser
+  alterado/excluído?
+- **Quem lança (Parte 7)** (adiado): `providerId` explícito; `launchedByUserId`.
 - Precisão: `session_value` `DECIMAL(10,2)` × `base_value` `DECIMAL(12,2)`.
+
+### Módulo futuro: saldo do paciente (Parte 5 — decidido, fora do escopo agora)
+
+- Lista os contratos ativos do paciente e o saldo.
+- **Finalizar contrato** pergunta se o valor restante já foi pago ou vira **saldo
+  do paciente**; o contrato fica inativo e o valor passa a existir só no saldo.
+- Cada lançamento de saldo tem FK do contrato de origem. Saldo positivo pode ser
+  reaproveitado na renovação ou congelado; débito (negativo) idem, e o admin marca
+  como acertado quando quitado.
+- Contrato ganhará um `finish(...)` (diferente do `deactivate`) quando o módulo
+  existir.
+
+### Implementação já planejada (aguardando aprovação; fazer depois da reestruturação)
+
+- `ConsultationStatus` com os 3 valores.
+- `Provider`: `referralCommissionPercentage`, constantes 40/45, invariante,
+  `Percentage.isLessThan`; recomendação: no `PUT` os dois percentuais são
+  **obrigatórios**.
+- `Patient`: `referringProvider` (LAZY, nullable), `updateReferringProvider`,
+  resposta com id e nome.
+- Impacto da reestruturação: `contract` **refeito** (cabeçalho + itens, DTOs com
+  lista de itens, aditivo por item, exclusive arc no item, enum de frequência,
+  vigência calculada); `consultation` do zero; `pricing` ganha o de-para
+  (sugestão: `Plan.equivalentPlanId` se for 1:1); docs (`domain-model.md`,
+  `architecture.md` princípio 4).
 
 ## Ambiente — avisos
 
@@ -182,16 +245,17 @@ Anual, Anual Familiar → `null`.
 | Anual Familiar | 58,38 | 54,58 | 47,83 |
 
 ## Migrations (Flyway — depois de fechar o Consultation)
-- `CHECK` do exclusive arc em `contract` e `consultation`.
+- `CHECK` do exclusive arc em `contract_item` (antes `contract`) e `consultation`.
 - Unique de "uma linha de preço vigente" via coluna gerada `current_flag` (também
   resolve concorrência no cadastro de preço; por isso o `saveAndFlush` no reajuste).
 - Trocar `ddl-auto` para `validate`.
 
 ## Futuro (anotado, sem prioridade)
-- Módulo de **agendamento** integrado (hoje a clínica usa outro software).
+- Módulo de **saldo do paciente** (ver acima) e **agendamento** integrado (hoje a
+  clínica usa outro software).
 - Categorias de prestador (Padrão, Estagiário...) com par de percentuais.
 - `PUT` de grupo/técnica/plano (renomear), `activate()` onde fizer sentido.
-- Evolução Familiar nos grupos Especializado, Em Dupla e Em Grupo.
+- Todos os planos em todos os grupos por duração (cadastro).
 - Reajuste agendado (`validFrom` futuro).
 - Autenticação: senha em texto puro; `SecurityConfig` com `permitAll`.
 - Código de erro nas respostas (ex: `PATIENT_HAS_CURRENT_CONTRACT`).
