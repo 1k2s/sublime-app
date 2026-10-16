@@ -58,12 +58,17 @@
 
 ## Onde paramos (2026-10-15)
 
-- **Branch:** `feature/consultation` (último commit `9754d47 feat: handoff`),
-  working tree limpo. **Nenhum código escrito** nesta branch.
+- **Branch:** `feature/consultation` (último commit `c46aca5`). **Nenhum código
+  escrito** nesta branch. Este handoff foi atualizado depois do commit (conferir
+  se foi commitado).
 - Estamos **definindo as regras de negócio** do `Consultation` e, com isso, a
   **reestruturação do `Contract`** (contrato com itens). Tudo abaixo de "Decidido
   na conversa" **ainda NÃO está no `domain-model.md`** — documentar antes de
   qualquer código.
+- Na última sessão (15/10) fechamos as perguntas de **`endDate`/prorrogação** e
+  **vigência do Pilates em Grupo** (ver "Frequência × vigência"). Próximo passo:
+  responder as perguntas em aberto que restam e depois documentar tudo no
+  `domain-model.md`.
 - Testes: serão feitos pela interface gráfica, depois do `Consultation`. Nada do
   backend foi executado desde a padronização.
 
@@ -90,7 +95,8 @@
   escolhida **só como informação** (aparece no contrato impresso, ex: "Liberação
   Miofascial e Quiropraxia"; precisa ser do grupo da linha; nova precisa estar
   ativa), frequência. O plano do item é o plano do contrato no grupo dele (mesmo
-  plano nos grupos por duração; equivalente do de-para no Pilates em Grupo).
+  plano nos grupos por duração). No Pilates em Grupo, o de-para **sugere** o
+  plano e o usuário pode trocar dentro de uma faixa (ver "Frequência × vigência").
 - **Saldo por item:** cada item de grupo por duração tem as `sessionCount` do
   plano (contrato Evolução com RPG + Quiro = 12 de RPG **e** 12 de Quiro), somando
   a cadeia de versões. Item do Pilates em Grupo não tem saldo de sessões.
@@ -132,32 +138,77 @@ linhas individuais com `validFrom`/`validTo` (ideia de "tabela de preço anual"
 foi **descartada**). O grupo do contrato não é salvo: vem da linha travada /
 técnica (derivável).
 
-**Frequência × vigência (em definição):**
+**Frequência × vigência (decidido em 15/10):**
 
 - Novo enum (ex: `SessionFrequency`) para grupos por duração: `MONTHLY` (1x/mês),
   `BIWEEKLY` (quinzenal), `WEEKLY`, `TWICE_WEEKLY`, `THREE_TIMES_WEEKLY`
   (substitui o `weeklyFrequency` inteiro, que não representa quinzenal/mensal).
   No Pilates em Grupo, a frequência continua sendo o eixo do preço (1x/2x/3x).
-- **Limite de vigência do item = sessões × intervalo da frequência, teto de 12
-  meses** (cálculo como método do enum — princípio 6). Reproduz a tabela da
-  clínica: Essencial 1/2/4 meses (semanal/quinzenal/mensal); Evolução 3/6/12;
-  Transformação 6/12 (mensal ❌); Vitalidade 12 (quinzenal/mensal ❌). Frequências
-  mais rápidas reduzem proporcionalmente (Vitalidade 2x/semana = 6 meses).
-- **Vigência do contrato = a maior entre as dos itens** (itens mais rápidos só
-  esgotam o saldo antes). Item do Pilates em Grupo fica fora do cálculo.
-  → o `endDate` passaria a ser **calculado pelo sistema** (usuário informa início,
-  plano e frequência de cada item).
+- **`endDate` sempre calculado pelo sistema.** O request de criação não recebe
+  `endDate`: o usuário informa início, plano e frequência de cada item.
+- **Prazo de cada item:**
+  - **Grupo por duração:** sessões × intervalo da frequência, **teto de 12
+    meses** (cálculo como método do enum — princípio 6). Reproduz a tabela da
+    clínica: Essencial 1/2/4 meses (semanal/quinzenal/mensal); Evolução 3/6/12;
+    Transformação 6/12 (mensal ❌); Vitalidade 12 (quinzenal/mensal ❌). Frequências
+    mais rápidas reduzem proporcionalmente (Vitalidade 2x/semana = 6 meses).
+  - **Pilates em Grupo:** prazo do **plano** — campo novo `Plan.termMonths`
+    (nullable, só nos planos do Grupo): Mensal 1, Trimestral 3, Semestral 6,
+    Anual 12 (Familiares iguais). Complementa o "vigência vive em `Contract`"
+    do `domain-model.md`: no Grupo o prazo é parte do produto, não negociação.
+    *Descartado:* derivar o prazo pelo de-para (Trimestral ⇄ Evolução semanal =
+    3 meses) — fecha hoje por coincidência; se o Evolução mudar de sessões, o
+    Trimestral mudaria junto sem ninguém mexer nele.
+- **Vigência do contrato = o maior prazo entre TODOS os itens**, o Grupo
+  **incluído** (antes ficava fora). Ex: Evolução 2x/semana (6 semanas) + Grupo
+  Trimestral → 3 meses (com o Grupo fora, venceria no meio do trimestre).
+  Contrato só com Grupo → prazo do plano do Grupo.
+- *Descartado:* faixa com mínimo (cálculo das sessões) e máximo (12 meses) e
+  `endDate` digitado — contradiz o cálculo e permitiria esticar pacote (ex:
+  Essencial semanal com 12 meses), o que a tabela da clínica proíbe (os ❌). A
+  folga para faltas/doença é dada pela prorrogação, caso a caso.
+- **Plano do item do Grupo: de-para sugere, usuário pode trocar.** Opções = planos
+  do Grupo com prazo **entre o prazo do plano do de-para e a vigência calculada
+  pelos itens por duração** (nunca estica o contrato). Só há escolha quando a
+  vigência passa do prazo do plano do de-para:
+
+  | Contrato | Vigência pelos itens por duração | De-para | Opções |
+  |---|---|---|---|
+  | Evolução quinzenal | 6 meses | Trimestral | Trimestral, Semestral |
+  | Essencial mensal | 4 meses | Mensal | Mensal, Trimestral |
+  | Evolução semanal | 3 meses | Trimestral | só Trimestral |
+  | Evolução 2x/semana | 6 semanas | Trimestral | só Trimestral (contrato = 3 meses) |
+
+  - **Familiares:** opções dentro da mesma família quando ela existir (Familiar
+    com Familiar). Evolução Familiar (não existe Trimestral Familiar) cai nos
+    planos comuns.
+  - Backend valida na criação e expõe as opções num endpoint de apoio (estilo
+    `GET /api/techniques/{id}/prices`); o frontend não repete a regra.
+  - *Descartado:* escolha livre (um Grupo Anual esticaria um Essencial para 12
+    meses).
+- **Contrato vencido com sessões sobrando:** o admin escolhe **prorrogar**
+  (aditivo) ou **transformar o restante em saldo** do paciente (módulo futuro).
+  Coerente com o `domain-model.md` (seção "Ativo × vigente"), só trocar "levar as
+  sessões restantes" por "o valor restante vira saldo".
+- **Prorrogação:** o admin informa o novo fim **livremente**, desde que depois do
+  fim atual. O DTO do aditivo mantém `endDate` **opcional**, só para estender.
+- **Aditivo que muda a frequência não recalcula o fim sozinho:** mantém o atual;
+  se precisar de mais prazo, o admin estende no mesmo aditivo. Motivos:
+  recalcular do início original dá errado (Evolução quinzenal, 4 sessões usadas
+  em 2 meses, passa a semanal → fim em 3 meses do início, 8 sessões em 4
+  semanas); recalcular pelas sessões restantes exigiria o `contract` consultar o
+  `consultation` (inverte a dependência entre módulos). A tela do aditivo mostra
+  o saldo de sessões (vindo do `consultation`) para o admin decidir.
 
 ### Perguntas em aberto (minha resposta pendente)
 
-1. **`endDate` totalmente calculado?** E a **prorrogação** por aditivo (paciente
-   doente, por exemplo) continua existindo, mesmo passando do calculado, ou o que
-   sobra no fim vai sempre para o saldo do paciente?
-2. **Contrato só com Pilates em Grupo:** vigência vem do prazo do plano do Grupo
-   (Mensal 1 mês, Trimestral 3, Semestral 6, Anual 12)?
-3. **Frequências oferecidas:** até 3x/semana, ou existe 4x+?
-4. **Arredondamento em dias** nos ritmos rápidos (ex: 26 sessões a 3x/semana =
-   8,67 semanas): arredondar para cima (61 dias)?
+1. **Frequências oferecidas:** até 3x/semana, ou existe 4x+?
+2. **Arredondamento em dias** nos ritmos rápidos (ex: 26 sessões a 3x/semana =
+   8,67 semanas): arredondar para cima (61 dias)? (Detalhe técnico junto: como o
+   `endDate` é inclusivo, "3 meses a partir de 03/11" = 02/02.)
+3. **Aditivo que inclui um item novo** (ex: incluir o Grupo no meio do contrato):
+   mantém o fim atual, como no aditivo de frequência, ou recalcula? Ainda não
+   discutido.
 
 ### Ainda a definir depois
 
@@ -174,6 +225,9 @@ técnica (derivável).
 - Lista os contratos ativos do paciente e o saldo.
 - **Finalizar contrato** pergunta se o valor restante já foi pago ou vira **saldo
   do paciente**; o contrato fica inativo e o valor passa a existir só no saldo.
+- O saldo é um **valor em R$** na conta do paciente. Depois, a clínica escolhe o
+  destino: abater em sessões de um novo contrato ou **estornar**. Quando
+  resolvido, a clínica marca o saldo como **quitado**.
 - Cada lançamento de saldo tem FK do contrato de origem. Saldo positivo pode ser
   reaproveitado na renovação ou congelado; débito (negativo) idem, e o admin marca
   como acertado quando quitado.
@@ -190,9 +244,11 @@ técnica (derivável).
   resposta com id e nome.
 - Impacto da reestruturação: `contract` **refeito** (cabeçalho + itens, DTOs com
   lista de itens, aditivo por item, exclusive arc no item, enum de frequência,
-  vigência calculada); `consultation` do zero; `pricing` ganha o de-para
-  (sugestão: `Plan.equivalentPlanId` se for 1:1); docs (`domain-model.md`,
-  `architecture.md` princípio 4).
+  vigência calculada — `ContractRequestDTO` sem `endDate`, aditivo com `endDate`
+  opcional só para prorrogar, endpoint de opções de plano do Grupo);
+  `consultation` do zero; `pricing` ganha o de-para (sugestão:
+  `Plan.equivalentPlanId` se for 1:1) e `Plan.termMonths`; docs
+  (`domain-model.md`, `architecture.md` princípio 4).
 
 ## Ambiente — avisos
 
