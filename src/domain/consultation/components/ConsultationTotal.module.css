@@ -1,0 +1,25 @@
+/* Valor centralizado no espaço abaixo do título */
+.content {
+  display: flex;
+  flex: 1;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  gap: 8px;
+  border-radius: var(--radius);
+  background: var(--color-primary-soft);
+}
+
+.value {
+  margin: 0;
+  color: var(--color-primary);
+  font-size: 32px;
+  font-weight: 700;
+  font-variant-numeric: tabular-nums;
+}
+
+.count {
+  margin: 0;
+  font-size: 13px;
+  color: var(--color-muted);
+}

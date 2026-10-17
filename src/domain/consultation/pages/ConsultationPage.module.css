@@ -1,0 +1,59 @@
+/* Do tamanho dos blocos e centralizada na área de conteúdo: o título acompanha a borda esquerda deles */
+.page {
+  display: flex;
+  flex-direction: column;
+  gap: 24px;
+  width: fit-content;
+  max-width: 100%;
+  margin-inline: auto;
+
+  /* Tamanho dos três blocos (formulário, carrinho e total). A altura define quantas vagas
+     cabem no carrinho antes de rolar: com 400px, 4 (CART_SLOTS no ConsultationCart).
+     Com 330px, os três ficam lado a lado a partir de 1366px de tela (sidebar de 240px) */
+  --block-width: 330px;
+  --block-height: 400px;
+}
+
+/* Formulário | carrinho | total */
+.grid {
+  display: grid;
+  grid-template-areas: "form cart total";
+  grid-template-columns: repeat(3, var(--block-width));
+  gap: 24px;
+}
+
+.form {
+  grid-area: form;
+}
+
+.cart {
+  grid-area: cart;
+}
+
+.total {
+  grid-area: total;
+}
+
+.block {
+  display: flex;
+  flex-direction: column;
+  height: var(--block-height);
+}
+
+/* Sem espaço para os três lado a lado: o total desce para baixo do carrinho */
+@media (max-width: 1359px) {
+  .grid {
+    grid-template-areas:
+      "form cart"
+      ". total";
+    grid-template-columns: repeat(2, var(--block-width));
+  }
+}
+
+/* Sem espaço nem para dois: um embaixo do outro */
+@media (max-width: 999px) {
+  .grid {
+    grid-template-areas: "form" "cart" "total";
+    grid-template-columns: minmax(0, var(--block-width));
+  }
+}

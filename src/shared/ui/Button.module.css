@@ -4,14 +4,23 @@
   justify-content: center;
   height: 44px;
   padding: 0 20px;
-  border: none;
+  border: 1px solid transparent;
   border-radius: var(--radius);
-  background: var(--color-primary);
-  color: var(--color-surface);
   font: inherit;
   font-size: 14px;
   font-weight: 600;
   cursor: pointer;
+}
+
+.primary {
+  background: var(--color-primary);
+  color: var(--color-surface);
+}
+
+.secondary {
+  border-color: var(--color-border);
+  background: var(--color-surface);
+  color: var(--color-text);
 }
 
 .button:hover:not(:disabled) {
