@@ -2,7 +2,7 @@
 
 > Uso pessoal para iniciar uma sessão do Claude Code. Leia também
 > `docs/architecture.md` e `docs/domain-model.md` antes de começar.
-> Atualizado em 2026-10-15.
+> Atualizado em 2026-10-16.
 >
 > ⚠️ Está **versionado** na branch `feature/consultation` (entrou via `git add -f`).
 > Antes de abrir o PR: `git rm --cached docs/handoff.md` + commit (o
@@ -56,19 +56,17 @@
 | Unicidade | `unique = true` na coluna + `existsBy...` no service (409) | `PatientRepository.existsByCpf` |
 | Erros | `GlobalExceptionHandler`: ProblemDetail; DTO → `errors` (campo→mensagem); exceptions → `detail`; JSON ilegível e parâmetro de URL inválido → 400 em português | — |
 
-## Onde paramos (2026-10-15)
+## Onde paramos (2026-10-16)
 
-- **Branch:** `feature/consultation` (último commit `c46aca5`). **Nenhum código
-  escrito** nesta branch. Este handoff foi atualizado depois do commit (conferir
-  se foi commitado).
-- Estamos **definindo as regras de negócio** do `Consultation` e, com isso, a
-  **reestruturação do `Contract`** (contrato com itens). Tudo abaixo de "Decidido
-  na conversa" **ainda NÃO está no `domain-model.md`** — documentar antes de
-  qualquer código.
-- Na última sessão (15/10) fechamos as perguntas de **`endDate`/prorrogação** e
-  **vigência do Pilates em Grupo** (ver "Frequência × vigência"). Próximo passo:
-  responder as perguntas em aberto que restam e depois documentar tudo no
-  `domain-model.md`.
+- **Branch:** `feature/consultation`. **Nenhum código escrito** nesta branch.
+  As alterações de 16/10 em `docs/domain-model.md` e neste handoff: conferir se
+  foram commitadas (`git status`) antes de trocar de computador.
+- **Regras do `Contract` e do `Plan` fechadas e documentadas** no
+  `domain-model.md` (partes 1 e 2 da documentação). **O `domain-model.md` é a
+  fonte de verdade** dessas regras — aqui fica só o resumo.
+- **Próximo foco: implementação e módulo `consultation`.** Antes de codar o
+  `consultation`, documentar as regras de lançamento (parte 3) e fazer o
+  fechamento da documentação (parte 4) — ver "Falta documentar".
 - Testes: serão feitos pela interface gráfica, depois do `Consultation`. Nada do
   backend foi executado desde a padronização.
 
@@ -82,33 +80,52 @@
    `referralCommissionPercentage` (padrão 45%), referral nunca menor. Vale o
    referral se o prestador que atendeu trouxe o **titular do contrato**.
 
-### Decidido na conversa (falta documentar)
+### Documentado no `domain-model.md` em 16/10 (partes 1 e 2)
 
-**Estrutura nova do contrato — opção "contrato com itens":**
+Resumo — detalhes, motivos e alternativas descartadas estão no `domain-model.md`
+(seções `Contract` e `Plan`):
 
-- **`Contract` (raiz do agregado):** titular, beneficiário (nullable), vigência
-  **única**, forma de pagamento **única**, **plano único** (ex: Evolução),
-  `active`, `previousContract` (aditivo = nova versão do contrato inteiro). **Um
-  contrato vigente por titular** (regra atual mantida).
-- **`ContractItem` (um por grupo de preço, `unique (contrato, grupo)`):** linha de
-  preço travada (o **exclusive arc sai do contrato e vai para o item**), técnica
-  escolhida **só como informação** (aparece no contrato impresso, ex: "Liberação
-  Miofascial e Quiropraxia"; precisa ser do grupo da linha; nova precisa estar
-  ativa), frequência. O plano do item é o plano do contrato no grupo dele (mesmo
-  plano nos grupos por duração). No Pilates em Grupo, o de-para **sugere** o
-  plano e o usuário pode trocar dentro de uma faixa (ver "Frequência × vigência").
-- **Saldo por item:** cada item de grupo por duração tem as `sessionCount` do
-  plano (contrato Evolução com RPG + Quiro = 12 de RPG **e** 12 de Quiro), somando
-  a cadeia de versões. Item do Pilates em Grupo não tem saldo de sessões.
+- **Contrato com itens:** `Contract` (cabeçalho: titular, beneficiário, plano
+  único, início, fim calculado, pagamento, versão anterior) + `ContractItem` (um
+  por grupo de preço: linha travada com exclusive arc, técnica só informativa,
+  `frequency`). Saldo de sessões por item. Preço travado vale para qualquer
+  técnica do grupo do item, na mesma duração.
+- **Vigência:** `endDate` sempre calculado = início + prazo − 1 dia. Prazo do item
+  por duração = sessões ÷ ritmo **em semanas**, arredonda para cima, teto **52
+  semanas**; todas as combinações abaixo do teto são permitidas. Vigência do
+  contrato = maior prazo entre os itens **por duração**; o Grupo **não entra**
+  (mensalidade, sem controle de sessões) e acompanha o contrato. Contrato só com
+  Grupo → `Plan.termWeeks`.
+- **Enum `SessionFrequency`** (`contract/enums/`): `MONTHLY` (1 a cada 4
+  semanas), `BIWEEKLY`, `ONCE_A_WEEK` … `FIVE_TIMES_A_WEEK`; o cálculo do prazo
+  fica no enum.
+- **`Plan.termWeeks`** (só nos planos do Grupo): Mensal 4, Trimestral 13,
+  Semestral 26, Anual 52.
+- **Plano do item do Grupo:** o de-para sugere; opções = qualquer plano do Grupo
+  até o primeiro que cubra a vigência do contrato (Familiar com Familiar).
+- **De-para** (seção `Plan`), com os dois usos: sugerir o plano do Grupo no
+  contrato misto e definir o preço no caso 2 do lançamento.
+- **Avulso não tem contrato:** a criação de contrato recusa o plano Avulso.
+- **Vencido com sessões sobrando:** o admin escolhe prorrogar (fim livre, depois
+  do atual) ou encerrar (o valor restante vira saldo do paciente).
+- **Aditivos:** mantêm o fim por padrão (`endDate` opcional, só para estender);
+  mudar a frequência não recalcula; incluir item por duração → novo fim = maior
+  entre o atual e (data do aditivo + prazo do item − 1 dia).
+- Cadastro: todos os planos em todos os grupos por duração (ex: Evolução Familiar
+  no Especializado e na Dupla).
 
-**De-para de planos (duração ⇄ Pilates em Grupo), independente da frequência:**
-Essencial ⇄ Mensal · Evolução ⇄ Trimestral · **Evolução Familiar → Trimestral** ·
-Transformação ⇄ Semestral · Transformação Familiar ⇄ Semestral Familiar ·
-Vitalidade ⇄ Anual · Vitalidade Familiar ⇄ Anual Familiar. Avulso **não tem
-equivalente no Grupo** (Grupo exige contrato). Vou cadastrar todos os planos em
-todos os grupos por duração (ex: Evolução Familiar no Especializado e na Dupla).
+### Falta documentar (partes 3 e 4)
 
-**Lançamento do atendimento (`Consultation`):**
+- **Parte 3 — `Consultation`:** reescrever a "Lógica de resolução de preço" (o
+  `domain-model.md` ainda descreve o modal antigo de escolha de plano) com as
+  regras de lançamento abaixo; `contractId` nullable (atendimento avulso); saldo
+  por item.
+- **Parte 4 — fechamento:** diagrama ER (ainda com `CONTRACT.weeklyFrequency` e a
+  técnica-âncora; falta `CONTRACT_ITEM`, `Plan.termWeeks`); legenda e princípio 4
+  do `architecture.md` (exclusive arc agora em `ContractItem` e `Consultation`);
+  saldo do paciente em "Não modelado ainda" (valor em R$, estorno, quitado).
+
+**Lançamento do atendimento (`Consultation`) — decidido, falta documentar:**
 
 - O prestador lança o **paciente que realmente compareceu**.
 - **Contratos elegíveis:** vigentes em que o paciente é **titular ou
@@ -132,83 +149,15 @@ todos os grupos por duração (ex: Evolução Familiar no Especializado e na Dup
   item — item = contrato + grupo da linha usada; `contractId` nulo = avulso.
 - Sem modal de escolha de preço (o de-para substitui).
 
-**Preço:** o contrato congela o preço **do grupo contratado** (qualquer técnica do
-grupo, mesma duração) até o fim; o resto paga o preço atual. Mantido o modelo de
-linhas individuais com `validFrom`/`validTo` (ideia de "tabela de preço anual"
-foi **descartada**). O grupo do contrato não é salvo: vem da linha travada /
-técnica (derivável).
-
-**Frequência × vigência (decidido em 15/10):**
-
-- Novo enum (ex: `SessionFrequency`) para grupos por duração: `MONTHLY` (1x/mês),
-  `BIWEEKLY` (quinzenal), `WEEKLY`, `TWICE_WEEKLY`, `THREE_TIMES_WEEKLY`
-  (substitui o `weeklyFrequency` inteiro, que não representa quinzenal/mensal).
-  No Pilates em Grupo, a frequência continua sendo o eixo do preço (1x/2x/3x).
-- **`endDate` sempre calculado pelo sistema.** O request de criação não recebe
-  `endDate`: o usuário informa início, plano e frequência de cada item.
-- **Prazo de cada item:**
-  - **Grupo por duração:** sessões × intervalo da frequência, **teto de 12
-    meses** (cálculo como método do enum — princípio 6). Reproduz a tabela da
-    clínica: Essencial 1/2/4 meses (semanal/quinzenal/mensal); Evolução 3/6/12;
-    Transformação 6/12 (mensal ❌); Vitalidade 12 (quinzenal/mensal ❌). Frequências
-    mais rápidas reduzem proporcionalmente (Vitalidade 2x/semana = 6 meses).
-  - **Pilates em Grupo:** prazo do **plano** — campo novo `Plan.termMonths`
-    (nullable, só nos planos do Grupo): Mensal 1, Trimestral 3, Semestral 6,
-    Anual 12 (Familiares iguais). Complementa o "vigência vive em `Contract`"
-    do `domain-model.md`: no Grupo o prazo é parte do produto, não negociação.
-    *Descartado:* derivar o prazo pelo de-para (Trimestral ⇄ Evolução semanal =
-    3 meses) — fecha hoje por coincidência; se o Evolução mudar de sessões, o
-    Trimestral mudaria junto sem ninguém mexer nele.
-- **Vigência do contrato = o maior prazo entre TODOS os itens**, o Grupo
-  **incluído** (antes ficava fora). Ex: Evolução 2x/semana (6 semanas) + Grupo
-  Trimestral → 3 meses (com o Grupo fora, venceria no meio do trimestre).
-  Contrato só com Grupo → prazo do plano do Grupo.
-- *Descartado:* faixa com mínimo (cálculo das sessões) e máximo (12 meses) e
-  `endDate` digitado — contradiz o cálculo e permitiria esticar pacote (ex:
-  Essencial semanal com 12 meses), o que a tabela da clínica proíbe (os ❌). A
-  folga para faltas/doença é dada pela prorrogação, caso a caso.
-- **Plano do item do Grupo: de-para sugere, usuário pode trocar.** Opções = planos
-  do Grupo com prazo **entre o prazo do plano do de-para e a vigência calculada
-  pelos itens por duração** (nunca estica o contrato). Só há escolha quando a
-  vigência passa do prazo do plano do de-para:
-
-  | Contrato | Vigência pelos itens por duração | De-para | Opções |
-  |---|---|---|---|
-  | Evolução quinzenal | 6 meses | Trimestral | Trimestral, Semestral |
-  | Essencial mensal | 4 meses | Mensal | Mensal, Trimestral |
-  | Evolução semanal | 3 meses | Trimestral | só Trimestral |
-  | Evolução 2x/semana | 6 semanas | Trimestral | só Trimestral (contrato = 3 meses) |
-
-  - **Familiares:** opções dentro da mesma família quando ela existir (Familiar
-    com Familiar). Evolução Familiar (não existe Trimestral Familiar) cai nos
-    planos comuns.
-  - Backend valida na criação e expõe as opções num endpoint de apoio (estilo
-    `GET /api/techniques/{id}/prices`); o frontend não repete a regra.
-  - *Descartado:* escolha livre (um Grupo Anual esticaria um Essencial para 12
-    meses).
-- **Contrato vencido com sessões sobrando:** o admin escolhe **prorrogar**
-  (aditivo) ou **transformar o restante em saldo** do paciente (módulo futuro).
-  Coerente com o `domain-model.md` (seção "Ativo × vigente"), só trocar "levar as
-  sessões restantes" por "o valor restante vira saldo".
-- **Prorrogação:** o admin informa o novo fim **livremente**, desde que depois do
-  fim atual. O DTO do aditivo mantém `endDate` **opcional**, só para estender.
-- **Aditivo que muda a frequência não recalcula o fim sozinho:** mantém o atual;
-  se precisar de mais prazo, o admin estende no mesmo aditivo. Motivos:
-  recalcular do início original dá errado (Evolução quinzenal, 4 sessões usadas
-  em 2 meses, passa a semanal → fim em 3 meses do início, 8 sessões em 4
-  semanas); recalcular pelas sessões restantes exigiria o `contract` consultar o
-  `consultation` (inverte a dependência entre módulos). A tela do aditivo mostra
-  o saldo de sessões (vindo do `consultation`) para o admin decidir.
-
 ### Perguntas em aberto (minha resposta pendente)
 
-1. **Frequências oferecidas:** até 3x/semana, ou existe 4x+?
-2. **Arredondamento em dias** nos ritmos rápidos (ex: 26 sessões a 3x/semana =
-   8,67 semanas): arredondar para cima (61 dias)? (Detalhe técnico junto: como o
-   `endDate` é inclusivo, "3 meses a partir de 03/11" = 02/02.)
-3. **Aditivo que inclui um item novo** (ex: incluir o Grupo no meio do contrato):
-   mantém o fim atual, como no aditivo de frequência, ou recalcula? Ainda não
-   discutido.
+1. **Contrato só com Grupo que recebe um item por duração via aditivo:** o plano
+   do contrato é o do Grupo (ex: Trimestral), mas item por duração usa o plano do
+   contrato. O plano do contrato passa a ser o equivalente do de-para (Trimestral
+   → Evolução)? Ainda não discutido.
+2. **Técnicas (decidir na implementação):** onde guardar o de-para (sugestão:
+   `Plan.equivalentPlanId`) e como reconhecer o Avulso sem depender do nome do
+   plano.
 
 ### Ainda a definir depois
 
@@ -242,13 +191,15 @@ técnica (derivável).
   **obrigatórios**.
 - `Patient`: `referringProvider` (LAZY, nullable), `updateReferringProvider`,
   resposta com id e nome.
-- Impacto da reestruturação: `contract` **refeito** (cabeçalho + itens, DTOs com
-  lista de itens, aditivo por item, exclusive arc no item, enum de frequência,
-  vigência calculada — `ContractRequestDTO` sem `endDate`, aditivo com `endDate`
-  opcional só para prorrogar, endpoint de opções de plano do Grupo);
-  `consultation` do zero; `pricing` ganha o de-para (sugestão:
-  `Plan.equivalentPlanId` se for 1:1) e `Plan.termMonths`; docs
-  (`domain-model.md`, `architecture.md` princípio 4).
+- Impacto da reestruturação: `contract` **refeito** conforme o `domain-model.md`
+  (cabeçalho + itens, DTOs com lista de itens, exclusive arc no item, enum
+  `SessionFrequency`, `endDate` calculado — `ContractRequestDTO` sem `endDate`,
+  aditivo com `endDate` opcional só para prorrogar —, endpoint de opções de plano
+  do Grupo); `consultation` do zero; `pricing` ganha o de-para e
+  `Plan.termWeeks`.
+- **Ordem sugerida (Claude):** documentação partes 3 e 4 → `pricing` (de-para,
+  `termWeeks`) → `contract` refeito → `patient`/`provider` (itens acima) →
+  `consultation`.
 
 ## Ambiente — avisos
 
