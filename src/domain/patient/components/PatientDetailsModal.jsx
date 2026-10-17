@@ -8,12 +8,28 @@
  *   1. Dados Pessoais (CPF, Nascimento, Telefone, E-mail)
  *   2. Endereço Completo (CEP, Logradouro, Número, Complemento, Bairro, Cidade/UF)
  * - Exibe a tag de status (Ativo / Inativo).
+ * - Efeito visual de blur no backdrop escurecido (`backdrop-filter: blur(5px)`).
  * - Fechamento via clique no backdrop escuro, no botão de "X" ou no botão "Fechar".
- * - Se o usuário for Administrador (`isAdmin = true`), disponibiliza o botão "Editar cadastro",
- *   que transiciona a página diretamente para o wizard de edição.
+ * - Se o usuário for Administrador (`isAdmin = true`):
+ *   1. Disponibiliza o botão "Editar cadastro" (que abre o wizard de edição).
+ *   2. Disponibiliza o botão de desativar/reativar paciente com pedido de confirmação
+ *      e alerta explicativo sobre a futura verificação de pendências contratuais.
  */
 
-import { X, User, Phone, Mail, Calendar, MapPin, CreditCard, Pencil } from "lucide-react";
+import { useState } from "react";
+import {
+  X,
+  User,
+  Phone,
+  Mail,
+  Calendar,
+  MapPin,
+  CreditCard,
+  Pencil,
+  AlertTriangle,
+  UserX,
+  UserCheck,
+} from "lucide-react";
 import { Badge } from "@/shared/ui/Badge";
 import { Button } from "@/shared/ui/Button";
 import styles from "./PatientDetailsModal.module.css";
@@ -24,15 +40,30 @@ import styles from "./PatientDetailsModal.module.css";
  * @param {boolean} [props.isAdmin=false] - Indica se o usuário atual é administrador
  * @param {function(): void} props.onClose - Callback para fechar o modal
  * @param {function(Object): void} [props.onEdit] - Callback disparado ao clicar em "Editar cadastro"
+ * @param {function(Object, string): void} [props.onToggleStatus] - Callback para alternar o status do paciente
  */
-export function PatientDetailsModal({ patient, isAdmin = false, onClose, onEdit }) {
+export function PatientDetailsModal({
+  patient,
+  isAdmin = false,
+  onClose,
+  onEdit,
+  onToggleStatus,
+}) {
+  const [showConfirm, setShowConfirm] = useState(false);
+
   // Se nenhum paciente estiver selecionado, não renderiza nada
   if (!patient) return null;
 
   const isAtivo = patient.status === "ACTIVE";
 
+  const handleConfirmToggle = () => {
+    const nextStatus = isAtivo ? "INACTIVE" : "ACTIVE";
+    onToggleStatus?.(patient, nextStatus);
+    setShowConfirm(false);
+  };
+
   return (
-    /* Backdrop escurecido cobrindo a tela inteira */
+    /* Backdrop escurecido com desfoque blur cobrindo a tela inteira */
     <div className={styles.backdrop} onClick={onClose}>
       {/* Container do modal: stopPropagation impede que cliques internos fechem o modal */}
       <div className={styles.modal} onClick={(e) => e.stopPropagation()}>
@@ -126,20 +157,80 @@ export function PatientDetailsModal({ patient, isAdmin = false, onClose, onEdit 
               </div>
             </div>
           </div>
+
+          {/* Caixa de Confirmação de Desativação com Alerta de Pendências */}
+          {showConfirm && (
+            <div className={styles.confirmBox}>
+              <h4 className={styles.confirmTitle}>
+                Deseja realmente {isAtivo ? "desativar" : "reativar"} o paciente{" "}
+                <strong>{patient.name}</strong>?
+              </h4>
+
+              {/* Alerta de verificação futura de contratos e pendências */}
+              <div className={styles.warningAlert}>
+                <AlertTriangle size={18} className={styles.warningIcon} />
+                <span className={styles.warningText}>
+                  <strong>Aviso:</strong> Em versões futuras, a desativação verificará automaticamente
+                  se existem contratos vigentes, mensalidades em aberto e agendamentos pendentes antes de ser concluída.
+                </span>
+              </div>
+
+              <div className={styles.confirmActions}>
+                <Button variant="outline" onClick={() => setShowConfirm(false)}>
+                  Cancelar
+                </Button>
+                <button
+                  type="button"
+                  className={isAtivo ? styles.dangerOutlineButton : styles.reactivateButton}
+                  onClick={handleConfirmToggle}
+                >
+                  {isAtivo ? "Confirmar desativação" : "Confirmar reativação"}
+                </button>
+              </div>
+            </div>
+          )}
         </div>
 
         {/* Rodapé com botões de ação */}
         <div className={styles.footer}>
-          <Button variant="outline" onClick={onClose}>
-            Fechar
-          </Button>
+          {/* Lado esquerdo: Botão de Desativar ou Reativar paciente (apenas para Admin) */}
+          <div>
+            {isAdmin && onToggleStatus && !showConfirm && (
+              isAtivo ? (
+                <button
+                  type="button"
+                  className={styles.dangerOutlineButton}
+                  onClick={() => setShowConfirm(true)}
+                  title="Desativar paciente"
+                >
+                  <UserX size={16} /> Desativar paciente
+                </button>
+              ) : (
+                <button
+                  type="button"
+                  className={styles.reactivateButton}
+                  onClick={() => setShowConfirm(true)}
+                  title="Reativar paciente"
+                >
+                  <UserCheck size={16} /> Reativar paciente
+                </button>
+              )
+            )}
+          </div>
 
-          {/* Botão de edição exclusivo para perfil administrador */}
-          {isAdmin && onEdit && (
-            <Button onClick={() => onEdit(patient)}>
-              <Pencil size={16} /> Editar cadastro
+          {/* Lado direito: Fechar e Editar */}
+          <div className={styles.footerActions}>
+            <Button variant="outline" onClick={onClose}>
+              Fechar
             </Button>
-          )}
+
+            {/* Botão de edição exclusivo para perfil administrador */}
+            {isAdmin && onEdit && !showConfirm && (
+              <Button onClick={() => onEdit(patient)}>
+                <Pencil size={16} /> Editar cadastro
+              </Button>
+            )}
+          </div>
         </div>
       </div>
     </div>

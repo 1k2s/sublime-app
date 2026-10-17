@@ -11,7 +11,7 @@
  */
 
 import { z } from "zod";
-import { onlyDigits } from "@/shared/utils/masks";
+import { onlyDigits, isValidCpf } from "@/shared/utils/masks";
 
 /**
  * Validação da Etapa 1: Dados Pessoais de identificação do paciente.
@@ -20,11 +20,11 @@ export const personalDataSchema = z.object({
   // Nome completo com no mínimo 3 caracteres
   name: z.string().trim().min(3, "Nome completo deve ter pelo menos 3 caracteres"),
 
-  // CPF obrigatório com exatamente 11 dígitos numéricos válidos
+  // CPF obrigatório com validação oficial dos dígitos verificadores (evita CPFs falsos)
   cpf: z
     .string()
     .min(1, "CPF é obrigatório")
-    .refine((val) => onlyDigits(val).length === 11, "CPF deve conter 11 dígitos"),
+    .refine(isValidCpf, "CPF inválido ou não existe"),
 
   // Data de nascimento obrigatória com exatamente 8 dígitos numéricos (DD/MM/AAAA)
   birthDate: z

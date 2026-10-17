@@ -22,7 +22,7 @@ import { useAuth } from "@/domain/auth/context/useAuth";
 import { ROLES } from "@/domain/auth/roles";
 import { PageHeader } from "@/shared/ui/PageHeader";
 import { Button } from "@/shared/ui/Button";
-import { usePatients } from "../api/usePatients";
+import { usePatients, useUpdatePatient } from "../api/usePatients";
 import { PatientFilters } from "../components/PatientFilters";
 import { PatientTable } from "../components/PatientTable";
 import { PatientDetailsModal } from "../components/PatientDetailsModal";
@@ -44,10 +44,27 @@ export function PatientPage() {
 
   // Consulta reativa de pacientes via TanStack Query
   const { data: patients = [], isLoading } = usePatients({ search, status });
+  const updatePatientMutation = useUpdatePatient();
 
   // Regra de segurança: apenas admin pode estar no modo de formulário (criação ou edição)
   const isFormMode = (view === "create" || view === "edit") && isAdmin;
   const isEditing = view === "edit";
+
+  /**
+   * Alterna o status do paciente entre Ativo e Inativo
+   */
+  const handleToggleStatus = async (patient, nextStatus) => {
+    try {
+      await updatePatientMutation.mutateAsync({
+        id: patient.id,
+        data: { ...patient, status: nextStatus },
+      });
+      // Atualiza o estado local do modal se estiver aberto
+      setSelectedPatient((prev) => (prev ? { ...prev, status: nextStatus } : null));
+    } catch (err) {
+      console.error("Erro ao alterar status do paciente:", err);
+    }
+  };
 
   /**
    * Atualiza o termo de busca utilizando useTransition para manter a digitação fluida
@@ -130,6 +147,7 @@ export function PatientPage() {
             isAdmin={isAdmin}
             onClose={() => setSelectedPatient(null)}
             onEdit={handleStartEdit}
+            onToggleStatus={handleToggleStatus}
           />
         </>
       ) : (

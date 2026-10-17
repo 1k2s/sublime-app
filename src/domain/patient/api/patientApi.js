@@ -68,7 +68,7 @@ const INITIAL_PATIENTS = [
   {
     id: "1",
     name: "Maria Eduarda Santos",
-    cpf: "123.456.789-00",
+    cpf: "123.456.789-09",
     phone: "(16) 99123-4567",
     birthDate: "14/03/1990",
     email: "maria.santos@email.com",
@@ -84,7 +84,7 @@ const INITIAL_PATIENTS = [
   {
     id: "2",
     name: "João Pedro Almeida",
-    cpf: "234.567.890-11",
+    cpf: "234.567.890-92",
     phone: "(16) 99234-5678",
     birthDate: "22/07/1985",
     email: "joao.almeida@email.com",
@@ -100,7 +100,7 @@ const INITIAL_PATIENTS = [
   {
     id: "3",
     name: "Fernanda Costa Lima",
-    cpf: "345.678.901-22",
+    cpf: "345.678.901-75",
     phone: "(16) 99345-6789",
     birthDate: "05/11/1992",
     email: "fernanda.lima@email.com",
@@ -116,7 +116,7 @@ const INITIAL_PATIENTS = [
   {
     id: "4",
     name: "Roberto Carlos Silva",
-    cpf: "456.789.012-33",
+    cpf: "456.789.012-49",
     phone: "(16) 99456-7890",
     birthDate: "19/01/1978",
     email: "roberto.silva@email.com",
@@ -132,7 +132,7 @@ const INITIAL_PATIENTS = [
   {
     id: "5",
     name: "Ana Beatriz Oliveira",
-    cpf: "567.890.123-44",
+    cpf: "567.890.123-03",
     phone: "(16) 99567-8901",
     birthDate: "30/09/1995",
     email: "ana.oliveira@email.com",
@@ -159,7 +159,13 @@ function getStoredPatients() {
       localStorage.setItem(STORAGE_KEY, JSON.stringify(INITIAL_PATIENTS));
       return INITIAL_PATIENTS;
     }
-    return JSON.parse(raw);
+    const parsed = JSON.parse(raw);
+    // Se a base contiver os CPFs antigos mockados com final "-00", sincroniza com os válidos
+    if (parsed.length > 0 && parsed[0].cpf === "123.456.789-00") {
+      localStorage.setItem(STORAGE_KEY, JSON.stringify(INITIAL_PATIENTS));
+      return INITIAL_PATIENTS;
+    }
+    return parsed;
   } catch {
     return INITIAL_PATIENTS;
   }

@@ -16,8 +16,9 @@
 }
 
 .inactive {
-  background-color: #f1f2f4;
-  color: #64748b;
+  background-color: #fef2f2;
+  color: #b42318;
+  border: 1px solid #fee2e2;
 }
 
 .default {
