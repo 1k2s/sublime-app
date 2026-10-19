@@ -1,34 +1,59 @@
-// Item em edição do carrinho, guiado por Enter: busca o paciente ⏎, horário de chegada ⏎ e o item entra no carrinho
+// Item em edição do carrinho, guiado por Enter: paciente ⏎, técnica ⏎, horário de chegada ⏎ e o item entra no carrinho
 import { useRef } from "react";
 import { PatientSearchInput } from "@/domain/patient/components/PatientSearchInput";
+import { useTechniques } from "@/domain/pricing/api/useTechniques";
 import { Button } from "@/shared/ui/Button";
 import { Card } from "@/shared/ui/Card";
 import { FormField } from "@/shared/ui/FormField";
 import { Input } from "@/shared/ui/Input";
+import { Select } from "@/shared/ui/Select";
 import { maskCpf } from "@/shared/utils/masks";
 import styles from "./ConsultationForm.module.css";
 
 export function ConsultationForm({
   className,
   patient,
+  technique,
   arrivalTime,
   errors,
   onSelectPatient,
+  onSelectTechnique,
   onArrivalTimeChange,
   onAdd,
   isAdding = false,
   addError,
 }) {
+  const techniqueRef = useRef(null);
   const arrivalRef = useRef(null);
+  const { data: techniques = [], isLoading: isLoadingTechniques, isError: techniquesError } = useTechniques();
 
   function handleSelectPatient(selectedPatient) {
     onSelectPatient(selectedPatient);
-    arrivalRef.current?.focus();
+    techniqueRef.current?.focus();
+  }
+
+  function handleTechniqueChange(event) {
+    const id = Number(event.target.value);
+    onSelectTechnique(techniques.find((option) => option.id === id) ?? null);
+  }
+
+  // No select, as setas escolhem e o Enter só avança: não envia o formulário
+  function handleTechniqueKeyDown(event) {
+    if (event.key === "Enter") {
+      event.preventDefault();
+      arrivalRef.current?.focus();
+    }
   }
 
   function handleSubmit(event) {
     event.preventDefault();
     onAdd();
+  }
+
+  function techniquePlaceholder() {
+    if (isLoadingTechniques) return "Carregando...";
+    if (techniquesError) return "Não foi possível carregar as técnicas";
+    return "Selecione a técnica";
   }
 
   return (
@@ -56,6 +81,27 @@ export function ConsultationForm({
           )}
         </FormField>
 
+        <FormField label="Técnica" htmlFor="consultation-technique" error={errors.techniqueId}>
+          <Select
+            ref={techniqueRef}
+            id="consultation-technique"
+            invalid={Boolean(errors.techniqueId)}
+            disabled={isLoadingTechniques || techniquesError}
+            value={technique?.id ?? ""}
+            onChange={handleTechniqueChange}
+            onKeyDown={handleTechniqueKeyDown}
+          >
+            <option value="" disabled>
+              {techniquePlaceholder()}
+            </option>
+            {techniques.map((option) => (
+              <option key={option.id} value={option.id}>
+                {option.name}
+              </option>
+            ))}
+          </Select>
+        </FormField>
+
         <FormField label="Horário de chegada" htmlFor="consultation-arrival" error={errors.arrivalTime}>
           <Input
             ref={arrivalRef}
@@ -68,7 +114,7 @@ export function ConsultationForm({
         </FormField>
 
         <p className={styles.hint}>
-          <kbd>Enter</kbd> escolhe o paciente e avança para o próximo campo.
+          <kbd>Enter</kbd> confirma o campo e avança para o próximo. Na técnica, escolha com as setas.
         </p>
 
         {addError && (

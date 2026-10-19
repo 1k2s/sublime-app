@@ -3,7 +3,7 @@
   display: flex;
   flex: 1;
   flex-direction: column;
-  gap: 20px;
+  gap: 16px;
 }
 
 .submit {
@@ -47,7 +47,7 @@
 }
 
 .hint {
-  margin: -8px 0 0;
+  margin: -6px 0 0;
   font-size: 12px;
   color: var(--color-muted);
 }

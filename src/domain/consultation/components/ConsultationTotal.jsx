@@ -1,20 +1,16 @@
-// Total de repasse dos itens do carrinho, em um bloco separado
-import { Card } from "@/shared/ui/Card";
+// Barra com o total de repasse do dia: soma os lançamentos já registrados hoje, não o carrinho
 import { formatCurrency, sumMoney } from "@/shared/utils/money";
 import styles from "./ConsultationTotal.module.css";
 
-export function ConsultationTotal({ className, items }) {
-  const total = sumMoney(items.map((item) => item.providerPayoutValue));
-  const countLabel = items.length === 1 ? "1 lançamento" : `${items.length} lançamentos`;
+export function ConsultationTotal({ className, consultations = [], isLoading = false }) {
+  const total = sumMoney(consultations.map((consultation) => consultation.providerPayoutValue));
+  const countLabel = consultations.length === 1 ? "1 atendimento" : `${consultations.length} atendimentos`;
 
   return (
-    <Card title="Total de repasse" className={className}>
-      <div className={styles.content}>
-        <p className={styles.value} aria-live="polite">
-          {formatCurrency(total)}
-        </p>
-        <p className={styles.count}>{countLabel} no carrinho</p>
-      </div>
-    </Card>
+    <section className={[styles.bar, className].filter(Boolean).join(" ")} aria-live="polite" aria-busy={isLoading}>
+      <h2 className={styles.label}>Total repasse do dia:</h2>
+      <span className={styles.count}>{isLoading ? "Carregando..." : countLabel}</span>
+      <span className={styles.value}>{isLoading ? "" : formatCurrency(total)}</span>
+    </section>
   );
 }

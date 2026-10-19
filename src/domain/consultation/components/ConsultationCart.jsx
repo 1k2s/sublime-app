@@ -1,4 +1,4 @@
-// Carrinho de lançamentos: itens adicionados e o botão que grava tudo. O total fica no ConsultationTotal
+// Carrinho de lançamentos: itens adicionados e o botão que grava tudo
 // Mostra sempre CART_SLOTS vagas: as que sobram viram placeholders. Passando disso, só a lista rola
 import { useEffect, useRef } from "react";
 import { CircleCheck, Trash2 } from "lucide-react";
@@ -53,20 +53,20 @@ export function ConsultationCart({
     <Card title={`Carrinho (${items.length})`} className={className}>
       <ul ref={listRef} className={styles.list}>
         {items.map((item) => (
-          <li key={item.patient.id} className={`${styles.slot} ${styles.item}`}>
+          <li key={item.key} className={`${styles.slot} ${styles.item}`}>
             <div className={styles.info}>
               <span className={styles.name}>{item.patient.name}</span>
               <span className={styles.details}>
-                {formatDateTime(item.arrivalTime)} · {item.contract.planName}
+                {item.technique.name} · {formatDateTime(item.arrivalTime)}
               </span>
             </div>
             <span className={styles.value}>{formatCurrency(item.providerPayoutValue)}</span>
             <button
               type="button"
               className={styles.remove}
-              onClick={() => onRemove(item.patient.id)}
+              onClick={() => onRemove(item.key)}
               disabled={isFinishing}
-              aria-label={`Remover ${item.patient.name}`}
+              aria-label={`Remover ${item.patient.name} (${item.technique.name})`}
             >
               <Trash2 size={16} aria-hidden />
             </button>
