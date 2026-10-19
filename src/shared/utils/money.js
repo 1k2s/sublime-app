@@ -21,6 +21,11 @@ export function formatCurrency(value) {
   }
 }
 
+// Soma valores monetários sem erro de ponto flutuante: ["60.00", "42.98"] -> "102.98"
+export function sumMoney(values) {
+  return values.reduce((total, value) => total.plus(value || 0), new Decimal(0)).toFixed(2);
+}
+
 // Percentual em escala 0-100, como a comissão: "40.5" -> "40,5%". Devolve "" para valor vazio ou inválido
 export function formatPercentage(value) {
   if (value === null || value === undefined || value === "") return "";

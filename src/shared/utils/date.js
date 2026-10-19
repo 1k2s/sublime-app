@@ -23,3 +23,8 @@ export function formatDateTime(value) {
 export function toDateTimeInputValue(date) {
   return format(date, "yyyy-MM-dd'T'HH:mm");
 }
+
+// Date -> "2026-10-06", formato de data da API e do <input type="date">
+export function toDateInputValue(date) {
+  return format(date, "yyyy-MM-dd");
+}
