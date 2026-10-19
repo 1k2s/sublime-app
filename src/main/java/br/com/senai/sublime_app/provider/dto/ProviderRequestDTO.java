@@ -19,11 +19,17 @@ public record ProviderRequestDTO(
         @Size(min = 3, max = 100, message = "O nome do prestador deve ter entre 3 e 100 caracteres.")
         String name,
 
-        // Formato 0–100 (35.00 = 35%). Mais de 2 casas é barrado pelo Percentage.
-        @NotNull(message = "O percentual de comissão é obrigatório.")
+        // Opcional: vazio = padrão da clínica (40%). Formato 0–100 (35.00 = 35%);
+        // mais de 2 casas é barrado pelo Percentage.
         @DecimalMin(value = "0.00", message = "O percentual de comissão deve ser no mínimo 0.")
         @DecimalMax(value = "100.00", message = "O percentual de comissão deve ser no máximo 100.")
-        BigDecimal commissionPercentage
+        BigDecimal commissionPercentage,
+
+        // Opcional: vazio = padrão da clínica (45%). Pacientes que o prestador trouxe;
+        // nunca menor que o percentual padrão (regra da ProviderEntity).
+        @DecimalMin(value = "0.00", message = "O percentual de pacientes trazidos deve ser no mínimo 0.")
+        @DecimalMax(value = "100.00", message = "O percentual de pacientes trazidos deve ser no máximo 100.")
+        BigDecimal referralCommissionPercentage
 
 ) {
 }

@@ -27,6 +27,11 @@ public record Percentage(BigDecimal value) {
         return new Percentage(value);
     }
 
+    // Comparação entre percentuais (ex: o de quem trouxe o paciente nunca é menor que o padrão)
+    public boolean isLessThan(Percentage other) {
+        return value.compareTo(other.value) < 0;
+    }
+
     // Mais de 2 casas é rejeitado em vez de arredondado: arredondar em silêncio
     // esconderia um valor digitado errado (a coluna é DECIMAL(5,2)).
     private static void validateValue(BigDecimal value) {

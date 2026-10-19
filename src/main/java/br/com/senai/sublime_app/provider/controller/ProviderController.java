@@ -31,8 +31,9 @@ import jakarta.validation.Valid;
 @Tag(name = "Prestadores", description = """
         Cadastro dos prestadores que realizam os atendimentos. Cada prestador é vinculado a
         exatamente um usuário (que pode ter role `PROVIDER` ou `ADMIN`), e o vínculo é fixo.
-        O percentual de comissão é uniforme (não varia por técnica) e entra no repasse de
-        cada atendimento.
+        Cada prestador tem dois percentuais de comissão (nenhum varia por técnica): o
+        **padrão** (pacientes da clínica ou de outros prestadores) e o de **pacientes que ele
+        trouxe** — vale este quando o titular do contrato do atendimento foi trazido por ele.
         """)
 public class ProviderController {
 
@@ -47,12 +48,16 @@ public class ProviderController {
             só pode ter um prestador. Para remover o acesso de um prestador, inative o
             usuário dele (`DELETE /api/users/{id}`).
 
-            `commissionPercentage` no formato 0–100 (ex: `35.00` = 35%), com no máximo 2 casas
-            decimais — valores com mais casas são rejeitados, nunca arredondados.
+            **Percentuais** (formato 0–100, ex: `35.00` = 35%, no máximo 2 casas decimais — mais
+            casas são rejeitadas, nunca arredondadas), os dois **opcionais**:
+            - `commissionPercentage` — padrão; vazio = **40%**;
+            - `referralCommissionPercentage` — pacientes que ele trouxe; vazio = **45%**.
+            O de pacientes trazidos nunca pode ser menor que o padrão. Informe os valores só
+            para exceções (ex: estagiário).
             """)
     @ApiResponses({
             @ApiResponse(responseCode = "201", description = "Prestador criado", content = @Content(schema = @Schema(implementation = ProviderResponseDTO.class))),
-            @ApiResponse(responseCode = "400", description = "Dados inválidos (incl. comissão fora de 0–100 ou com mais de 2 casas) ou usuário inativo", content = @Content),
+            @ApiResponse(responseCode = "400", description = "Dados inválidos (incl. percentual fora de 0–100, com mais de 2 casas ou de pacientes trazidos menor que o padrão) ou usuário inativo", content = @Content),
             @ApiResponse(responseCode = "404", description = "Usuário não encontrado", content = @Content),
             @ApiResponse(responseCode = "409", description = "O usuário já está vinculado a um prestador", content = @Content)
     })
@@ -82,8 +87,10 @@ public class ProviderController {
     }
 
     @Operation(summary = "Atualizar prestador", description = """
-            Atualiza o nome e o percentual de comissão. O usuário vinculado **não pode ser
-            alterado** e por isso não é enviado.
+            Atualiza o nome e os dois percentuais de comissão — **ambos obrigatórios** aqui (o
+            padrão da clínica só vale no cadastro). O de pacientes trazidos nunca pode ser
+            menor que o padrão. O usuário vinculado **não pode ser alterado** e por isso não
+            é enviado.
 
             A nova comissão vale para os próximos atendimentos: os já lançados guardam a
             comissão aplicada no momento do lançamento.

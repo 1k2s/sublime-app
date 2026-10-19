@@ -14,13 +14,15 @@ erDiagram
   PRICING_GROUP ||--o{ SESSION_FREQUENCY_PRICE : precifica
   PLAN ||--o{ SESSION_DURATION_PRICE : precifica
   PLAN ||--o{ SESSION_FREQUENCY_PRICE : precifica
+  PLAN |o--o| PLAN : equivalente
   CONTRACT |o--o| CONTRACT : versao_anterior
   PATIENT ||--o{ CONTRACT : titular
   PATIENT |o--o{ CONTRACT : beneficiario
-  TECHNIQUE ||--o{ CONTRACT : ancora
   PLAN ||--o{ CONTRACT : contratado
-  SESSION_DURATION_PRICE |o--o{ CONTRACT : trava
-  SESSION_FREQUENCY_PRICE |o--o{ CONTRACT : trava
+  CONTRACT ||--|{ CONTRACT_ITEM : contem
+  TECHNIQUE ||--o{ CONTRACT_ITEM : informada
+  SESSION_DURATION_PRICE |o--o{ CONTRACT_ITEM : trava
+  SESSION_FREQUENCY_PRICE |o--o{ CONTRACT_ITEM : trava
   USER ||--o| PROVIDER : autentica
   PROVIDER |o--o{ PATIENT : trouxe
   PATIENT ||--o{ CONSULTATION : atendido
@@ -56,7 +58,10 @@ erDiagram
   PLAN {
     bigint id PK
     string name UK
+    string type "ENUM"
     int sessionCount "nullable"
+    int termWeeks "nullable"
+    bigint equivalentPlanId FK "nullable"
     boolean active
   }
 
@@ -89,17 +94,22 @@ erDiagram
   CONTRACT {
     bigint id PK
     bigint patientId FK
-    bigint beneficiaryId FK
-    bigint techniqueId FK
+    bigint beneficiaryId FK "nullable"
     bigint planId FK
-    int weeklyFrequency
     date startDate
-    date endDate
+    date endDate "calculado"
     string paymentMethod
-    bigint sessionDurationPriceId FK
-    bigint sessionFrequencyPriceId FK
     boolean active
-    bigint previousContractId FK
+    bigint previousContractId FK, UK "nullable"
+  }
+
+  CONTRACT_ITEM {
+    bigint id PK
+    bigint contractId FK
+    bigint sessionDurationPriceId FK "nullable"
+    bigint sessionFrequencyPriceId FK "nullable"
+    bigint techniqueId FK
+    string frequency "ENUM, nullable"
   }
 
   USER {
@@ -122,7 +132,7 @@ erDiagram
   CONSULTATION {
     bigint id PK
     bigint patientId FK
-    bigint contractId FK
+    bigint contractId FK "nullable"
     bigint providerId FK
     bigint techniqueId FK
     int durationMinutes
@@ -139,10 +149,12 @@ erDiagram
 Legenda: `addressStreet`/`addressNumberHouse`/`addressCity`/`addressComplement`/
 `addressCep` em `Patient` são um Value Object embutido (`@Embeddable`), não uma
 tabela própria (`cep`, não `zipCode` — é um conceito específico do endereçamento
-brasileiro, não uma tradução literal de "zip code"). `pricingModel`, `role`,
-`paymentMethod` e `status` são ENUMs. `sessionDurationPriceId`/`sessionFrequencyPriceId`
-(em `Contract` e `Consultation`) são nullable, em padrão "exclusive arc": sempre um
-preenchido, nunca os dois. `Money` e `Percentage` são Value Objects persistidos como
+brasileiro, não uma tradução literal de "zip code"). `pricingModel`, `type` (`Plan`),
+`role`, `paymentMethod`, `frequency` (`ContractItem`) e `status` são ENUMs.
+`sessionDurationPriceId`/`sessionFrequencyPriceId` (em `ContractItem` e
+`Consultation`) são nullable, em padrão "exclusive arc": sempre um preenchido, nunca
+os dois. `Contract` + `ContractItem` formam um agregado: o item só existe dentro do
+contrato (ver `Contract e ContractItem`). `Money` e `Percentage` são Value Objects persistidos como
 `DECIMAL` por `AttributeConverter` (ver `SessionDurationPrice` e `Provider`). `UK` =
 coluna `unique`. Os valores de `Consultation` ainda são `BigDecimal`: passam a
 `Money`/`Percentage` no redesenho do módulo.
@@ -247,32 +259,54 @@ duplicação replicada em cada reajuste, com risco de divergência silenciosa.
 |---|---|---|
 | `id` | Long | auto-increment |
 | `name` | string, unique | |
-| `sessionCount` | int, nullable | quantidade de sessões do pacote; `null` nos planos do Pilates em Grupo |
-| `termWeeks` | int, nullable | prazo do plano em semanas; só nos planos do Pilates em Grupo, `null` nos demais |
+| `type` | ENUM `PlanType` | `SINGLE_SESSION` \| `PACKAGE` \| `MONTHLY_FEE` (ver abaixo); fixo após a criação |
+| `sessionCount` | int, nullable | quantidade de sessões do pacote; obrigatório em `SINGLE_SESSION`/`PACKAGE`, `null` em `MONTHLY_FEE` |
+| `termWeeks` | int, nullable | prazo do plano em semanas; obrigatório em `MONTHLY_FEE`, `null` nos demais |
+| `equivalentPlanId` | FK → Plan, nullable | de-para: o plano equivalente na outra família (ver "Equivalência de planos") |
 | `active` | boolean | |
+
+**Tipo do plano (`PlanType`):** diz o que o plano é, e as regras perguntam o tipo —
+nunca o nome do plano.
+
+| `PlanType` | O que é | `sessionCount` | `termWeeks` | Onde pode ser usado |
+|---|---|---|---|---|
+| `SINGLE_SESSION` | sessão avulsa (Avulso) | 1 | `null` | linha de preço por duração; **só em atendimento sem contrato** — o contrato recusa |
+| `PACKAGE` | pacote de sessões (Essencial, Evolução...) | obrigatório | `null` | linha de preço por duração; item de grupo por duração |
+| `MONTHLY_FEE` | mensalidade do Pilates em Grupo (Mensal, Trimestral...) | `null` | obrigatório | linha de preço por frequência; item do Grupo |
+
+- **A coerência é invariante do plano** (400 na criação): `PACKAGE` exige
+  `sessionCount`, `MONTHLY_FEE` exige `termWeeks`, `SINGLE_SESSION` tem exatamente 1
+  sessão, e nenhum tipo aceita o campo do outro.
+- **As regras de uso perguntam o tipo:** linha de preço por duração exige
+  `PACKAGE` ou `SINGLE_SESSION`; por frequência exige `MONTHLY_FEE`; contrato
+  recusa `SINGLE_SESSION`.
+- *Descartados:* reconhecer o Avulso pelo nome (frágil — renomear quebraria a
+  regra) e um booleano "pode entrar em contrato" (resolveria só o Avulso; o tipo
+  também organiza `sessionCount` × `termWeeks`, que eram dois nullables sem regra
+  entre eles).
 
 **Planos atuais da clínica:**
 
-| Plano | `sessionCount` | `termWeeks` | Usado em |
-|---|---|---|---|
-| Avulso | 1 | `null` | grupos `DURATION_BASED` — **só em atendimento sem contrato** |
-| Essencial | 4 | `null` | grupos `DURATION_BASED` |
-| Evolução | 12 | `null` | grupos `DURATION_BASED` |
-| Evolução Familiar | 12 | `null` | grupos `DURATION_BASED` (preço cadastrado hoje só no Individual Padrão; os demais grupos serão cadastrados) |
-| Transformação / Transformação Familiar | 26 | `null` | grupos `DURATION_BASED` |
-| Vitalidade / Vitalidade Familiar | 52 | `null` | grupos `DURATION_BASED` |
-| Mensal | `null` | 4 | Em Grupo (`FREQUENCY_BASED`) |
-| Trimestral | `null` | 13 | Em Grupo (`FREQUENCY_BASED`) |
-| Semestral / Semestral Familiar | `null` | 26 | Em Grupo (`FREQUENCY_BASED`) |
-| Anual / Anual Familiar | `null` | 52 | Em Grupo (`FREQUENCY_BASED`) |
+| Plano | `type` | `sessionCount` | `termWeeks` | Equivalente (de-para) | Usado em |
+|---|---|---|---|---|---|
+| Avulso | `SINGLE_SESSION` | 1 | `null` | — | grupos `DURATION_BASED` — **só em atendimento sem contrato** |
+| Essencial | `PACKAGE` | 4 | `null` | Mensal | grupos `DURATION_BASED` |
+| Evolução | `PACKAGE` | 12 | `null` | Trimestral | grupos `DURATION_BASED` |
+| Evolução Familiar | `PACKAGE` | 12 | `null` | Trimestral | grupos `DURATION_BASED` (preço cadastrado hoje só no Individual Padrão; os demais grupos serão cadastrados) |
+| Transformação / Transformação Familiar | `PACKAGE` | 26 | `null` | Semestral / Semestral Familiar | grupos `DURATION_BASED` |
+| Vitalidade / Vitalidade Familiar | `PACKAGE` | 52 | `null` | Anual / Anual Familiar | grupos `DURATION_BASED` |
+| Mensal | `MONTHLY_FEE` | `null` | 4 | Essencial | Em Grupo (`FREQUENCY_BASED`) |
+| Trimestral | `MONTHLY_FEE` | `null` | 13 | Evolução | Em Grupo (`FREQUENCY_BASED`) |
+| Semestral / Semestral Familiar | `MONTHLY_FEE` | `null` | 26 | Transformação / Transformação Familiar | Em Grupo (`FREQUENCY_BASED`) |
+| Anual / Anual Familiar | `MONTHLY_FEE` | `null` | 52 | Vitalidade / Vitalidade Familiar | Em Grupo (`FREQUENCY_BASED`) |
 
 **Por que `sessionCount` é nullable:** no Pilates em Grupo o plano não é um
 pacote de sessões, e sim um valor mensal definido pelo plano e pela frequência
 semanal (ex: Mensal 1x/semana = 4 aulas no mês, 3x/semana = 12). Gravar um número
 fixo seria um dado enganoso, que uma tela ou relatório poderia usar errado. O
 plano não sabe em qual grupo é usado (a ligação é a linha de preço), então a regra
-"preço por duração exige plano com `sessionCount`" é validada na criação da linha
-de preço por duração (que recebe o plano), não no próprio plano.
+"preço por duração exige plano `PACKAGE` ou `SINGLE_SESSION`" é validada na
+criação da linha de preço por duração (que recebe o plano), não no próprio plano.
 
 **Prazo dos planos do Grupo (`termWeeks`):** num contrato só com Pilates em
 Grupo não há sessões para calcular a vigência (ver "Vigência e frequência" em
@@ -313,13 +347,25 @@ Vale nos dois sentidos, exceto a linha do Evolução Familiar. Usado em:
 - **Contrato misto:** sugere o plano do item do Grupo a partir do plano do
   contrato (o usuário pode trocar — ver "Plano do item do Grupo" em `Contract`).
 - **Atendimento fora do grupo contratado:** define o plano cujo preço atual é
-  cobrado (caso 2 da "Lógica de resolução de preço" em `Consultation`).
+  cobrado (caso 2 da "Lógica de resolução de preço" em `Consultation`), nos dois
+  sentidos — paciente de pacote numa aula do Grupo (Evolução → Trimestral) e
+  paciente de contrato só com Grupo numa sessão por duração (Trimestral →
+  Evolução). É por esse segundo sentido que o de-para precisa estar nos dois lados.
 
-*Onde guardar fica para a implementação (sugestão: `Plan.equivalentPlanId`).*
+**Onde o de-para fica:** `Plan.equivalentPlanId`, preenchido **nos dois lados**
+(cada plano aponta para o seu equivalente na outra família). Um lado só não
+basta por causa da assimetria do Evolução Familiar: com a FK só nos pacotes,
+"qual é o equivalente do Trimestral?" teria duas respostas (Evolução e Evolução
+Familiar).
+- Regra (400): o equivalente precisa ser da **outra família** (`PACKAGE` ⇄
+  `MONTHLY_FEE`); `SINGLE_SESSION` não tem equivalente.
+- Cadastro: como os dois planos precisam existir antes do vínculo, o de-para é
+  definido depois da criação, num endpoint próprio
+  (`PUT /api/plans/{id}/equivalent`).
 
 **Avulso:** é só o preço de quem é atendido sem contrato — nunca entra em
-contrato (ver `Contract`). *Como o sistema reconhece o Avulso sem depender do
-nome do plano fica para a implementação.*
+contrato (ver `Contract`). O sistema o reconhece pelo tipo (`SINGLE_SESSION`),
+nunca pelo nome.
 
 **Por que sem frequência nem desconto (e, nos planos por duração, sem prazo):** a
 mesma quantidade de sessões pode ser consumida em ritmos diferentes — um
@@ -456,8 +502,9 @@ agendado fica como melhoria futura.
 
 Validações do cadastro: o `pricingModel` do grupo corresponde à tabela usada
 (preço por duração só em grupo `DURATION_BASED`, por frequência só em
-`FREQUENCY_BASED`); o plano está ativo; preço por duração exige plano com
-`sessionCount` preenchido; valor maior que zero.
+`FREQUENCY_BASED`); o plano está ativo; o **tipo do plano** corresponde à tabela
+(duração: `SINGLE_SESSION` ou `PACKAGE`; frequência: `MONTHLY_FEE` — ver
+`PlanType` em `Plan`); valor maior que zero.
 
 **Percentual de desconto nunca é persistido.** É sempre calculado em tempo de
 leitura: `1 − (valorDoPlano / valorDeReferência)`, onde a referência é o Avulso da
@@ -469,16 +516,35 @@ dessincronia a cada reajuste.
 
 ## `Contract` e `ContractItem`
 
-> ⚠️ **Modelo decidido, ainda não implementado.** O código atual (`ContractEntity`)
-> segue o modelo anterior: um contrato com uma única técnica-âncora e uma única
-> linha de preço. Ele será refeito para este modelo (cabeçalho + itens) junto com
-> o `Consultation`.
-
 O contrato é um agregado em duas partes: o **cabeçalho** (`Contract`, raiz do
 agregado), com o que vale para o contrato inteiro, e os **itens**
 (`ContractItem`), um por grupo de preço contratado. Ex: um contrato Evolução com
 RPG e Quiropraxia tem um item do Individual Padrão e um do Individual
 Especializado.
+
+**Como o agregado é implementado:**
+- `ContractItem` é **entidade interna**: sem repositório nem service próprios, e o
+  construtor de negócio não é público — só o `ContractEntity` cria itens. Os itens
+  são salvos e removidos junto com o contrato (cascade), e `getItems()` devolve uma
+  cópia somente leitura.
+- O service carrega as entidades de cada item do request (técnica e linha de preço)
+  e monta um **rascunho** (`ContractItemDraft`, não persistido); o contrato cria os
+  itens a partir dos rascunhos, comparando cada um com o item do **mesmo grupo** na
+  versão anterior (regra "o que é igual é aceito como está").
+- Outros agregados (ex: `Consultation`) referenciam só a raiz (`Contract`); o item
+  é encontrado por contrato + grupo.
+- Regras de cada camada: o item valida o que é dele (preço vigente ou mantido,
+  técnica do grupo da linha e ativa ou mantida, frequência dentro do teto); o
+  contrato valida o que envolve o conjunto (um item por grupo, itens compatíveis
+  com o plano, cálculo do fim); o service valida o que depende do banco (um
+  contrato vigente por titular, opções do plano do Grupo).
+
+**Endpoints de apoio à tela** (nada é gravado; a regra fica no backend e o frontend
+não a repete):
+- `GET /api/contracts/term-preview?planId&startDate&frequencies` — na criação:
+  vigência em semanas, `endDate` calculado, plano do Grupo sugerido e opções.
+- `GET /api/contracts/{id}/group-plan-options` — no aditivo: opções do plano do
+  Grupo pela vigência atual do contrato.
 
 ### `Contract` (cabeçalho)
 
@@ -487,7 +553,7 @@ Especializado.
 | `id` | Long | auto-increment |
 | `patientId` | FK → Patient | titular, obrigatório; nunca muda (trocar o titular = contrato novo) |
 | `beneficiaryId` | FK → Patient, nullable | Pilates em Dupla / plano Familiar |
-| `planId` | FK → Plan | plano único do contrato (ex: Evolução); nunca o Avulso |
+| `planId` | FK → Plan | plano único do contrato (ex: Evolução); nunca `SINGLE_SESSION` (Avulso) |
 | `startDate` | date | informado |
 | `endDate` | date | **calculado pelo sistema**, inclusivo (ver "Vigência e frequência") |
 | `paymentMethod` | ENUM | única para o contrato inteiro |
@@ -512,7 +578,14 @@ Especializado.
 - **Plano do item:** item de grupo por duração usa uma linha do **plano do
   contrato**. Item do Pilates em Grupo usa um plano do Grupo escolhido pela regra
   de "Plano do item do Grupo" (abaixo). Num contrato só com Grupo, o plano do
-  contrato é o próprio plano do Grupo.
+  contrato é o próprio plano do Grupo — por isso ele não pode receber item de grupo
+  por duração (exigiria trocar o plano; ver "Versionamento").
+- **Contrato de pacote precisa de pelo menos um item por duração.** É o outro lado
+  da regra anterior: contrato só com Grupo usa plano de mensalidade. Sem item por
+  duração, um contrato de pacote não teria como calcular o fim (o pacote não tem
+  `termWeeks`). Consequência no aditivo: remover todos os itens por duração de um
+  contrato misto é recusado (400) — para ficar só no Grupo, contrato novo com plano
+  de mensalidade.
 - **Técnica só informativa:** registra o que foi vendido (ex: "Liberação
   Miofascial e Quiropraxia" no contrato impresso), mas não restringe o
   atendimento — o paciente pode ser atendido em qualquer técnica do grupo do item.
@@ -537,9 +610,10 @@ individuais com `validFrom`/`validTo`.
 dela, nunca recebido do request: o grupo do item e, no Grupo, a frequência.
 Receber esses dados separados criaria redundância — o request poderia mandar um
 grupo ou frequência diferente do preço travado, e o item nasceria incoerente.
-Pelo mesmo motivo, o sistema valida que a técnica pertence ao grupo da linha, que
-o grupo usa a tabela de onde a linha veio (`pricingModel`) e que a linha é do
-plano certo (ver "Plano do item").
+Pelo mesmo motivo, o item valida que a técnica pertence ao grupo da linha e o
+contrato valida que a linha é do plano certo (ver "Plano do item"). Que o grupo da
+linha usa a tabela de onde ela veio (`pricingModel`) não é revalidado no contrato:
+a própria linha de preço garante isso na criação dela.
 
 **Saldo de sessões por item:** cada item de grupo por duração tem as
 `sessionCount` do plano — contrato Evolução com RPG + Quiropraxia = 12 sessões do
@@ -662,17 +736,32 @@ Grupo até o primeiro cujo prazo cubra a vigência do contrato**.
 | Essencial semanal | 4 | Mensal | Mensal |
 | Essencial mensal | 16 | Mensal, Trimestral, Semestral | Mensal |
 
-- **Familiares:** as opções ficam dentro da mesma família quando ela existir
-  (Familiar com Familiar). Evolução Familiar (não existe Trimestral Familiar) cai
-  nos planos comuns.
+- **Sem restrição de família:** as opções são **todos** os planos de mensalidade
+  até o primeiro que cubra a vigência, Familiares ou não. A sugestão do de-para já
+  leva ao Familiar certo (Transformação Familiar → Semestral Familiar); escolher
+  outro fica a critério do admin. *Descartado:* restringir Familiar com Familiar —
+  exigiria um campo "familiar" no `Plan` (ou reconhecer pelo nome, já descartado),
+  sem ganho que justifique.
 - **Risco residual aceito:** um desconto pequeno quando o plano escolhido cobre
   bem mais que a vigência (ex: Essencial mensal, 16 semanas, com Semestral, 26).
   É escolha deliberada do admin. *Alternativa descartada:* limitar ao maior plano
   que **cabe** na vigência — zeraria esse risco, mas o Evolução quinzenal (24)
   perderia o Semestral (26).
-- A regra fica no backend: valida na criação e no aditivo e expõe as opções num
-  endpoint de apoio (no estilo de `GET /api/techniques/{id}/prices`); o frontend
-  não repete a regra.
+- A regra fica no backend: valida na criação e no aditivo e expõe as opções nos
+  endpoints de apoio (`term-preview` e `group-plan-options` — ver o início da
+  seção); o frontend não repete a regra.
+
+**Como as opções são montadas** (`ContractService`, depende do catálogo de planos):
+- Só mensalidades **ativas**, do prazo mais curto ao mais longo.
+- Entram todas até o prazo da primeira que cubra a vigência, **inclusive as de
+  mesmo prazo** (vigência de 24 semanas → Mensal, Trimestral, Semestral **e**
+  Semestral Familiar, as duas com 26).
+- Se nenhuma cobrir a vigência (contrato prorrogado além de 52 semanas), **todas**
+  valem.
+- Contrato só com Grupo: a única opção é o próprio plano do contrato.
+- **No aditivo**, a vigência usada é a atual do contrato (início → fim, incluindo
+  prorrogação), e o plano do Grupo **só é revalidado se o item do Grupo for novo ou
+  trocar de linha** — o que é igual à versão anterior é aceito como está.
 
 ### Vigente, vencimento e prorrogação
 
@@ -693,8 +782,9 @@ que escolhe entre:
 fim atual. Prorrogação é exceção (paciente doente, viagem), e não há conta que
 preveja quanto tempo ela precisa.
 
-**Cadastros inativos:** paciente titular, beneficiário e técnica precisam estar
-ativos para um contrato novo.
+**Cadastros inativos:** paciente titular, beneficiário, plano e a técnica de cada
+item precisam estar ativos para um contrato novo. No aditivo, o que é mantido da
+versão anterior é aceito mesmo inativo (titular e plano são sempre copiados).
 
 ### Versionamento (aditivos)
 
@@ -708,6 +798,18 @@ historização de preços). Regras:
   formulário preenchido com a versão atual). Nova versão passa pelas mesmas
   regras da criação, exceto o fim (ver as regras de fim abaixo).
 - O **titular nunca muda** (é copiado): trocar o titular é um contrato novo.
+- O **início nunca muda** (é copiado): o `startDate` é do acordo, não da versão.
+  Quem conta a partir da data do aditivo é só o prazo de um item incluído (ver "O
+  fim no aditivo").
+- O **plano nunca muda**: trocar o plano altera toda a forma de cobrança — é
+  encerrar o contrato e fazer outro. Sem exceção: um contrato só com Grupo que
+  precise de item por duração também vira contrato novo (o plano dele é de
+  mensalidade, e item por duração exige pacote).
+- **Itens podem ser incluídos e removidos.** Remover um item:
+  - não muda o fim (o contrato nunca encolhe — mesma lógica da inclusão);
+  - não pode deixar o contrato sem itens (remover todos = encerrar o contrato);
+  - as sessões restantes do item removido vão para o saldo do paciente (módulo
+    futuro — ver "Não modelado ainda"); o histórico fica nas versões anteriores.
 - **O que for igual à versão anterior é aceito como está; o que for novo precisa
   ser válido.** Manter a mesma linha de preço é permitido mesmo após um reajuste
   (o contrato mantém o valor combinado); trocar de linha exige uma linha vigente.
@@ -831,26 +933,32 @@ vínculo posterior.)*
 
 ## `Consultation`
 
+> ⚠️ **Regras em definição, ainda não implementadas.** Só o enum
+> `ConsultationStatus` está alinhado a este documento; o `ConsultationEntity` atual
+> é um esqueleto do modelo antigo e será desenhado do zero quando as pendências
+> (fim da seção) forem fechadas.
+
 | Atributo | Tipo | Observação |
 |---|---|---|
 | `id` | Long | auto-increment |
-| `patientId` | FK → Patient | quem foi atendido (pode divergir do titular do contrato) |
-| `contractId` | FK → Contract | de quem sai o saldo |
-| `providerId` | FK → Provider | quem atendeu |
+| `patientId` | FK → Patient | **quem compareceu** — o titular ou o beneficiário de um contrato, ou um paciente sem contrato |
+| `contractId` | FK → Contract, nullable | **contrato que paga a sessão** (debita o item do grupo atendido); `null` = atendimento **avulso** (técnica de grupo não contratado, ou paciente sem contrato). Referencia a raiz do agregado, nunca o `ContractItem` |
+| `providerId` | FK → Provider | quem atendeu (ver pendência "quem lança") |
 | `techniqueId` | FK → Technique | técnica clinicamente executada |
-| `durationMinutes` | int | dado de agenda; só participa do cálculo se o grupo for `DURATION_BASED` |
+| `durationMinutes` | int | eixo do preço nos grupos `DURATION_BASED`; no Pilates em Grupo não participa do cálculo |
 | `occurredAt` | date | (não usar `date` como nome de campo — ambíguo com o tipo em alguns parsers) |
 | `status` | ENUM: `ATTENDED` \| `NO_SHOW` \| `CANCELED_LATE` | por que a sessão foi cobrada (ver abaixo) |
-| `sessionDurationPriceId` | FK → SessionDurationPrice, nullable | exclusive arc |
+| `sessionDurationPriceId` | FK → SessionDurationPrice, nullable | exclusive arc: a linha **usada** no atendimento (travada, atual ou do de-para — ver "Lógica de resolução de preço") |
 | `sessionFrequencyPriceId` | FK → SessionFrequencyPrice, nullable | exclusive arc |
-| `commissionPercentageApplied` | BigDecimal | snapshot; `referralCommissionPercentage` do prestador se ele trouxe o titular do contrato, senão `commissionPercentage` |
-| `baseValue` | BigDecimal | snapshot |
-| `repasseValue` | BigDecimal | snapshot |
+| `commissionPercentageApplied` | BigDecimal | snapshot; `referralCommissionPercentage` do prestador se ele trouxe o titular do contrato, senão `commissionPercentage` (ver "Comissão") — vira `Percentage` na implementação |
+| `baseValue` | BigDecimal | snapshot do valor da sessão — vira `Money` na implementação |
+| `repasseValue` | BigDecimal | snapshot do repasse — nome e cálculo pendentes (ver "Pendências") |
 
-**Por que `patientId` e `contractId` são dois campos separados:** no Pilates em
-Dupla, quando o titular não comparece, o prestador pode lançar o atendimento no
-nome do acompanhante — quem foi atendido (`patientId`) e de quem sai o saldo
-(`contractId`, e por ele, o titular) são pessoas diferentes.
+**Por que `patientId` e `contractId` são dois campos separados:** quem compareceu
+e de quem sai a sessão podem ser pessoas diferentes. O prestador lança o nome
+**exato** de quem atendeu; se for o beneficiário (ex: o acompanhante no Pilates em
+Dupla), a sessão sai do contrato do **titular**. E num atendimento avulso não há
+contrato (`contractId` nulo), só o paciente.
 
 **Por que `techniqueId` é campo próprio, mesmo já existindo a FK de preço:** a
 linha de preço aponta para o *grupo*, não para a técnica específica. Sem esse
@@ -896,37 +1004,119 @@ políticas de cancelamento de clínicas. Os nomes anteriores (`MISSED`,
 `UNSCHEDULED_WITH_NOTICE/CHARGE`, `CANCELED`) foram trocados: *unscheduled* em
 inglês significa "não agendado" (encaixe), o oposto de "desmarcado".
 
-### Saldo depende do modelo de precificação
+### Contrato do atendimento (de qual contrato sai a sessão)
 
-- **`DURATION_BASED`:** saldo de sessões = `sessionCount` do plano − atendimentos
-  lançados (todos são cobrados, qualquer que seja o status), somando **toda a
-  cadeia de versões** do contrato (`previousContract`).
-- **`FREQUENCY_BASED` (Pilates em Grupo):** não há saldo de sessões — o plano é
-  uma mensalidade, não um pacote (por isso `sessionCount` é `null`). O que importa
-  é se o paciente está **em dia**: a parcela do mês foi paga. Isso depende do
-  domínio `Payment` (Fase 2); na Fase 1 o Grupo não tem cálculo de saldo.
+O prestador lança o **paciente que realmente compareceu**. O sistema procura os
+**contratos elegíveis**: contratos **vigentes** em que esse paciente é **titular ou
+beneficiário** e que têm **item do grupo da técnica atendida**.
+- **Nenhum** → atendimento avulso (`contractId` nulo; casos 2 e 3 abaixo).
+- **Um** → é esse, sem perguntar.
+- **Mais de um** (ex: titular do próprio contrato e beneficiário do contrato de
+  outra pessoa, os dois com o grupo) → um **modal** pede ao prestador que escolha.
 
-O repasse ao prestador vale igual nos dois modelos — é outra conta (honorário por
-atendimento), independente do saldo do paciente.
+A sessão sai sempre do **titular do contrato escolhido** — mesmo quando quem
+compareceu foi o beneficiário.
+
+**Estrutura para o modal** (o frontend exibe; a regra fica no backend):
+- `GET /api/consultations/eligible-contracts?patientId&techniqueId` — lista os
+  contratos elegíveis com titular, item do grupo e saldo restante. Lista vazia → sem
+  modal; um → selecionado automaticamente; dois ou mais → modal.
+- O lançamento recebe o `contractId` escolhido e o backend **revalida**: o contrato
+  precisa estar entre os elegíveis (senão 400) e, **se existir algum elegível, o
+  `contractId` é obrigatório** — o prestador não consegue lançar como avulso uma
+  sessão que deveria sair de um contrato.
 
 ### Lógica de resolução de preço no lançamento
 
-1. Prestador seleciona paciente, duração, técnica e status.
-2. Sistema compara `technique.pricingGroupId` do atendimento com o do contrato
-   do paciente.
-   - **Mesmo grupo:** usa o `planId` do próprio `Contract` automaticamente.
-   - **Grupo diferente:** abre um modal para o prestador escolher manualmente o
-     plano equivalente no grupo da nova técnica (ex: Avulso, Essencial,
-     Evolução, para Quiropraxia). *Decisão atual: escolha livre do prestador, sem
-     validação da clínica — trava/validação é melhoria futura.*
-3. Busca o preço vigente na tabela correta (`SessionDurationPrice` se
-   `DURATION_BASED`, `SessionFrequencyPrice` se `FREQUENCY_BASED`).
-4. Grava o snapshot: `baseValue`, `commissionPercentageApplied`, `repasseValue`.
+O preço é resolvido pelo sistema — **não há escolha manual de plano ou preço**
+(o antigo "modal de escolha livre do plano equivalente" foi substituído pelo
+de-para). Três casos:
 
-**Nota:** o preço travado em `Contract` é uma referência de cobrança, não
-necessariamente o valor de toda sessão futura — se a duração real ou a técnica
-divergirem do que o contrato ancora, o valor daquele atendimento específico é
-resolvido de novo, seguindo o fluxo acima.
+**Caso 1 — técnica de um grupo contratado** (há contrato escolhido; o item é o do
+grupo da técnica):
+- grupo por duração, **mesma duração da linha travada** → **preço travado** do item
+  (vale para qualquer técnica do grupo do item);
+- grupo por duração, **outra duração** → linha **atual** do mesmo plano, na duração do
+  atendimento;
+- Pilates em Grupo → linha travada do item (a frequência foi definida no contrato).
+- **Debita o saldo do item.**
+
+**Caso 2 — paciente tem contrato vigente, mas não do grupo da técnica** (avulso,
+`contractId` nulo): **de-para** a partir do plano do contrato (ver `Plan`) → linha
+**atual** do plano equivalente no grupo atendido.
+- grupo por duração: na duração do atendimento (grupos por duração compartilham os
+  planos — Essencial → Essencial);
+- Pilates em Grupo: sempre **1x por semana** (aula experimental; se o paciente quiser
+  continuar, o admin inclui o Grupo no contrato);
+- contrato só com Grupo e técnica por duração: de-para reverso (Trimestral →
+  Evolução).
+- **Não debita saldo de sessões**; o valor vai para o **saldo do paciente** (módulo
+  futuro — ver "Não modelado ainda").
+
+**Caso 3 — paciente sem contrato vigente** (avulso, `contractId` nulo):
+- grupo por duração → linha **atual** do plano avulso (`SINGLE_SESSION`) na duração do
+  atendimento;
+- Pilates em Grupo → **400** ("o Pilates em Grupo exige contrato" — o Grupo não tem
+  avulso).
+
+**Sem linha correspondente → 400**, com mensagem clara (ex: "não há preço do plano
+Essencial para Quiropraxia 30 min"). Nunca se "chuta" um preço aproximado: o valor
+vira obrigação de repasse na hora, sem aprovação.
+
+Depois de resolvida a linha, o lançamento grava os snapshots: `baseValue` (valor da
+sessão da linha usada), `commissionPercentageApplied` e o repasse.
+
+### Saldo de sessões
+
+- **Por item de grupo por duração:** `sessionCount` do plano do contrato −
+  atendimentos que debitaram aquele item — atendimentos com `contractId` em
+  **qualquer versão da cadeia** do contrato e linha do **mesmo grupo** do item
+  (contrato + grupo = item). Todos os lançados contam, qualquer que seja o status.
+  Ex: contrato Evolução com RPG e Quiropraxia = 12 sessões de cada grupo.
+- **Item do Pilates em Grupo:** não há saldo de sessões — é mensalidade (o plano não
+  tem `sessionCount`). O que importa é se o paciente está **em dia** (parcela do mês
+  paga), o que depende do domínio `Payment` (Fase 2).
+- **Atendimento avulso** (casos 2 e 3) não mexe em saldo de sessões.
+- O cálculo fica no módulo `consultation` (o `contract` não pode depender dele). A
+  tela do aditivo mostra esse saldo para o admin decidir (ver "O fim no aditivo" em
+  `Contract`).
+
+O repasse ao prestador vale igual em todos os casos — é outra conta (honorário por
+atendimento), independente do saldo do paciente.
+
+### Comissão (percentual aplicado)
+
+Pela **origem do titular** do contrato do atendimento (`Patient.referringProviderId`):
+- titular trazido **pelo prestador que atendeu** → `referralCommissionPercentage`;
+- titular da clínica (`null`) ou trazido por **outro** prestador →
+  `commissionPercentage`.
+
+Sem contrato (avulso), vale a origem do **próprio paciente atendido**. O percentual
+escolhido vai para o snapshot `commissionPercentageApplied` — mudar a origem ou os
+percentuais depois não altera atendimentos já lançados.
+
+### Pendências (decidir antes de implementar)
+
+- **Cálculo do repasse e modo de arredondamento:** repasse = `baseValue` ×
+  percentual aplicado. Falta decidir o arredondamento (ex: 35% de R$ 58,91 =
+  R$ 20,6185 → `HALF_UP`, `HALF_EVEN` ou sempre para baixo?). Implementação prevista:
+  `Percentage.applyTo(Money)`.
+- **Nome do campo de repasse:** `repasseValue` está em português (viola a convenção
+  de idioma); sugestão `payoutValue`.
+- **Precisão:** `session_value` é `DECIMAL(10,2)` e `base_value` `DECIMAL(12,2)` —
+  alinhar no redesenho.
+- **Ciclo de vida do lançamento:** um atendimento lançado pode ser alterado ou
+  excluído? Ele gera repasse na hora, sem aprovação.
+- **Quem lança:** desenhar com `providerId` **explícito** no request (não inferido do
+  login), para permitir no futuro o admin lançar por um prestador; avaliar
+  `launchedByUserId` para rastreabilidade. Se o admin passar a lançar, rever a regra
+  "prestador exige usuário" (ver `Provider`).
+- **Vigência de referência:** "contrato vigente" na elegibilidade é avaliado na data
+  do atendimento (`occurredAt`) ou na data do lançamento? Importa para lançamentos
+  retroativos e contratos que venceram entre o atendimento e o lançamento.
+- **Saldo esgotado:** item por duração sem sessões restantes — o lançamento é
+  bloqueado, vira avulso (preço atual, saldo do paciente) ou é permitido (saldo
+  negativo)?
 
 ---
 
@@ -936,9 +1126,69 @@ resolvido de novo, seguindo o fluxo acima.
   valor consumido nos atendimentos lançados). Alimenta a visão da
   clínica na Fase 2. Também é a base do "em dia" do Pilates em Grupo (parcela do
   mês paga), que não usa saldo de sessões.
+- **Saldo do paciente** — módulo que reúne, por paciente, os **contratos ativos**
+  com o saldo de sessões de cada item (ex: "RPG: 22 sessões, 12 usadas;
+  Quiropraxia: 12 sessões, 6 usadas") e um **valor em R$** na conta do paciente,
+  separado do saldo de sessões:
+  - **Origem:** ao **encerrar** um contrato, a clínica informa se o valor restante
+    já foi pago ou se vira saldo do paciente (positivo = crédito; negativo =
+    débito). O contrato fica inativo e o valor passa a existir só no saldo. Também
+    recebe as sessões restantes de item removido por aditivo e o valor de
+    atendimentos fora do contrato (caso 2 da "Lógica de resolução de preço").
+  - Cada lançamento de saldo tem FK do **contrato de origem**.
+  - **Destino:** a clínica escolhe — abater em sessões de um novo contrato
+    (renovação), **estornar**, ou deixar congelado. Quando resolvido, marca como
+    **quitado** (débito: quando o paciente paga).
+  - O contrato ganhará uma operação de **encerramento** (ex: `finish(...)`),
+    diferente do soft delete (`deactivate`), porque tem efeito financeiro.
+  - *Em aberto:* como o valor restante é calculado (sessões restantes × valor
+    travado do item?); e o destino do valor do atendimento avulso de **paciente sem
+    contrato** (caso 3 do lançamento) — pago na hora ou lançado como débito no saldo.
 - App de consulta de saldo do paciente (Fase 3) — camada de consumo somente
   leitura sobre `consultation` e `payment`, sem entidades novas.
 - **Agendamento** (sem fase definida) — hoje a clínica usa outro software para
   agenda, onde ficam também as desmarcações sem cobrança e a taxa de desmarcação.
   Se um dia for integrado ao sistema, os cancelamentos sem cobrança voltam a ter
   onde ser registrados (ver "Status" em `Consultation`).
+
+---
+
+## Apêndice: dados da clínica (catálogo atual)
+
+Referência para o cadastro inicial pela API e para as telas. Os planos seguem a
+tabela de `Plan` (tipo, sessões, `termWeeks` e de-para).
+
+**Grupos e técnicas:** ver "Grupos atuais da clínica" em `PricingGroup`.
+
+**Valores por sessão nos grupos por duração (60 min / 30 min):**
+
+| Plano | Individual Padrão | Individual Especializado | Em Dupla |
+|---|---|---|---|
+| Avulso | 220,00 / 132,00 | 275,00 / 176,00 | 265,00 / 158,00 |
+| Essencial | 180,00 / 113,00 | 242,00 / 140,80 | 238,00 / 143,00 |
+| Evolução | 167,00 / 100,00 | 231,00 / 132,00 | 225,00 / 136,00 |
+| Evolução Familiar | 156,00 / 93,00 | *a definir* | *a definir* |
+| Transformação | 143,00 / 90,00 | 186,00 / 117,00 | 215,00 / 129,00 |
+| Transformação Familiar | 137,00 / 85,00 | 178,00 / 112,00 | 205,00 / 126,00 |
+| Vitalidade | 134,00 / 80,00 | 175,00 / 105,00 | 200,00 / 124,00 |
+| Vitalidade Familiar | 129,00 / 77,00 | 170,00 / 100,00 | 195,00 / 118,00 |
+
+- Individual Especializado: o Essencial (4 sessões) usa o valor do antigo plano
+  "6 sessões"; o Evolução, o do antigo "12 sessões".
+- Em Dupla 30 min Essencial: 143,00 (a planilha original tinha 130, corrigido).
+- **A cadastrar:** todos os planos em todos os grupos por duração — falta o valor
+  da Evolução Familiar no Individual Especializado e no Em Dupla.
+
+**Pilates em Grupo — valor por aula (1x / 2x / 3x por semana):**
+
+| Plano | 1x | 2x | 3x |
+|---|---|---|---|
+| Mensal | 82,50 | 73,63 | 58,91 |
+| Trimestral | 73,36 | 65,81 | 52,50 |
+| Semestral | 70,06 | 62,57 | 51,06 |
+| Semestral Familiar | 67,27 | 60,41 | 49,98 |
+| Anual | 63,46 | 55,85 | 48,91 |
+| Anual Familiar | 58,38 | 54,58 | 47,83 |
+
+O valor mensal da planilha (ex: Mensal 2x = R$ 589,05) não é gravado: só o valor por
+aula é linha de preço.

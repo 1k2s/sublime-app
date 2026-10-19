@@ -1,20 +1,25 @@
 package br.com.senai.sublime_app.contract.domain;
 
 import br.com.senai.sublime_app.contract.enums.PaymentMethod;
+import br.com.senai.sublime_app.contract.enums.SessionFrequency;
 import br.com.senai.sublime_app.patient.domain.PatientEntity;
-import br.com.senai.sublime_app.pricing.domain.SessionFrequencyPriceEntity;
-import br.com.senai.sublime_app.pricing.domain.SessionDurationPriceEntity;
 import br.com.senai.sublime_app.pricing.domain.PlanEntity;
 import br.com.senai.sublime_app.pricing.domain.PricingGroupEntity;
-import br.com.senai.sublime_app.pricing.domain.TechniqueEntity;
-import br.com.senai.sublime_app.pricing.enums.PricingModel;
+import br.com.senai.sublime_app.pricing.enums.PlanType;
 import br.com.senai.sublime_app.shared.exception.BusinessRuleException;
 import br.com.senai.sublime_app.shared.exception.ConflictException;
 import jakarta.persistence.*;
 import lombok.*;
 
 import java.time.LocalDate;
+import java.time.temporal.ChronoUnit;
+import java.util.ArrayList;
+import java.util.List;
+import java.util.Optional;
 
+// Raiz do agregado Contract: cabeçalho (o que vale para o contrato inteiro) + itens
+// (um por grupo de preço contratado). Toda criação e alteração de itens passa por
+// aqui. Ver domain-model.md, "Contract e ContractItem".
 @Entity
 @Table(name = "contract")
 @Getter
@@ -27,6 +32,7 @@ public class ContractEntity {
     @EqualsAndHashCode.Include
     private Long id;
 
+    // Titular: nunca muda (trocar o titular = contrato novo)
     @ManyToOne(fetch = FetchType.LAZY, optional = false)
     @JoinColumn(name = "patient_id", nullable = false)
     private PatientEntity patient;
@@ -35,34 +41,22 @@ public class ContractEntity {
     @JoinColumn(name = "beneficiary_id")
     private PatientEntity beneficiary;
 
-    @ManyToOne(fetch = FetchType.LAZY, optional = false)
-    @JoinColumn(name = "technique_id", nullable = false)
-    private TechniqueEntity technique;
-
+    // Plano único do contrato: nunca muda (trocar o plano = encerrar e fazer outro)
     @ManyToOne(fetch = FetchType.LAZY, optional = false)
     @JoinColumn(name = "plan_id", nullable = false)
     private PlanEntity plan;
 
-    @Column(name = "weekly_frequency", nullable = false)
-    private Integer weeklyFrequency;
-
+    // Início do acordo: nunca muda (copiado em cada versão)
     @Column(name = "start_date", nullable = false)
     private LocalDate startDate;
 
+    // Calculado pelo sistema, inclusivo (o último dia ainda conta)
     @Column(name = "end_date", nullable = false)
     private LocalDate endDate;
 
     @Enumerated(EnumType.STRING)
     @Column(name = "payment_method", nullable = false)
     private PaymentMethod paymentMethod;
-
-    @ManyToOne(fetch = FetchType.LAZY)
-    @JoinColumn(name = "session_duration_price_id")
-    private SessionDurationPriceEntity sessionDurationPrice;
-
-    @ManyToOne(fetch = FetchType.LAZY)
-    @JoinColumn(name = "session_frequency_price_id")
-    private SessionFrequencyPriceEntity sessionFrequencyPrice;
 
     @Column(nullable = false)
     private boolean active = true;
@@ -74,120 +68,42 @@ public class ContractEntity {
     @JoinColumn(name = "previous_contract_id", unique = true)
     private ContractEntity previousContract;
 
+    // Itens: parte do agregado — salvos e removidos junto com o contrato (cascade).
+    // Coleção permitida porque item e contrato são o mesmo agregado e o mesmo
+    // módulo (a proibição de coleção de volta vale entre módulos).
+    @OneToMany(mappedBy = "contract", cascade = CascadeType.ALL, orphanRemoval = true)
+    @Getter(AccessLevel.NONE)
+    private List<ContractItemEntity> items = new ArrayList<>();
+
     // ---------------------------------------------------------------------------
     // Criação (primeira versão do contrato)
     // ---------------------------------------------------------------------------
 
-    /**
-     * Cria um contrato com preço por duração (grupos DURATION_BASED).
-     * A tabela por duração não tem frequência: ela é negociação e vem de fora.
-     */
-    public static ContractEntity withDurationPrice(PatientEntity patient, PatientEntity beneficiary,
-            TechniqueEntity technique, SessionDurationPriceEntity price, Integer weeklyFrequency,
-            LocalDate startDate, LocalDate endDate, PaymentMethod paymentMethod) {
-        return buildWithDurationPrice(null, patient, beneficiary, technique, price, weeklyFrequency,
-                startDate, endDate, paymentMethod);
-    }
-
-    /**
-     * Cria um contrato com preço por frequência (grupos FREQUENCY_BASED).
-     * Não recebe weeklyFrequency: ela faz parte do preço e é copiada da linha,
-     * tornando impossível um contrato com frequência diferente da do preço travado.
-     */
-    public static ContractEntity withFrequencyPrice(PatientEntity patient, PatientEntity beneficiary,
-            TechniqueEntity technique, SessionFrequencyPriceEntity price,
-            LocalDate startDate, LocalDate endDate, PaymentMethod paymentMethod) {
-        return buildWithFrequencyPrice(null, patient, beneficiary, technique, price,
-                startDate, endDate, paymentMethod);
+    public static ContractEntity create(PatientEntity patient, PatientEntity beneficiary, PlanEntity plan,
+            LocalDate startDate, PaymentMethod paymentMethod, List<ContractItemDraft> drafts) {
+        ContractEntity contract = new ContractEntity(null, patient, beneficiary, plan, startDate, paymentMethod);
+        contract.addItems(drafts, null);
+        contract.endDate = contract.calculateEndDate();
+        return contract;
     }
 
     // ---------------------------------------------------------------------------
     // Alteração (aditivo): o contrato nunca é editado no lugar. Cada mudança gera
     // uma nova versão, que aponta para esta (previousContract), e esta é inativada.
-    // O titular é sempre copiado: trocar o titular é um contrato novo, não um aditivo.
+    // Titular, plano e início são sempre copiados.
     // ---------------------------------------------------------------------------
 
-    /** Gera a próxima versão deste contrato com preço por duração. */
-    public ContractEntity amendWithDurationPrice(PatientEntity beneficiary, TechniqueEntity technique,
-            SessionDurationPriceEntity price, Integer weeklyFrequency,
-            LocalDate startDate, LocalDate endDate, PaymentMethod paymentMethod) {
+    // amendmentDate = data do aditivo (hoje), passada pelo service. requestedEndDate
+    // é opcional: só para estender (prorrogação).
+    public ContractEntity amend(PatientEntity beneficiary, PaymentMethod paymentMethod,
+            LocalDate requestedEndDate, List<ContractItemDraft> drafts, LocalDate amendmentDate) {
         requireAmendable();
-        ContractEntity newVersion = buildWithDurationPrice(this, this.patient, beneficiary, technique, price,
-                weeklyFrequency, startDate, endDate, paymentMethod);
+        ContractEntity newVersion = new ContractEntity(this, this.patient, beneficiary,
+                this.plan, this.startDate, paymentMethod);
+        newVersion.addItems(drafts, this);
+        newVersion.endDate = newVersion.calculateAmendedEndDate(this, requestedEndDate, amendmentDate);
         this.active = false;
         return newVersion;
-    }
-
-    /** Gera a próxima versão deste contrato com preço por frequência. */
-    public ContractEntity amendWithFrequencyPrice(PatientEntity beneficiary, TechniqueEntity technique,
-            SessionFrequencyPriceEntity price, LocalDate startDate, LocalDate endDate,
-            PaymentMethod paymentMethod) {
-        requireAmendable();
-        ContractEntity newVersion = buildWithFrequencyPrice(this, this.patient, beneficiary, technique, price,
-                startDate, endDate, paymentMethod);
-        this.active = false;
-        return newVersion;
-    }
-
-    // Só a versão ativa pode ser alterada: uma versão inativa já foi substituída
-    // ou encerrada. Contrato ativo porém vencido pode (é assim que se prorroga).
-    private void requireAmendable() {
-        if (!active) {
-            throw new ConflictException("Só a versão ativa do contrato pode ser alterada.");
-        }
-    }
-
-    // ---------------------------------------------------------------------------
-    // Montagem comum à criação e à alteração. "previous" é a versão anterior
-    // (null na criação): o que for igual a ela é aceito como está, o que for novo
-    // precisa ser válido — ex: manter a linha de preço travada é permitido mesmo
-    // após um reajuste; trocar de linha exige uma linha vigente.
-    // ---------------------------------------------------------------------------
-
-    private static ContractEntity buildWithDurationPrice(ContractEntity previous, PatientEntity patient,
-            PatientEntity beneficiary, TechniqueEntity technique, SessionDurationPriceEntity price,
-            Integer weeklyFrequency, LocalDate startDate, LocalDate endDate, PaymentMethod paymentMethod) {
-        Long previousPriceId = previous != null && previous.sessionDurationPrice != null
-                ? previous.sessionDurationPrice.getId() : null;
-        validatePrice(price.isCurrent() || price.getId().equals(previousPriceId),
-                price.getPricingGroup(), technique, PricingModel.DURATION_BASED);
-        validateWeeklyFrequency(weeklyFrequency);
-        return new ContractEntity(previous, patient, beneficiary, technique, price.getPlan(), weeklyFrequency,
-                startDate, endDate, paymentMethod, price, null);
-    }
-
-    private static ContractEntity buildWithFrequencyPrice(ContractEntity previous, PatientEntity patient,
-            PatientEntity beneficiary, TechniqueEntity technique, SessionFrequencyPriceEntity price,
-            LocalDate startDate, LocalDate endDate, PaymentMethod paymentMethod) {
-        Long previousPriceId = previous != null && previous.sessionFrequencyPrice != null
-                ? previous.sessionFrequencyPrice.getId() : null;
-        validatePrice(price.isCurrent() || price.getId().equals(previousPriceId),
-                price.getPricingGroup(), technique, PricingModel.FREQUENCY_BASED);
-        return new ContractEntity(previous, patient, beneficiary, technique, price.getPlan(),
-                price.getWeeklyFrequency(), startDate, endDate, paymentMethod, null, price);
-    }
-
-    // Privado: toda criação passa pelas fábricas/aditivos acima, que aplicam as
-    // regras de preço. O exclusive arc é garantido por construção — cada caminho
-    // passa um preço e null no outro. A linha de preço é a fonte da verdade do plano.
-    private ContractEntity(ContractEntity previous, PatientEntity patient, PatientEntity beneficiary,
-            TechniqueEntity technique, PlanEntity plan, Integer weeklyFrequency, LocalDate startDate,
-            LocalDate endDate, PaymentMethod paymentMethod, SessionDurationPriceEntity sessionDurationPrice,
-            SessionFrequencyPriceEntity sessionFrequencyPrice) {
-        validateParties(previous, patient, beneficiary, technique);
-        validatePeriod(startDate, endDate);
-        this.previousContract = previous;
-        this.patient = patient;
-        this.beneficiary = beneficiary;
-        this.technique = technique;
-        this.plan = plan;
-        this.weeklyFrequency = weeklyFrequency;
-        this.startDate = startDate;
-        this.endDate = endDate;
-        this.paymentMethod = paymentMethod;
-        this.sessionDurationPrice = sessionDurationPrice;
-        this.sessionFrequencyPrice = sessionFrequencyPrice;
-        this.active = true;
     }
 
     // Soft delete da versão. Uma versão já inativa (substituída por aditivo ou já
@@ -197,40 +113,137 @@ public class ContractEntity {
         this.active = false;
     }
 
+    // Cópia somente leitura: itens só mudam pelo contrato (criação e aditivo)
+    public List<ContractItemEntity> getItems() {
+        return List.copyOf(items);
+    }
+
+    // Item do grupo informado nesta versão (contrato + grupo = item)
+    public Optional<ContractItemEntity> findItemOf(PricingGroupEntity pricingGroup) {
+        return items.stream()
+                .filter(item -> item.getPricingGroup().getId().equals(pricingGroup.getId()))
+                .findFirst();
+    }
+
+    // Vigência em semanas (arredondada para cima) — usada nas opções do plano do Grupo.
+    // long: é o tipo que o ChronoUnit devolve; convertido para int, o tipo das semanas
+    // no resto do código.
+    public int getDurationInWeeks() {
+        long days = ChronoUnit.DAYS.between(startDate, endDate) + 1;
+        return (int) ((days + 6) / 7);
+    }
+
+    // Privado: toda criação passa por create/amend. "previous" é a versão anterior
+    // (null na criação): o que for igual a ela é aceito como está.
+    private ContractEntity(ContractEntity previous, PatientEntity patient, PatientEntity beneficiary,
+            PlanEntity plan, LocalDate startDate, PaymentMethod paymentMethod) {
+        validateParties(previous, patient, beneficiary);
+        validatePlan(previous, plan);
+        this.previousContract = previous;
+        this.patient = patient;
+        this.beneficiary = beneficiary;
+        this.plan = plan;
+        this.startDate = startDate;
+        this.paymentMethod = paymentMethod;
+        this.active = true;
+    }
+
+    // ---------------------------------------------------------------------------
+    // Itens
+    // ---------------------------------------------------------------------------
+
+    // Cada item é comparado com o item do mesmo grupo na versão anterior (se houver).
+    // Item incluído = grupo novo (sem anterior). Item removido = grupo que não veio.
+    private void addItems(List<ContractItemDraft> drafts, ContractEntity previous) {
+        validateItemsNotEmptyAndOnePerGroup(drafts);
+        validateItemsMatchPlan(drafts);
+        for (ContractItemDraft draft : drafts) {
+            ContractItemEntity previousItem = previous != null
+                    ? previous.findItemOf(draft.pricingGroup()).orElse(null)
+                    : null;
+            items.add(new ContractItemEntity(this, draft, previousItem));
+        }
+    }
+
+    // ---------------------------------------------------------------------------
+    // Fim do contrato
+    // ---------------------------------------------------------------------------
+
+    // Criação: o fim sai do prazo calculado pelos ritmos dos itens por duração
+    private LocalDate calculateEndDate() {
+        List<SessionFrequency> frequencies = items.stream()
+                .filter(ContractItemEntity::isDurationBased)
+                .map(ContractItemEntity::getFrequency)
+                .toList();
+        return endDateFor(startDate, durationWeeksFor(plan, frequencies));
+    }
+
+    // Prazo do contrato em semanas: maior prazo entre os itens por duração (o Grupo
+    // não entra — acompanha o contrato). Contrato só com Grupo (plano de mensalidade):
+    // prazo do plano (termWeeks). Público e estático para a prévia do formulário
+    // (GET /api/contracts/term-preview) usar exatamente a mesma conta.
+    public static int durationWeeksFor(PlanEntity plan, List<SessionFrequency> durationItemFrequencies) {
+        validateContractable(plan);
+        if (plan.getType() == PlanType.MONTHLY_FEE) {
+            return plan.getTermWeeks();
+        }
+        if (durationItemFrequencies == null || durationItemFrequencies.isEmpty()) {
+            throw new BusinessRuleException(
+                    "Contrato de pacote precisa de pelo menos um item por duração. Contrato só com Pilates em Grupo usa um plano de mensalidade.");
+        }
+        durationItemFrequencies.forEach(frequency -> ContractItemEntity.validateFitsMaxTerm(frequency, plan));
+        return durationItemFrequencies.stream()
+                .mapToInt(frequency -> frequency.weeksToComplete(plan.getSessionCount()))
+                .max()
+                .getAsInt();
+    }
+
+    // endDate inclusivo: início + prazo − 1 dia (ex: 03/11 + 12 semanas → 25/01)
+    public static LocalDate endDateFor(LocalDate startDate, int weeks) {
+        return startDate.plusWeeks(weeks).minusDays(1);
+    }
+
+    // Aditivo: mantém o fim atual. Item por duração incluído (grupo novo) começa a
+    // valer na data do aditivo e pode estender o fim; o fim pedido (prorrogação)
+    // também. O contrato nunca encolhe. Mudar a frequência não recalcula.
+    private LocalDate calculateAmendedEndDate(ContractEntity previous, LocalDate requestedEndDate,
+            LocalDate amendmentDate) {
+        LocalDate end = previous.endDate;
+        for (ContractItemEntity item : items) {
+            boolean newDurationItem = item.isDurationBased() && previous.findItemOf(item.getPricingGroup()).isEmpty();
+            if (newDurationItem) {
+                LocalDate itemEnd = endDateFor(amendmentDate, item.weeksToComplete());
+                end = itemEnd.isAfter(end) ? itemEnd : end;
+            }
+        }
+        if (requestedEndDate != null) {
+            validateRequestedEndDate(requestedEndDate, previous.endDate);
+            end = requestedEndDate.isAfter(end) ? requestedEndDate : end;
+        }
+        return end;
+    }
+
+    // ---------------------------------------------------------------------------
+    // Validações
+    // ---------------------------------------------------------------------------
+
+    // Só a versão ativa pode ser alterada: uma versão inativa já foi substituída
+    // ou encerrada. Contrato ativo porém vencido pode (é assim que se prorroga).
+    private void requireAmendable() {
+        if (!active) {
+            throw new ConflictException("Só a versão ativa do contrato pode ser alterada.");
+        }
+    }
+
     private void requireActive() {
         if (!active) {
             throw new ConflictException("O contrato já está inativo.");
         }
     }
 
-    /**
-     * A linha de preço escolhida precisa ser coerente com a técnica-âncora:
-     * aceita (vigente, ou a mesma já travada na versão anterior), do mesmo grupo
-     * da técnica, e de uma tabela compatível com o pricingModel do grupo
-     * (protege contra linha cadastrada na tabela errada).
-     *
-     * Compara ids em vez de entidades: relações LAZY podem vir como proxy do
-     * Hibernate, e equals entre proxy e entidade real não é confiável.
-     */
-    private static void validatePrice(boolean priceAccepted, PricingGroupEntity priceGroup,
-            TechniqueEntity technique, PricingModel expectedModel) {
-        if (!priceAccepted) {
-            throw new BusinessRuleException("O preço selecionado não está mais vigente. Use o preço atual.");
-        }
-        if (!priceGroup.getId().equals(technique.getPricingGroup().getId())) {
-            throw new BusinessRuleException("A técnica não pertence ao grupo de preço do preço selecionado.");
-        }
-        if (priceGroup.getPricingModel() != expectedModel) {
-            throw new BusinessRuleException(
-                    "A tabela do preço selecionado não corresponde ao modelo de precificação do grupo da técnica.");
-        }
-    }
-
     // Registros inativos (soft delete) existem, mas não podem ENTRAR num contrato.
-    // Na alteração, o que já estava na versão anterior é aceito como está: o titular
-    // (sempre copiado), e beneficiário/técnica quando não foram trocados.
-    private static void validateParties(ContractEntity previous, PatientEntity patient,
-            PatientEntity beneficiary, TechniqueEntity technique) {
+    // Na alteração, o titular é sempre copiado e o beneficiário mantido é aceito.
+    private static void validateParties(ContractEntity previous, PatientEntity patient, PatientEntity beneficiary) {
         if (previous == null && !patient.isActive()) {
             throw new BusinessRuleException("O paciente titular está inativo.");
         }
@@ -239,25 +252,73 @@ public class ContractEntity {
         if (beneficiary != null && !beneficiary.isActive() && !beneficiary.getId().equals(previousBeneficiaryId)) {
             throw new BusinessRuleException("O beneficiário está inativo.");
         }
-        Long previousTechniqueId = previous != null ? previous.technique.getId() : null;
-        if (!technique.isActive() && !technique.getId().equals(previousTechniqueId)) {
-            throw new BusinessRuleException("A técnica está inativa.");
+    }
+
+    // O Avulso nunca entra em contrato. Plano novo precisa estar ativo (no aditivo o
+    // plano é copiado da versão anterior, então não é revalidado).
+    private static void validatePlan(ContractEntity previous, PlanEntity plan) {
+        validateContractable(plan);
+        if (previous == null && !plan.isActive()) {
+            throw new BusinessRuleException("O plano está inativo.");
         }
     }
 
-    // No preço por duração a frequência é negociação e vem de fora (no preço por
-    // frequência ela é copiada da linha de preço, então não passa por aqui).
-    private static void validateWeeklyFrequency(Integer weeklyFrequency) {
-        if (weeklyFrequency == null || weeklyFrequency < 1) {
-            throw new BusinessRuleException("A frequência semanal é obrigatória para preço por duração e deve ser de no mínimo 1 sessão.");
+    private static void validateContractable(PlanEntity plan) {
+        if (!plan.getType().isContractable()) {
+            throw new BusinessRuleException("O plano avulso não pode ser usado em contrato.");
         }
     }
 
-    // Invariante da vigência: validada aqui (e não no service) para valer em
-    // qualquer caminho que crie ou altere o contrato.
-    private static void validatePeriod(LocalDate startDate, LocalDate endDate) {
-        if (endDate.isBefore(startDate)) {
-            throw new BusinessRuleException("A data de término não pode ser anterior à data de início.");
+    // Pelo menos um item (remover todos = encerrar o contrato) e um item por grupo.
+    // Compara ids: relação LAZY pode vir como proxy do Hibernate.
+    private static void validateItemsNotEmptyAndOnePerGroup(List<ContractItemDraft> drafts) {
+        if (drafts == null || drafts.isEmpty()) {
+            throw new BusinessRuleException("O contrato precisa ter pelo menos um item.");
+        }
+        long distinctGroups = drafts.stream()
+                .map(draft -> draft.pricingGroup().getId())
+                .distinct()
+                .count();
+        if (distinctGroups != drafts.size()) {
+            throw new BusinessRuleException("Cada grupo de preço só pode aparecer em um item do contrato.");
+        }
+    }
+
+    // Os itens precisam ser compatíveis com o plano do contrato:
+    // - plano de pacote: itens por duração usam linhas DESTE plano e pelo menos um
+    //   item é por duração (contrato só com Grupo tem plano de mensalidade);
+    // - plano de mensalidade: só o item do Grupo, com linha DESTE plano — por isso um
+    //   contrato só com Grupo não recebe item por duração (exigiria trocar o plano).
+    // O plano do item do Grupo num contrato de pacote é validado no service (depende
+    // do catálogo de planos).
+    private void validateItemsMatchPlan(List<ContractItemDraft> drafts) {
+        if (plan.getType() == PlanType.PACKAGE && drafts.stream().noneMatch(ContractItemDraft::isDurationBased)) {
+            throw new BusinessRuleException(
+                    "Contrato de pacote precisa de pelo menos um item por duração. Contrato só com Pilates em Grupo usa um plano de mensalidade.");
+        }
+        for (ContractItemDraft draft : drafts) {
+            validateItemMatchesPlan(draft);
+        }
+    }
+
+    private void validateItemMatchesPlan(ContractItemDraft draft) {
+        if (plan.getType() == PlanType.MONTHLY_FEE && draft.isDurationBased()) {
+            throw new BusinessRuleException(
+                    "Contrato com plano de mensalidade só aceita o item do Pilates em Grupo. Para incluir outros grupos, faça um contrato novo com um plano de pacote.");
+        }
+        Long linePlanId = draft.isDurationBased()
+                ? draft.durationPrice().getPlan().getId()
+                : draft.frequencyPrice().getPlan().getId();
+        boolean mustUseContractPlan = draft.isDurationBased() || plan.getType() == PlanType.MONTHLY_FEE;
+        if (mustUseContractPlan && !linePlanId.equals(plan.getId())) {
+            throw new BusinessRuleException("O preço do item precisa ser do plano do contrato (" + plan.getName() + ").");
+        }
+    }
+
+    // Prorrogação: o fim pedido precisa ser depois do fim atual (nunca encolhe)
+    private static void validateRequestedEndDate(LocalDate requestedEndDate, LocalDate currentEndDate) {
+        if (!requestedEndDate.isAfter(currentEndDate)) {
+            throw new BusinessRuleException("A nova data de término precisa ser posterior ao fim atual do contrato.");
         }
     }
 }

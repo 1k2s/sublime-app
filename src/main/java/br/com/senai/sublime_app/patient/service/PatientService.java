@@ -11,6 +11,8 @@ import br.com.senai.sublime_app.patient.dto.AddressDTO;
 import br.com.senai.sublime_app.patient.dto.PatientRequestDTO;
 import br.com.senai.sublime_app.patient.dto.PatientResponseDTO;
 import br.com.senai.sublime_app.patient.repository.PatientRepository;
+import br.com.senai.sublime_app.provider.domain.ProviderEntity;
+import br.com.senai.sublime_app.provider.repository.ProviderRepository;
 import br.com.senai.sublime_app.shared.exception.ConflictException;
 import br.com.senai.sublime_app.shared.exception.ResourceNotFoundException;
 
@@ -18,9 +20,11 @@ import br.com.senai.sublime_app.shared.exception.ResourceNotFoundException;
 public class PatientService {
 
     private final PatientRepository patientRepository;
+    private final ProviderRepository providerRepository;
 
-    public PatientService(PatientRepository patientRepository) {
+    public PatientService(PatientRepository patientRepository, ProviderRepository providerRepository) {
         this.patientRepository = patientRepository;
+        this.providerRepository = providerRepository;
     }
 
     /**
@@ -41,7 +45,8 @@ public class PatientService {
                 dto.birthDate(),
                 dto.phone(),
                 dto.email(),
-                toAddress(dto.address()));
+                toAddress(dto.address()),
+                findReferringProvider(dto.referringProviderId()));
 
         patientRepository.save(patient);
         return PatientResponseDTO.fromEntity(patient);
@@ -86,6 +91,9 @@ public class PatientService {
             patient.updateAddress(toAddress(dto.address()));
         }
 
+        // Origem segue a regra geral do PUT: vazio = paciente da clínica
+        patient.updateReferringProvider(findReferringProvider(dto.referringProviderId()));
+
         return PatientResponseDTO.fromEntity(patient);
     }
 
@@ -113,5 +121,15 @@ public class PatientService {
             return null;
         }
         return new Address(dto.street(), dto.numberHouse(), dto.city(), dto.complement(), dto.cep());
+    }
+
+    // Origem do paciente: null = paciente da clínica; id informado precisa existir (404).
+    // Se o prestador está ativo é regra da PatientEntity (que sabe se é o mesmo de antes).
+    private ProviderEntity findReferringProvider(Long providerId) {
+        if (providerId == null) {
+            return null;
+        }
+        return providerRepository.findById(providerId)
+                .orElseThrow(() -> new ResourceNotFoundException("Prestador não encontrado com id: " + providerId));
     }
 }

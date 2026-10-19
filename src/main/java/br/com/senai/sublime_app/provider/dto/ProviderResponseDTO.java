@@ -9,7 +9,10 @@ public record ProviderResponseDTO(
         Long id,
         Long userId,
         String name,
+        // pacientes da clínica ou trazidos por outro prestador
         BigDecimal commissionPercentage,
+        // pacientes que este prestador trouxe
+        BigDecimal referralCommissionPercentage,
         boolean active
 
 ) {
@@ -19,6 +22,7 @@ public record ProviderResponseDTO(
                 entity.getUser().getId(),
                 entity.getName(),
                 entity.getCommissionPercentage().value(),
+                entity.getReferralCommissionPercentage().value(),
                 entity.isActive());
     }
 }

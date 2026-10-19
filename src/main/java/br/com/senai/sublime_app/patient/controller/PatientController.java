@@ -42,10 +42,15 @@ public class PatientController {
     @Operation(summary = "Cadastrar paciente", description = """
             Cria um paciente ativo. O CPF deve ter exatamente 11 dígitos, sem pontuação.
             O endereço é opcional.
+
+            **Origem** (`referringProviderId`, opcional): o prestador que trouxe o paciente —
+            define o percentual de repasse dos atendimentos. Vazio = paciente da clínica. O
+            prestador informado precisa estar ativo.
             """)
     @ApiResponses({
             @ApiResponse(responseCode = "201", description = "Paciente criado", content = @Content(schema = @Schema(implementation = PatientResponseDTO.class))),
-            @ApiResponse(responseCode = "400", description = "Dados inválidos", content = @Content),
+            @ApiResponse(responseCode = "400", description = "Dados inválidos ou prestador de origem inativo", content = @Content),
+            @ApiResponse(responseCode = "404", description = "Prestador de origem não encontrado", content = @Content),
             @ApiResponse(responseCode = "409", description = "Já existe um paciente com esse CPF", content = @Content)
     })
     @PostMapping
@@ -74,13 +79,18 @@ public class PatientController {
     }
 
     @Operation(summary = "Atualizar paciente", description = """
-            Atualiza dados pessoais e de contato do paciente.
+            Atualiza dados pessoais, de contato e a origem do paciente.
             O endereço só é substituído quando enviado; se vier nulo, o endereço atual é mantido.
+
+            **Origem:** segue a regra geral — `referringProviderId` vazio torna o paciente **da
+            clínica**; reenvie a origem atual para mantê-la. Prestador novo precisa estar ativo;
+            manter o mesmo é permitido mesmo que ele tenha sido inativado. Os atendimentos já
+            lançados não mudam (o percentual aplicado é snapshot).
             """)
     @ApiResponses({
             @ApiResponse(responseCode = "200", description = "Paciente atualizado", content = @Content(schema = @Schema(implementation = PatientResponseDTO.class))),
-            @ApiResponse(responseCode = "400", description = "Dados inválidos", content = @Content),
-            @ApiResponse(responseCode = "404", description = "Paciente não encontrado", content = @Content),
+            @ApiResponse(responseCode = "400", description = "Dados inválidos ou prestador de origem inativo", content = @Content),
+            @ApiResponse(responseCode = "404", description = "Paciente ou prestador de origem não encontrado", content = @Content),
             @ApiResponse(responseCode = "409", description = "Já existe outro paciente com esse CPF", content = @Content)
     })
     @PutMapping("/{id}")

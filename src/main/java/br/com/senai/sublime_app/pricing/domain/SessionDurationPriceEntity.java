@@ -82,8 +82,8 @@ public class SessionDurationPriceEntity {
         this.validTo = validTo;
     }
 
-    // A linha precisa estar na tabela do pricingModel do grupo, e o plano precisa
-    // ter sessionCount: o saldo de sessões dos grupos por duração parte dele.
+    // A linha precisa estar na tabela do pricingModel do grupo, e o plano precisa ser
+    // de um tipo cobrado por duração (avulso ou pacote — nunca mensalidade do Grupo).
     private static void validatePricingGroupAndPlan(PricingGroupEntity pricingGroup, PlanEntity plan) {
         if (pricingGroup.getPricingModel() != PricingModel.DURATION_BASED) {
             throw new BusinessRuleException("Preço por duração só é permitido em grupos DURATION_BASED.");
@@ -91,8 +91,8 @@ public class SessionDurationPriceEntity {
         if (!plan.isActive()) {
             throw new BusinessRuleException("O plano está inativo.");
         }
-        if (plan.getSessionCount() == null) {
-            throw new BusinessRuleException("Preço por duração exige um plano com quantidade de sessões (sessionCount).");
+        if (!plan.getType().isPricedByDuration()) {
+            throw new BusinessRuleException("Preço por duração exige um plano avulso ou de pacote.");
         }
     }
 

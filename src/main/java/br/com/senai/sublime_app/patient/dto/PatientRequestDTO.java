@@ -32,7 +32,11 @@ public record PatientRequestDTO(
 
         // Opcional no cadastro
         @Valid
-        AddressDTO address
+        AddressDTO address,
+
+        // Origem: prestador que trouxe o paciente; vazio = paciente da clínica. No PUT,
+        // vazio também torna o paciente "da clínica" — reenviar a origem atual.
+        Long referringProviderId
 
 ) {
 }
