@@ -1,0 +1,42 @@
+.progress {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+}
+
+.header {
+  display: flex;
+  align-items: baseline;
+  justify-content: space-between;
+  gap: 12px;
+  font-size: 12px;
+}
+
+.label {
+  font-weight: 600;
+}
+
+.valueText {
+  color: var(--color-muted);
+}
+
+.track {
+  display: grid;
+  grid-template-columns: repeat(var(--segments), minmax(0, 1fr));
+  gap: 6px;
+}
+
+.segment {
+  height: 8px;
+  border-radius: 4px;
+  background: var(--color-border);
+  transition: background-color 0.2s;
+}
+
+.current {
+  background: color-mix(in srgb, var(--color-primary) 50%, var(--color-surface));
+}
+
+.done {
+  background: var(--color-primary);
+}
