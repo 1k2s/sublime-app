@@ -6,10 +6,6 @@
   gap: 16px;
 }
 
-.submit {
-  margin-top: auto;
-}
-
 .selected {
   display: flex;
   align-items: center;
@@ -37,6 +33,11 @@
   color: var(--color-muted);
 }
 
+/* Altura de um alerta de uma linha */
+.alertSlot {
+  min-height: 44px;
+}
+
 .error {
   margin: 0;
   padding: 12px 16px;
@@ -44,19 +45,24 @@
   background: #fef3f2;
   color: var(--color-danger);
   font-size: 14px;
+  line-height: 20px;
 }
 
-.hint {
-  margin: -6px 0 0;
+/* Fica logo acima do botão, no espaço que sobra no bloco */
+.progress {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  margin-top: auto;
+}
+
+.caption {
+  margin: 0;
   font-size: 12px;
   color: var(--color-muted);
 }
 
-.hint kbd {
-  padding: 1px 6px;
-  border: 1px solid var(--color-border);
-  border-radius: 4px;
-  background: var(--color-bg);
-  font-family: inherit;
-  font-size: 11px;
+.ready {
+  color: var(--color-primary);
+  font-weight: 600;
 }

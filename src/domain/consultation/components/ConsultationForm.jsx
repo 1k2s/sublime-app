@@ -6,6 +6,7 @@ import { Button } from "@/shared/ui/Button";
 import { Card } from "@/shared/ui/Card";
 import { FormField } from "@/shared/ui/FormField";
 import { Input } from "@/shared/ui/Input";
+import { ProgressBar } from "@/shared/ui/ProgressBar";
 import { Select } from "@/shared/ui/Select";
 import { maskCpf } from "@/shared/utils/masks";
 import styles from "./ConsultationForm.module.css";
@@ -26,6 +27,17 @@ export function ConsultationForm({
   const techniqueRef = useRef(null);
   const arrivalRef = useRef(null);
   const { data: techniques = [], isLoading: isLoadingTechniques, isError: techniquesError } = useTechniques();
+
+  // Os campos são preenchidos em ordem: conta até o primeiro que falta. O horário já vem com a hora
+  // atual, então escolhida a técnica o item fica pronto para entrar no carrinho
+  const steps = [
+    { label: "Paciente", done: Boolean(patient) },
+    { label: "Técnica", done: Boolean(technique) },
+    { label: "Horário de chegada", done: Boolean(arrivalTime) },
+  ];
+  const firstPending = steps.findIndex((step) => !step.done);
+  const completed = firstPending === -1 ? steps.length : firstPending;
+  const isReady = completed === steps.length;
 
   function handleSelectPatient(selectedPatient) {
     onSelectPatient(selectedPatient);
@@ -59,7 +71,7 @@ export function ConsultationForm({
   return (
     <Card title="Adicionar lançamento" className={className}>
       <form className={styles.form} onSubmit={handleSubmit} noValidate>
-        <FormField label="Paciente" htmlFor="consultation-patient" error={errors.patientId}>
+        <FormField label="Paciente" htmlFor="consultation-patient" error={errors.patientId} reserveErrorSpace>
           {patient ? (
             <div className={styles.selected}>
               <div className={styles.patient}>
@@ -81,7 +93,7 @@ export function ConsultationForm({
           )}
         </FormField>
 
-        <FormField label="Técnica" htmlFor="consultation-technique" error={errors.techniqueId}>
+        <FormField label="Técnica" htmlFor="consultation-technique" error={errors.techniqueId} reserveErrorSpace>
           <Select
             ref={techniqueRef}
             id="consultation-technique"
@@ -102,7 +114,12 @@ export function ConsultationForm({
           </Select>
         </FormField>
 
-        <FormField label="Horário de chegada" htmlFor="consultation-arrival" error={errors.arrivalTime}>
+        <FormField
+          label="Horário de chegada"
+          htmlFor="consultation-arrival"
+          error={errors.arrivalTime}
+          reserveErrorSpace
+        >
           <Input
             ref={arrivalRef}
             id="consultation-arrival"
@@ -113,17 +130,30 @@ export function ConsultationForm({
           />
         </FormField>
 
-        <p className={styles.hint}>
-          <kbd>Enter</kbd> confirma o campo e avança para o próximo. Na técnica, escolha com as setas.
-        </p>
-
-        {addError && (
-          <p className={styles.error} role="alert">
-            {addError.message}
+        <div className={styles.progress}>
+          <ProgressBar
+            value={completed}
+            max={steps.length}
+            label="Progresso do lançamento"
+            valueText={`${completed} de ${steps.length} campos`}
+          />
+          <p className={isReady ? `${styles.caption} ${styles.ready}` : styles.caption} aria-live="polite">
+            {isReady
+              ? "Tudo pronto: Enter adiciona ao carrinho"
+              : `Próximo: ${steps[completed].label} · Enter avança`}
           </p>
-        )}
+        </div>
 
-        <Button type="submit" className={styles.submit} loading={isAdding}>
+        {/* Espaço do alerta fica reservado mesmo vazio, para o botão não sair do lugar */}
+        <div className={styles.alertSlot}>
+          {addError && (
+            <p className={styles.error} role="alert">
+              {addError.message}
+            </p>
+          )}
+        </div>
+
+        <Button type="submit" loading={isAdding}>
           Adicionar ao carrinho
         </Button>
       </form>
