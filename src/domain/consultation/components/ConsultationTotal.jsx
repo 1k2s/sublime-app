@@ -7,10 +7,10 @@ export function ConsultationTotal({ className, consultations = [], isLoading = f
   const countLabel = consultations.length === 1 ? "1 atendimento" : `${consultations.length} atendimentos`;
 
   return (
-    <section className={[styles.bar, className].filter(Boolean).join(" ")} aria-live="polite" aria-busy={isLoading}>
-      <h2 className={styles.label}>Total repasse do dia:</h2>
-      <span className={styles.count}>{isLoading ? "Carregando..." : countLabel}</span>
-      <span className={styles.value}>{isLoading ? "" : formatCurrency(total)}</span>
+    <section className={[styles["total-bar"], className].filter(Boolean).join(" ")} aria-live="polite" aria-busy={isLoading}>
+      <h2 className={styles["total-label"]}>Total repasse do dia:</h2>
+      <span className={styles["total-count"]}>{isLoading ? "Carregando..." : countLabel}</span>
+      <span className={styles["total-value"]}>{isLoading ? "" : formatCurrency(total)}</span>
     </section>
   );
 }

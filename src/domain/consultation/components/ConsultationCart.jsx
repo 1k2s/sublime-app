@@ -34,7 +34,7 @@ export function ConsultationCart({
   function renderPlaceholder(index) {
     if (index === 0 && justFinished) {
       return (
-        <li key="placeholder-0" className={`${styles.slot} ${styles.success}`} role="status">
+        <li key="placeholder-0" className={`${styles["cart-slot"]} ${styles["cart-success"]}`} role="status">
           <CircleCheck size={18} aria-hidden />
           {finishedCount === 1 ? "1 lançamento registrado" : `${finishedCount} lançamentos registrados`}
         </li>
@@ -42,7 +42,7 @@ export function ConsultationCart({
     }
 
     return (
-      <li key={`placeholder-${index}`} className={`${styles.slot} ${styles.placeholder}`}>
+      <li key={`placeholder-${index}`} className={`${styles["cart-slot"]} ${styles["cart-placeholder"]}`}>
         {index === 0 ? "O próximo paciente aparece aqui" : "Espaço livre"}
       </li>
     );
@@ -50,19 +50,19 @@ export function ConsultationCart({
 
   return (
     <Card title={`Carrinho (${items.length})`} className={className}>
-      <ul ref={listRef} className={styles.list}>
+      <ul ref={listRef} className={styles["cart-list"]}>
         {items.map((item) => (
-          <li key={item.key} className={`${styles.slot} ${styles.item}`}>
-            <div className={styles.info}>
-              <span className={styles.name}>{item.patient.name}</span>
-              <span className={styles.details}>
+          <li key={item.key} className={`${styles["cart-slot"]} ${styles["cart-item"]}`}>
+            <div className={styles["cart-item-info"]}>
+              <span className={styles["cart-item-name"]}>{item.patient.name}</span>
+              <span className={styles["cart-item-details"]}>
                 {item.technique.name} · {formatDateTime(item.arrivalTime)}
               </span>
             </div>
-            <span className={styles.value}>{formatCurrency(item.providerPayoutValue)}</span>
+            <span className={styles["cart-item-value"]}>{formatCurrency(item.providerPayoutValue)}</span>
             <button
               type="button"
-              className={styles.remove}
+              className={styles["cart-item-remove"]}
               onClick={() => onRemove(item.key)}
               disabled={isFinishing}
               aria-label={`Remover ${item.patient.name} (${item.technique.name})`}
@@ -75,16 +75,16 @@ export function ConsultationCart({
         {Array.from({ length: emptySlots }, (_, index) => renderPlaceholder(index))}
       </ul>
 
-      <div className={styles.footer}>
-        <div className={styles.alertSlot}>
+      <div className={styles["cart-footer"]}>
+        <div className={styles["cart-alert-slot"]}>
           {finishError && (
-            <p className={styles.error} role="alert">
+            <p className={styles["cart-alert"]} role="alert">
               {finishError.message}
             </p>
           )}
         </div>
 
-        <Button className={styles.finish} onClick={onFinish} loading={isFinishing} disabled={items.length === 0}>
+        <Button className={styles["cart-finish-button"]} onClick={onFinish} loading={isFinishing} disabled={items.length === 0}>
           Finalizar lançamentos
         </Button>
       </div>

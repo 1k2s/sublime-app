@@ -52,24 +52,24 @@ export function PatientSearchInput({ id, onSelect, invalid = false, autoFocus = 
   }
 
   function renderResults() {
-    if (isLoading) return <p className={styles.message}>Buscando...</p>;
-    if (isError) return <p className={styles.message}>Não foi possível buscar os pacientes</p>;
-    if (patients.length === 0) return <p className={styles.message}>Nenhum paciente encontrado</p>;
+    if (isLoading) return <p className={styles["search-message"]}>Buscando...</p>;
+    if (isError) return <p className={styles["search-message"]}>Não foi possível buscar os pacientes</p>;
+    if (patients.length === 0) return <p className={styles["search-message"]}>Nenhum paciente encontrado</p>;
 
     return (
-      <ul id={listId} role="listbox" className={styles.list}>
+      <ul id={listId} role="listbox" className={styles["search-list"]}>
         {patients.map((patient, index) => (
           <li
             key={patient.id}
             id={`${listId}-${index}`}
             role="option"
             aria-selected={index === activeIndex}
-            className={`${styles.option} ${index === activeIndex ? styles.active : ""}`}
+            className={`${styles["search-option"]} ${index === activeIndex ? styles["search-option-active"] : ""}`}
             onMouseEnter={() => setHighlighted(index)}
             onClick={() => onSelect(patient)}
           >
-            <span className={styles.name}>{patient.name}</span>
-            <span className={styles.cpf}>{maskCpf(patient.cpf)}</span>
+            <span className={styles["search-option-name"]}>{patient.name}</span>
+            <span className={styles["search-option-cpf"]}>{maskCpf(patient.cpf)}</span>
           </li>
         ))}
       </ul>
@@ -77,9 +77,9 @@ export function PatientSearchInput({ id, onSelect, invalid = false, autoFocus = 
   }
 
   return (
-    <div className={styles.wrapper}>
-      <div className={styles.field}>
-        <Search className={styles.icon} size={18} aria-hidden />
+    <div className={styles["search-wrapper"]}>
+      <div className={styles["search-field"]}>
+        <Search className={styles["search-icon"]} size={18} aria-hidden />
         <Input
           id={id}
           type="search"
@@ -90,14 +90,14 @@ export function PatientSearchInput({ id, onSelect, invalid = false, autoFocus = 
           autoComplete="off"
           autoFocus={autoFocus}
           placeholder="Digite o nome ou CPF"
-          className={styles.input}
+          className={styles["search-input"]}
           invalid={invalid}
           value={text}
           onChange={handleChange}
           onKeyDown={handleKeyDown}
         />
       </div>
-      {enabled && <div className={styles.results}>{renderResults()}</div>}
+      {enabled && <div className={styles["search-results"]}>{renderResults()}</div>}
     </div>
   );
 }

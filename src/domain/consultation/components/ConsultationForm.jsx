@@ -70,13 +70,13 @@ export function ConsultationForm({
 
   return (
     <Card title="Adicionar lançamento" className={className}>
-      <form className={styles.form} onSubmit={handleSubmit} noValidate>
+      <form className={styles["form-body"]} onSubmit={handleSubmit} noValidate>
         <FormField label="Paciente" htmlFor="consultation-patient" error={errors.patientId} reserveErrorSpace>
           {patient ? (
-            <div className={styles.selected}>
-              <div className={styles.patient}>
-                <span className={styles.name}>{patient.name}</span>
-                <span className={styles.cpf}>{maskCpf(patient.cpf)}</span>
+            <div className={styles["form-selected"]}>
+              <div className={styles["form-selected-info"]}>
+                <span className={styles["form-selected-name"]}>{patient.name}</span>
+                <span className={styles["form-selected-cpf"]}>{maskCpf(patient.cpf)}</span>
               </div>
               <Button variant="secondary" onClick={() => onSelectPatient(null)}>
                 Trocar
@@ -130,14 +130,14 @@ export function ConsultationForm({
           />
         </FormField>
 
-        <div className={styles.progress}>
+        <div className={styles["form-progress"]}>
           <ProgressBar
             value={completed}
             max={steps.length}
             label="Progresso do lançamento"
             valueText={`${completed} de ${steps.length} campos`}
           />
-          <p className={isReady ? `${styles.caption} ${styles.ready}` : styles.caption} aria-live="polite">
+          <p className={isReady ? `${styles["form-progress-caption"]} ${styles["form-progress-ready"]}` : styles["form-progress-caption"]} aria-live="polite">
             {isReady
               ? "Tudo pronto: Enter adiciona ao carrinho"
               : `Próximo: ${steps[completed].label} · Enter avança`}
@@ -145,9 +145,9 @@ export function ConsultationForm({
         </div>
 
         {/* Espaço do alerta fica reservado mesmo vazio, para o botão não sair do lugar */}
-        <div className={styles.alertSlot}>
+        <div className={styles["form-alert-slot"]}>
           {addError && (
-            <p className={styles.error} role="alert">
+            <p className={styles["form-alert"]} role="alert">
               {addError.message}
             </p>
           )}

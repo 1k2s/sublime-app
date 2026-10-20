@@ -1,10 +1,10 @@
-.progress {
+.progress-bar {
   display: flex;
   flex-direction: column;
   gap: 8px;
 }
 
-.header {
+.progress-bar-header {
   display: flex;
   align-items: baseline;
   justify-content: space-between;
@@ -12,31 +12,31 @@
   font-size: 12px;
 }
 
-.label {
+.progress-bar-label {
   font-weight: 600;
 }
 
-.valueText {
+.progress-bar-value-text {
   color: var(--color-muted);
 }
 
-.track {
+.progress-bar-track {
   display: grid;
   grid-template-columns: repeat(var(--segments), minmax(0, 1fr));
   gap: 6px;
 }
 
-.segment {
+.progress-bar-segment {
   height: 8px;
   border-radius: 4px;
   background: var(--color-border);
   transition: background-color 0.2s;
 }
 
-.current {
+.progress-bar-segment-current {
   background: color-mix(in srgb, var(--color-primary) 50%, var(--color-surface));
 }
 
-.done {
+.progress-bar-segment-done {
   background: var(--color-primary);
 }

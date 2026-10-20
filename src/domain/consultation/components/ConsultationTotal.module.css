@@ -1,4 +1,4 @@
-.bar {
+.total-bar {
   display: flex;
   align-items: center;
   gap: 48px;
@@ -9,19 +9,19 @@
   color: var(--color-surface);
 }
 
-.label {
+.total-label {
   margin: 0;
   font-size: 16px;
   font-weight: 700;
 }
 
-.count {
+.total-count {
   font-size: 15px;
   font-weight: 600;
 }
 
 /* Valor encostado à direita */
-.value {
+.total-value {
   margin-left: auto;
   font-size: 22px;
   font-weight: 700;
@@ -29,7 +29,7 @@
 }
 
 @media (max-width: 600px) {
-  .bar {
+  .total-bar {
     flex-wrap: wrap;
     gap: 4px 16px;
     padding: 16px 20px;

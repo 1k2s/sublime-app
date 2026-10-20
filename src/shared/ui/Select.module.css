@@ -1,4 +1,4 @@
-.wrapper {
+.select-wrapper {
   position: relative;
 }
 
@@ -27,12 +27,12 @@
   cursor: not-allowed;
 }
 
-.invalid,
-.invalid:focus {
+.select-invalid,
+.select-invalid:focus {
   border-color: var(--color-danger);
 }
 
-.icon {
+.select-icon {
   position: absolute;
   top: 50%;
   right: 14px;

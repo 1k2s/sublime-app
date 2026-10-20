@@ -41,12 +41,12 @@ export function ConsultationPage() {
   }
 
   return (
-    <div className={styles.page}>
+    <div className={styles["page-wrapper"]}>
       <PageHeader title="Lançamentos" description="Registre a chegada dos pacientes atendidos." />
 
-      <div className={styles.grid}>
+      <div className={styles["page-grid"]}>
         <ConsultationForm
-          className={styles.block}
+          className={styles["page-block"]}
           patient={cart.patient}
           technique={cart.technique}
           arrivalTime={cart.arrivalTime}
@@ -60,7 +60,7 @@ export function ConsultationPage() {
         />
 
         <ConsultationCart
-          className={styles.block}
+          className={styles["page-block"]}
           items={cart.items}
           onRemove={cart.removeItem}
           onFinish={handleFinish}
@@ -70,7 +70,7 @@ export function ConsultationPage() {
         />
 
         <ConsultationTotal
-          className={styles.total}
+          className={styles["page-total"]}
           consultations={todayConsultations.data}
           isLoading={todayConsultations.isLoading}
         />

@@ -1,5 +1,5 @@
 /* Do tamanho dos blocos e centralizada na área de conteúdo: o título acompanha a borda esquerda deles */
-.page {
+.page-wrapper {
   display: flex;
   flex-direction: column;
   gap: 24px;
@@ -10,32 +10,32 @@
   /* Tamanho dos dois blocos (formulário e carrinho). A altura já reserva o espaço de todos os
      alertas (erro de cada campo e os avisos acima dos botões), então nada se mexe quando aparecem.
      No carrinho, define quantas vagas cabem antes de rolar: com 620px, 6 vagas de 60px
-     (CART_SLOTS e .slot no ConsultationCart).
+     (CART_SLOTS e .cart-slot no ConsultationCart).
      Com 460px, os dois ficam lado a lado a partir de 1260px de tela (sidebar de 240px) */
   --block-width: 460px;
   --block-height: 620px;
 }
 
 /* Formulário | carrinho, com a barra de total embaixo dos dois */
-.grid {
+.page-grid {
   display: grid;
   grid-template-columns: repeat(2, var(--block-width));
   gap: 24px;
 }
 
-.block {
+.page-block {
   display: flex;
   flex-direction: column;
   height: var(--block-height);
 }
 
-.total {
+.page-total {
   grid-column: 1 / -1;
 }
 
 /* Sem espaço para os dois lado a lado: um embaixo do outro */
 @media (max-width: 1259px) {
-  .grid {
+  .page-grid {
     grid-template-columns: minmax(0, var(--block-width));
   }
 }

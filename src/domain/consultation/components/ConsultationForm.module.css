@@ -1,12 +1,12 @@
 /* Ocupa a altura do bloco para o botão ficar no fundo, alinhado ao "Finalizar" do carrinho */
-.form {
+.form-body {
   display: flex;
   flex: 1;
   flex-direction: column;
   gap: 16px;
 }
 
-.selected {
+.form-selected {
   display: flex;
   align-items: center;
   justify-content: space-between;
@@ -17,28 +17,28 @@
   background: var(--color-primary-soft);
 }
 
-.patient {
+.form-selected-info {
   display: flex;
   flex-direction: column;
   gap: 2px;
   min-width: 0;
 }
 
-.name {
+.form-selected-name {
   font-weight: 600;
 }
 
-.cpf {
+.form-selected-cpf {
   font-size: 13px;
   color: var(--color-muted);
 }
 
 /* Altura de um alerta de uma linha */
-.alertSlot {
+.form-alert-slot {
   min-height: 44px;
 }
 
-.error {
+.form-alert {
   margin: 0;
   padding: 12px 16px;
   border-radius: var(--radius);
@@ -49,20 +49,20 @@
 }
 
 /* Fica logo acima do botão, no espaço que sobra no bloco */
-.progress {
+.form-progress {
   display: flex;
   flex-direction: column;
   gap: 8px;
   margin-top: auto;
 }
 
-.caption {
+.form-progress-caption {
   margin: 0;
   font-size: 12px;
   color: var(--color-muted);
 }
 
-.ready {
+.form-progress-ready {
   color: var(--color-primary);
   font-weight: 600;
 }

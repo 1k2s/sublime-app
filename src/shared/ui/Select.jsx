@@ -3,14 +3,14 @@ import { ChevronDown } from "lucide-react";
 import styles from "./Select.module.css";
 
 export function Select({ invalid = false, className, children, ...props }) {
-  const classes = [styles.select, invalid && styles.invalid, className].filter(Boolean).join(" ");
+  const classes = [styles.select, invalid && styles["select-invalid"], className].filter(Boolean).join(" ");
 
   return (
-    <div className={styles.wrapper}>
+    <div className={styles["select-wrapper"]}>
       <select className={classes} aria-invalid={invalid || undefined} {...props}>
         {children}
       </select>
-      <ChevronDown className={styles.icon} size={18} aria-hidden />
+      <ChevronDown className={styles["select-icon"]} size={18} aria-hidden />
     </div>
   );
 }

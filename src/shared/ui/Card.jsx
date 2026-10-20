@@ -6,7 +6,7 @@ export function Card({ title, className, children }) {
 
   return (
     <section className={classes}>
-      {title && <h2 className={styles.title}>{title}</h2>}
+      {title && <h2 className={styles["card-title"]}>{title}</h2>}
       {children}
     </section>
   );
