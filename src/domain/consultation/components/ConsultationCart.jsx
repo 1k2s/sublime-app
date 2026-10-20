@@ -8,7 +8,7 @@ import { formatDateTime } from "@/shared/utils/date";
 import { formatCurrency } from "@/shared/utils/money";
 import styles from "./ConsultationCart.module.css";
 
-const CART_SLOTS = 4;
+const CART_SLOTS = 6;
 
 export function ConsultationCart({
   className,
@@ -24,7 +24,6 @@ export function ConsultationCart({
   const emptySlots = Math.max(CART_SLOTS - items.length, 0);
   const justFinished = items.length === 0 && finishedCount > 0;
 
-  // Item novo entra no fim da lista: rola até ele para ficar à vista
   useEffect(() => {
     if (items.length > previousCount.current) {
       listRef.current?.scrollTo({ top: listRef.current.scrollHeight, behavior: "smooth" });
@@ -77,11 +76,13 @@ export function ConsultationCart({
       </ul>
 
       <div className={styles.footer}>
-        {finishError && (
-          <p className={styles.error} role="alert">
-            {finishError.message}
-          </p>
-        )}
+        <div className={styles.alertSlot}>
+          {finishError && (
+            <p className={styles.error} role="alert">
+              {finishError.message}
+            </p>
+          )}
+        </div>
 
         <Button className={styles.finish} onClick={onFinish} loading={isFinishing} disabled={items.length === 0}>
           Finalizar lançamentos
