@@ -125,6 +125,18 @@ public class ContractEntity {
                 .findFirst();
     }
 
+    // Ids desta versão e de todas as anteriores (o acordo inteiro até aqui), da mais
+    // nova para a mais antiga. O saldo de sessões soma os atendimentos da cadeia toda,
+    // porque cada aditivo é uma versão nova. Usa os getters, não os campos: a versão
+    // anterior é LAZY e pode vir como proxy do Hibernate, cujos campos ficam vazios.
+    public List<Long> getVersionChainIds() {
+        List<Long> ids = new ArrayList<>();
+        for (ContractEntity version = this; version != null; version = version.getPreviousContract()) {
+            ids.add(version.getId());
+        }
+        return ids;
+    }
+
     // Vigência em semanas (arredondada para cima) — usada nas opções do plano do Grupo.
     // long: é o tipo que o ChronoUnit devolve; convertido para int, o tipo das semanas
     // no resto do código.

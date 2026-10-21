@@ -63,7 +63,7 @@ public class ContractController {
             @ApiResponse(responseCode = "201", description = "Contrato criado com sucesso", content = @Content(schema = @Schema(implementation = ContractResponseDTO.class))),
             @ApiResponse(responseCode = "400", description = "Requisição inválida — formato dos itens, preço não vigente ou de outro plano, técnica fora do grupo, frequência acima do prazo máximo, plano do Grupo fora das opções, cadastros inativos ou plano avulso", content = @Content),
             @ApiResponse(responseCode = "404", description = "Paciente, plano, técnica ou preço não encontrado", content = @Content),
-            @ApiResponse(responseCode = "409", description = "Paciente já possui um contrato vigente", content = @Content)
+            @ApiResponse(responseCode = "409", description = "Paciente já possui um contrato vigente, ou o beneficiário já está em outro contrato vigente", content = @Content)
     })
     @PostMapping
     public ResponseEntity<ContractResponseDTO> create(@RequestBody @Valid ContractRequestDTO requestDTO) {
@@ -154,7 +154,7 @@ public class ContractController {
             @ApiResponse(responseCode = "201", description = "Nova versão criada; a versão anterior foi inativada", content = @Content(schema = @Schema(implementation = ContractResponseDTO.class))),
             @ApiResponse(responseCode = "400", description = "Requisição inválida — mesmas regras da criação, fim pedido não posterior ao atual, ou item por duração em contrato de mensalidade", content = @Content),
             @ApiResponse(responseCode = "404", description = "Contrato, técnica, beneficiário ou preço não encontrado", content = @Content),
-            @ApiResponse(responseCode = "409", description = "Contrato inativo (já substituído ou encerrado) ou alterado simultaneamente", content = @Content)
+            @ApiResponse(responseCode = "409", description = "Contrato inativo (já substituído ou encerrado), alterado simultaneamente, ou beneficiário novo que já está em outro contrato vigente", content = @Content)
     })
     @PostMapping("/{id}/amendments")
     public ResponseEntity<ContractResponseDTO> amend(

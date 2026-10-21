@@ -1,6 +1,7 @@
 package br.com.senai.sublime_app.pricing.domain;
 
 import br.com.senai.sublime_app.pricing.enums.PlanType;
+import br.com.senai.sublime_app.pricing.enums.PricingModel;
 import br.com.senai.sublime_app.shared.exception.BusinessRuleException;
 import jakarta.persistence.Column;
 import jakarta.persistence.Entity;
@@ -76,6 +77,25 @@ public class PlanEntity {
     public void defineEquivalent(PlanEntity equivalent) {
         validateEquivalent(equivalent);
         this.equivalentPlan = equivalent;
+    }
+
+    // De-para: o plano a usar num grupo com este modelo de preço. O próprio, se o tipo
+    // dele é precificado assim (os grupos por duração compartilham os planos:
+    // Evolução → Evolução); senão, o equivalente na outra família (Evolução no Grupo →
+    // Trimestral; Trimestral num grupo por duração → Evolução).
+    public PlanEntity planFor(PricingModel pricingModel) {
+        if (type.isPricedBy(pricingModel)) {
+            return this;
+        }
+        requireEquivalent();
+        return equivalentPlan;
+    }
+
+    // Sem equivalente cadastrado não há como resolver o de-para (nunca se "chuta" um plano)
+    private void requireEquivalent() {
+        if (equivalentPlan == null) {
+            throw new BusinessRuleException("O plano " + name + " não tem plano equivalente definido (de-para).");
+        }
     }
 
     private static void validateName(String name) {

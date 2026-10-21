@@ -14,6 +14,9 @@ public interface PlanRepository extends JpaRepository<PlanEntity, Long> {
     // este método só permite devolver uma mensagem clara em vez de um erro do banco.
     boolean existsByName(String name);
 
+    // Só pode existir um plano avulso ativo: é o preço de quem é atendido sem contrato
+    boolean existsByTypeAndActiveTrue(PlanType type);
+
     // Listagem com o equivalente do de-para junto (EntityGraph): a resposta mostra o
     // nome dele — sem isso, o Hibernate faria uma consulta extra por plano (N+1).
     @Override

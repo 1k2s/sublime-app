@@ -7,6 +7,7 @@ import org.springframework.data.jpa.repository.EntityGraph;
 import org.springframework.data.jpa.repository.JpaRepository;
 
 import br.com.senai.sublime_app.pricing.domain.SessionDurationPriceEntity;
+import br.com.senai.sublime_app.pricing.enums.PlanType;
 
 public interface SessionDurationPriceRepository extends JpaRepository<SessionDurationPriceEntity, Long> {
 
@@ -19,4 +20,10 @@ public interface SessionDurationPriceRepository extends JpaRepository<SessionDur
     // existe no máximo uma: vazio = preço novo; presente = reajuste (fechar e criar outra).
     Optional<SessionDurationPriceEntity> findByPricingGroupIdAndPlanIdAndDurationMinutesAndValidToIsNull(
             Long pricingGroupId, Long planId, int durationMinutes);
+
+    // Linha vigente de um tipo de plano ativo (grupo, duração). Usado pelo atendimento
+    // sem contrato, com o tipo SINGLE_SESSION: só existe um Avulso ativo (PlanService),
+    // então há no máximo uma linha.
+    Optional<SessionDurationPriceEntity> findByPricingGroupIdAndPlanTypeAndPlanActiveTrueAndDurationMinutesAndValidToIsNull(
+            Long pricingGroupId, PlanType planType, int durationMinutes);
 }

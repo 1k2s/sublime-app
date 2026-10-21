@@ -72,6 +72,7 @@ public class ContractService {
                 dto.patientId(), LocalDate.now())) {
             throw new ConflictException("O paciente já possui um contrato vigente.");
         }
+        validateBeneficiaryAvailable(dto.beneficiaryId(), null);
 
         PatientEntity patient = patientRepository.findById(dto.patientId())
                 .orElseThrow(() -> new ResourceNotFoundException("Paciente não encontrado com id: " + dto.patientId()));
@@ -97,6 +98,7 @@ public class ContractService {
     @Transactional
     public ContractResponseDTO amend(Long id, ContractAmendmentRequestDTO dto) {
         ContractEntity current = getContractOrThrow(id);
+        validateBeneficiaryAvailable(dto.beneficiaryId(), current);
         PatientEntity beneficiary = findBeneficiary(dto.beneficiaryId());
 
         ContractEntity newVersion = current.amend(beneficiary, dto.paymentMethod(), dto.endDate(),
@@ -150,6 +152,25 @@ public class ContractService {
     public ContractTermPreviewResponseDTO groupPlanOptionsFor(Long contractId) {
         ContractEntity contract = getContractOrThrow(contractId);
         return toTermPreview(contract.getPlan(), contract.getDurationInWeeks(), contract.getEndDate());
+    }
+
+    // Um paciente é beneficiário de no máximo um contrato vigente (mesma regra do
+    // titular), então o lançamento de atendimento acha no máximo dois contratos
+    // vinculados a ele. No aditivo, o beneficiário mantido não é rechecado: o
+    // contrato vigente dele é a própria versão que está sendo alterada.
+    private void validateBeneficiaryAvailable(Long beneficiaryId, ContractEntity current) {
+        if (beneficiaryId == null || isCurrentBeneficiary(current, beneficiaryId)) {
+            return;
+        }
+        if (contractRepository.existsByBeneficiaryIdAndActiveTrueAndEndDateGreaterThanEqual(
+                beneficiaryId, LocalDate.now())) {
+            throw new ConflictException("O beneficiário já está em outro contrato vigente.");
+        }
+    }
+
+    private static boolean isCurrentBeneficiary(ContractEntity current, Long beneficiaryId) {
+        return current != null && current.getBeneficiary() != null
+                && current.getBeneficiary().getId().equals(beneficiaryId);
     }
 
     // ---------------------------------------------------------------------------

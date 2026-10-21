@@ -35,6 +35,11 @@ public enum PlanType {
         return this == MONTHLY_FEE;
     }
 
+    // Se o plano pode ter linha de preço num grupo com este modelo de preço
+    public boolean isPricedBy(PricingModel pricingModel) {
+        return pricingModel == PricingModel.DURATION_BASED ? isPricedByDuration() : isPricedByFrequency();
+    }
+
     // Avulso é só o preço de quem é atendido sem contrato: nunca entra em contrato
     public boolean isContractable() {
         return this != SINGLE_SESSION;

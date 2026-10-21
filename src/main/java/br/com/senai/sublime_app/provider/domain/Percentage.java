@@ -1,6 +1,7 @@
 package br.com.senai.sublime_app.provider.domain;
 
 import java.math.BigDecimal;
+import java.math.RoundingMode;
 
 import br.com.senai.sublime_app.shared.exception.BusinessRuleException;
 
@@ -8,8 +9,6 @@ import br.com.senai.sublime_app.shared.exception.BusinessRuleException;
 // record persistido por AttributeConverter (PercentageConverter), sem construtor vazio
 // nem campos mutáveis. Fica no provider porque a comissão é conceito do prestador; o
 // consultation (snapshot da comissão aplicada) já depende do provider.
-// Aplicar o percentual a um valor (repasse) entra com o Consultation, junto com a
-// decisão do modo de arredondamento.
 public record Percentage(BigDecimal value) {
 
     private static final int SCALE = 2;
@@ -30,6 +29,15 @@ public record Percentage(BigDecimal value) {
     // Comparação entre percentuais (ex: o de quem trouxe o paciente nunca é menor que o padrão)
     public boolean isLessThan(Percentage other) {
         return value.compareTo(other.value) < 0;
+    }
+
+    // Aplica o percentual a um valor (ex: repasse = valor da sessão × comissão),
+    // arredondado para 2 casas com HALF_UP (arredondamento comercial: o prestador
+    // confere na calculadora). Ex: 35% de 58.91 = 20.6185 → 20.62. Aqui arredondar é
+    // certo: é uma conta, não um valor digitado. Recebe BigDecimal, e não Money, para
+    // o provider não depender do pricing; quem chama embrulha o resultado no Money.
+    public BigDecimal applyTo(BigDecimal amount) {
+        return amount.multiply(value).divide(ONE_HUNDRED, SCALE, RoundingMode.HALF_UP);
     }
 
     // Mais de 2 casas é rejeitado em vez de arredondado: arredondar em silêncio

@@ -86,6 +86,14 @@ public class ProviderEntity {
         this.referralCommissionPercentage = referralCommissionPercentage;
     }
 
+    // Percentual de um atendimento pela origem do paciente: o de quem trouxe vale
+    // quando ESTE prestador é a origem; senão (paciente da clínica ou de outro
+    // prestador), o padrão. Recebe o prestador de origem, não o paciente: o provider
+    // não pode depender do patient (o patient é que depende do provider).
+    public Percentage commissionPercentageFor(ProviderEntity referringProvider) {
+        return isSameAs(referringProvider) ? referralCommissionPercentage : commissionPercentage;
+    }
+
     public void deactivate() {
         requireActive();
         this.active = false;
@@ -93,6 +101,11 @@ public class ProviderEntity {
 
     public void activate() {
         this.active = true;
+    }
+
+    // Compara ids: relação LAZY pode vir como proxy do Hibernate. Origem nula = clínica.
+    private boolean isSameAs(ProviderEntity other) {
+        return other != null && other.getId().equals(this.id);
     }
 
     // Inativar duas vezes não é uma operação válida: 409 avisa que o estado já era esse
