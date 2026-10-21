@@ -36,7 +36,8 @@ public class PriceController {
 
     @Operation(summary = "Cadastrar valor por duração", description = """
             Cria uma linha em `SessionDurationPrice` para a combinação (grupo, plano, duração).
-            O grupo precisa ser `DURATION_BASED` e o plano precisa estar ativo e ter `sessionCount`.
+            O grupo precisa ser `DURATION_BASED` e o plano precisa estar ativo e ser avulso
+            (`SINGLE_SESSION`) ou de pacote (`PACKAGE`).
             """)
     @ApiResponses({
             @ApiResponse(responseCode = "201", description = "Valor cadastrado", content = @Content(schema = @Schema(implementation = SessionPriceResponseDTO.class))),
@@ -50,7 +51,8 @@ public class PriceController {
 
     @Operation(summary = "Cadastrar valor por frequência", description = """
             Cria uma linha em `SessionFrequencyPrice` para a combinação (grupo, plano, frequência semanal).
-            O grupo precisa ser `FREQUENCY_BASED` e o plano precisa estar ativo.
+            O grupo precisa ser `FREQUENCY_BASED` e o plano precisa estar ativo e ser de
+            mensalidade (`MONTHLY_FEE`).
             """)
     @ApiResponses({
             @ApiResponse(responseCode = "201", description = "Valor cadastrado", content = @Content(schema = @Schema(implementation = SessionPriceResponseDTO.class))),

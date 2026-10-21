@@ -1,6 +1,10 @@
 package br.com.senai.sublime_app.provider.domain;
 
+import java.math.BigDecimal;
+import java.util.Objects;
+
 import br.com.senai.sublime_app.shared.exception.BusinessRuleException;
+import br.com.senai.sublime_app.shared.exception.ConflictException;
 import br.com.senai.sublime_app.user.domain.UserEntity;
 import jakarta.persistence.Column;
 import jakarta.persistence.Entity;
@@ -23,51 +27,92 @@ import lombok.NoArgsConstructor;
 @EqualsAndHashCode(onlyExplicitlyIncluded = true)
 public class ProviderEntity {
 
+    // Padrão da clínica, aplicado no cadastro quando o percentual não é informado.
+    // Prestadores já cadastrados mantêm o que foi combinado com eles (mudar o padrão
+    // não os altera). Ver domain-model.md, seção Provider.
+    public static final Percentage DEFAULT_COMMISSION_PERCENTAGE = Percentage.of(new BigDecimal("40"));
+    public static final Percentage DEFAULT_REFERRAL_COMMISSION_PERCENTAGE = Percentage.of(new BigDecimal("45"));
+
     @Id
     @GeneratedValue(strategy = GenerationType.IDENTITY)
     @EqualsAndHashCode.Include
     private Long id;
 
-   
-    @OneToOne(fetch = FetchType.LAZY, optional = false) // cardinalidade 1:1 (lazy para pegar somente o usuario do bando) optional false para não permitir nulo
+    // 1:1 (lazy para carregar o usuário só quando necessário); optional false: não permite nulo
+    @OneToOne(fetch = FetchType.LAZY, optional = false)
     @JoinColumn(name = "user_id", nullable = false, unique = true)
     private UserEntity user;
 
     @Column(length = 100, nullable = false)
     private String name;
 
-    // Convertido para DECIMAL pelo PercentageConverter (autoApply)
+    // Percentual padrão: pacientes da clínica ou trazidos por outro prestador.
+    // Convertido para DECIMAL pelo PercentageConverter (autoApply).
     @Column(name = "commission_percentage", nullable = false, precision = 5, scale = 2)
     private Percentage commissionPercentage;
+
+    // Percentual dos pacientes que ESTE prestador trouxe (titular do contrato com
+    // referringProvider = ele). Nunca menor que o padrão.
+    @Column(name = "referral_commission_percentage", nullable = false, precision = 5, scale = 2)
+    private Percentage referralCommissionPercentage;
 
     @Column(nullable = false)
     private boolean active = true;
 
-    // Construtor publico para criar um provider com os dados obrigatórios
-    public ProviderEntity(UserEntity user, String name, Percentage commissionPercentage) {
+    // Construtor publico para criar um provider. Percentual não informado recebe o
+    // padrão da clínica (exceção caso a caso — ex: estagiário — é informar o valor).
+    public ProviderEntity(UserEntity user, String name, Percentage commissionPercentage,
+            Percentage referralCommissionPercentage) {
+        Percentage commission = Objects.requireNonNullElse(commissionPercentage, DEFAULT_COMMISSION_PERCENTAGE);
+        Percentage referral = Objects.requireNonNullElse(referralCommissionPercentage, DEFAULT_REFERRAL_COMMISSION_PERCENTAGE);
         validateActiveUser(user);
         validateName(name);
-        validateCommission(commissionPercentage);
+        validateReferralNotBelowCommission(commission, referral);
         this.user = user;
         this.name = name;
-        this.commissionPercentage = commissionPercentage;
+        this.commissionPercentage = commission;
+        this.referralCommissionPercentage = referral;
         this.active = true;
     }
 
-    //update publico para atualizar os dados do provider
-    public void update(String name, Percentage commissionPercentage) {
+    // update publico: na alteração os dois percentuais são obrigatórios — o padrão só
+    // vale no cadastro (senão um campo esquecido devolveria um estagiário ao padrão)
+    public void update(String name, Percentage commissionPercentage, Percentage referralCommissionPercentage) {
         validateName(name);
-        validateCommission(commissionPercentage);
+        validateCommissionsInformed(commissionPercentage, referralCommissionPercentage);
+        validateReferralNotBelowCommission(commissionPercentage, referralCommissionPercentage);
         this.name = name;
         this.commissionPercentage = commissionPercentage;
+        this.referralCommissionPercentage = referralCommissionPercentage;
+    }
+
+    // Percentual de um atendimento pela origem do paciente: o de quem trouxe vale
+    // quando ESTE prestador é a origem; senão (paciente da clínica ou de outro
+    // prestador), o padrão. Recebe o prestador de origem, não o paciente: o provider
+    // não pode depender do patient (o patient é que depende do provider).
+    public Percentage commissionPercentageFor(ProviderEntity referringProvider) {
+        return isSameAs(referringProvider) ? referralCommissionPercentage : commissionPercentage;
     }
 
     public void deactivate() {
+        requireActive();
         this.active = false;
     }
 
     public void activate() {
         this.active = true;
+    }
+
+    // Compara ids: relação LAZY pode vir como proxy do Hibernate. Origem nula = clínica.
+    private boolean isSameAs(ProviderEntity other) {
+        return other != null && other.getId().equals(this.id);
+    }
+
+    // Inativar duas vezes não é uma operação válida: 409 avisa que o estado já era esse
+    private void requireActive() {
+        if (!active) {
+            throw new ConflictException("O prestador já está inativo.");
+        }
     }
 
     // Todo prestador se autentica por um User; o vínculo é fixo (update não o recebe).
@@ -89,11 +134,19 @@ public class ProviderEntity {
         }
     }
 
-    // A comissão entra no cálculo do repasse de cada atendimento. O intervalo 0–100 e
-    // as 2 casas são garantidos pelo próprio Percentage; aqui só a obrigatoriedade.
-    private static void validateCommission(Percentage commissionPercentage) {
-        if (commissionPercentage == null) {
-            throw new BusinessRuleException("O percentual de comissão é obrigatório.");
+    // O intervalo 0–100 e as 2 casas são garantidos pelo próprio Percentage; aqui só
+    // a obrigatoriedade (na alteração, que não aplica o padrão)
+    private static void validateCommissionsInformed(Percentage commission, Percentage referral) {
+        if (commission == null || referral == null) {
+            throw new BusinessRuleException("Os dois percentuais de comissão são obrigatórios na alteração do prestador.");
+        }
+    }
+
+    // Quem trouxe o paciente nunca recebe menos que o padrão dele
+    private static void validateReferralNotBelowCommission(Percentage commission, Percentage referral) {
+        if (referral.isLessThan(commission)) {
+            throw new BusinessRuleException(
+                    "O percentual de pacientes trazidos pelo prestador não pode ser menor que o percentual padrão.");
         }
     }
 }

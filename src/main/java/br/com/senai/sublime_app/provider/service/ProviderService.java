@@ -1,5 +1,6 @@
 package br.com.senai.sublime_app.provider.service;
 
+import java.math.BigDecimal;
 import java.util.List;
 
 import org.springframework.stereotype.Service;
@@ -43,7 +44,9 @@ public class ProviderService {
             throw new ConflictException("Já existe um prestador vinculado ao usuário de id: " + dto.userId());
         }
 
-        ProviderEntity provider = new ProviderEntity(user, dto.name(), Percentage.of(dto.commissionPercentage()));
+        // Percentual vazio vai como null: a entidade aplica o padrão da clínica
+        ProviderEntity provider = new ProviderEntity(user, dto.name(),
+                toPercentageOrNull(dto.commissionPercentage()), toPercentageOrNull(dto.referralCommissionPercentage()));
         providerRepository.save(provider);
         return ProviderResponseDTO.fromEntity(provider);
     }
@@ -74,7 +77,8 @@ public class ProviderService {
     @Transactional
     public ProviderResponseDTO update(Long id, ProviderUpdateRequestDTO dto) {
         ProviderEntity provider = getProviderOrThrow(id);
-        provider.update(dto.name(), Percentage.of(dto.commissionPercentage()));
+        provider.update(dto.name(), Percentage.of(dto.commissionPercentage()),
+                Percentage.of(dto.referralCommissionPercentage()));
         return ProviderResponseDTO.fromEntity(provider);
     }
 
@@ -92,5 +96,10 @@ public class ProviderService {
     private ProviderEntity getProviderOrThrow(Long id) {
         return providerRepository.findById(id)
                 .orElseThrow(() -> new ResourceNotFoundException("Prestador não encontrado com id: " + id));
+    }
+
+    // Monta o VO só quando o valor veio (no cadastro, vazio = padrão da clínica)
+    private static Percentage toPercentageOrNull(BigDecimal value) {
+        return value != null ? Percentage.of(value) : null;
     }
 }

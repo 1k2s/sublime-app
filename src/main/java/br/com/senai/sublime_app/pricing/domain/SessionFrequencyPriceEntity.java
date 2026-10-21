@@ -82,14 +82,17 @@ public class SessionFrequencyPriceEntity {
         this.validTo = validTo;
     }
 
-    // A linha precisa estar na tabela do pricingModel do grupo. O plano não precisa
-    // de sessionCount: no Grupo o plano é mensalidade, não pacote de sessões.
+    // A linha precisa estar na tabela do pricingModel do grupo, e o plano precisa ser
+    // de mensalidade: no Grupo o plano é mensalidade, não pacote de sessões.
     private static void validatePricingGroupAndPlan(PricingGroupEntity pricingGroup, PlanEntity plan) {
         if (pricingGroup.getPricingModel() != PricingModel.FREQUENCY_BASED) {
             throw new BusinessRuleException("Preço por frequência só é permitido em grupos FREQUENCY_BASED.");
         }
         if (!plan.isActive()) {
             throw new BusinessRuleException("O plano está inativo.");
+        }
+        if (!plan.getType().isPricedByFrequency()) {
+            throw new BusinessRuleException("Preço por frequência exige um plano de mensalidade.");
         }
     }
 

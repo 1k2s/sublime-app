@@ -1,6 +1,7 @@
 package br.com.senai.sublime_app.pricing.domain;
 
 import br.com.senai.sublime_app.shared.exception.BusinessRuleException;
+import br.com.senai.sublime_app.shared.exception.ConflictException;
 import jakarta.persistence.Column;
 import jakarta.persistence.Entity;
 import jakarta.persistence.FetchType;
@@ -49,7 +50,15 @@ public class TechniqueEntity {
 
     // Soft delete: contratos e atendimentos antigos continuam referenciando a técnica
     public void deactivate() {
+        requireActive();
         this.active = false;
+    }
+
+    // Inativar duas vezes não é uma operação válida: 409 avisa que o estado já era esse
+    private void requireActive() {
+        if (!active) {
+            throw new ConflictException("A técnica já está inativa.");
+        }
     }
 
     private static void validateNameAndPricingGroup(String name, PricingGroupEntity pricingGroup) {

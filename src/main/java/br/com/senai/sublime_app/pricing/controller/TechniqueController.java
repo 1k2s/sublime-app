@@ -98,7 +98,8 @@ public class TechniqueController {
             """)
     @ApiResponses({
             @ApiResponse(responseCode = "204", description = "Técnica inativada com sucesso"),
-            @ApiResponse(responseCode = "404", description = "Técnica não encontrada", content = @Content)
+            @ApiResponse(responseCode = "404", description = "Técnica não encontrada", content = @Content),
+            @ApiResponse(responseCode = "409", description = "A técnica já está inativa", content = @Content)
     })
     @DeleteMapping("/{id}")
     public ResponseEntity<Void> deactivate(

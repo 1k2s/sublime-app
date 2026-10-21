@@ -43,6 +43,7 @@ graph BT
 
   contract --> patient
   contract --> pricing
+  patient --> provider
   provider --> user
   consultation --> patient
   consultation --> contract
@@ -65,7 +66,8 @@ infraestrutura, não uma reescrita do domínio.
 
 ## Status atual
 
-O projeto está na primeira fase, focada em consolidar o cadastro básico do
-negócio: pacientes, prestadores, contratos e catálogo de preços já têm suas
-regras de domínio definidas e em implementação.
+O projeto está na primeira fase. O backend dos cadastros (pacientes,
+prestadores, catálogo de preços), dos contratos e do lançamento de atendimentos,
+com o cálculo do repasse e do saldo de sessões, está implementado. Os próximos
+passos são a interface gráfica, os testes por ela e as migrations do banco.
 

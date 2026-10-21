@@ -1,66 +1,37 @@
 package br.com.senai.sublime_app.contract.dto;
 
 import java.time.LocalDate;
+import java.util.List;
 
 import br.com.senai.sublime_app.contract.enums.PaymentMethod;
-import jakarta.validation.constraints.AssertTrue;
-import jakarta.validation.constraints.Min;
+import jakarta.validation.Valid;
+import jakarta.validation.constraints.NotEmpty;
 import jakarta.validation.constraints.NotNull;
 
+// Criação de contrato. Não tem endDate: o fim é calculado pelo sistema a partir do
+// plano e da frequência dos itens (ver domain-model.md, "Vigência e frequência").
 public record ContractRequestDTO(
 
-        @NotNull(message = "O paciente titular é obrigatório.") 
+        @NotNull(message = "O paciente titular é obrigatório.")
         Long patientId,
 
         // nullable: Pilates em Dupla / plano Familiar
         Long beneficiaryId,
 
-        @NotNull(message = "A técnica âncora é obrigatória.") 
-        Long techniqueId,
+        // Plano único do contrato (nunca o avulso). Os itens por duração usam linhas dele.
+        @NotNull(message = "O plano do contrato é obrigatório.")
+        Long planId,
 
-        // Obrigatória para preço por duração; proibida para preço por frequência
-        // (vem da linha de preço). Ver isWeeklyFrequencyConsistent().
-        @Min(value = 1, message = "A frequência semanal deve ser de no mínimo 1 sessão.")
-        Integer weeklyFrequency,
-
-        @NotNull(message = "A data de início é obrigatória.") 
+        @NotNull(message = "A data de início é obrigatória.")
         LocalDate startDate,
 
-        @NotNull(message = "A data de término é obrigatória.") 
-        LocalDate endDate,
-
-        @NotNull(message = "O método de pagamento é obrigatório.") 
+        @NotNull(message = "O método de pagamento é obrigatório.")
         PaymentMethod paymentMethod,
 
-        // exclusive arc: exatamente um dos dois deve ser preenchido. A linha de preço
-        // escolhida é a fonte da verdade: o plano (e, no preço por frequência, a
-        // frequência semanal) do contrato são copiados dela.
-        Long sessionDurationPriceId,
-
-        Long sessionFrequencyPriceId
+        // Um item por grupo de preço contratado
+        @NotEmpty(message = "O contrato precisa ter pelo menos um item.")
+        @Valid
+        List<ContractItemRequestDTO> items
 
 ) {
-    // As validações abaixo tratam do FORMATO do request (combinação de campos).
-    // As regras de negócio do contrato ficam na ContractEntity. @AssertTrue faz o
-    // Bean Validation chamar cada método no @Valid do controller (400 se false).
-
-    // Exclusive arc: exatamente um dos dois ids de preço deve ser preenchido.
-    @AssertTrue(message = "Informe exatamente um preço: sessionDurationPriceId ou sessionFrequencyPriceId.")
-    public boolean isValidExclusiveArc() {
-        return (sessionDurationPriceId != null && sessionFrequencyPriceId == null)
-                || (sessionDurationPriceId == null && sessionFrequencyPriceId != null);
-    }
-
-    // weeklyFrequency só acompanha preço por duração. No preço por frequência ela
-    // vem da linha de preço — se viesse no request, poderia divergir e seria ignorada.
-    @AssertTrue(message = "A frequência semanal é obrigatória para preço por duração e não deve ser enviada para preço por frequência.")
-    public boolean isWeeklyFrequencyConsistent() {
-        if (sessionDurationPriceId != null && sessionFrequencyPriceId == null) {
-            return weeklyFrequency != null;
-        }
-        if (sessionFrequencyPriceId != null && sessionDurationPriceId == null) {
-            return weeklyFrequency == null;
-        }
-        return true; // arc inválido: a mensagem do isValidExclusiveArc já cobre o erro
-    }
 }

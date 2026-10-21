@@ -91,7 +91,8 @@ public class UserController {
             """)
     @ApiResponses({
             @ApiResponse(responseCode = "204", description = "Usuário inativado com sucesso"),
-            @ApiResponse(responseCode = "404", description = "Usuário não encontrado", content = @Content)
+            @ApiResponse(responseCode = "404", description = "Usuário não encontrado", content = @Content),
+            @ApiResponse(responseCode = "409", description = "O usuário já está inativo", content = @Content)
     })
     @DeleteMapping("/{id}")
     public ResponseEntity<Void> deactivate(
