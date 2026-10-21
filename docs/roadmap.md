@@ -41,6 +41,12 @@ feature em andamento fica na spec dela, em [`specs/`](specs/).
 
 ## Pendências técnicas
 
+- **Reativação de paciente, prestador e técnica** (endpoint), antes ou junto da
+  interface gráfica. O lançamento de atendimento recusa registro inativo (400) e a
+  regra é "o admin reativa antes de lançar", mas não existe caminho pela API:
+  `PatientEntity.activate()` e `ProviderEntity.activate()` existem sem service nem
+  endpoint, e a `TechniqueEntity` não tem o método. *Em aberto:* se reativar um
+  registro já ativo dá 409 (espelhando o `deactivate`).
 - **Migrations (Flyway):**
   - `CHECK` do exclusive arc em `contract_item` e `consultation`
     (`(session_duration_price_id IS NULL) <> (session_frequency_price_id IS NULL)`).
@@ -62,7 +68,7 @@ feature em andamento fica na spec dela, em [`specs/`](specs/).
   hash de senha, login e perfis (`ADMIN`/`PROVIDER`) com visibilidade por perfil;
   junto, o `launchedByUserId` no `Consultation` (quem lançou) e a regra de
   permissão do lançamento.
-- `PUT` de grupo, técnica e plano (renomear); `activate()` onde fizer sentido.
+- `PUT` de grupo, técnica e plano (renomear).
 - Reajuste de preço agendado (`validFrom` futuro).
 - Categorias de prestador (Padrão, Estagiário...) com o par de percentuais, se
   surgirem muitas faixas.
