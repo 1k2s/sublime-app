@@ -5,8 +5,8 @@
   min-height: 72px;
   padding: 0 28px;
   border-radius: var(--radius);
-  background: var(--color-primary);
-  color: var(--color-surface);
+  background: #5f7a58;
+  color: #ffffff;
 }
 
 .total-label {

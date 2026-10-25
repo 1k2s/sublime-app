@@ -8,7 +8,8 @@ Consolida tudo o que foi definido e feito na conversa: decisões, dependências,
 |---|---|
 | Linguagem | JavaScript (sem TypeScript) |
 | Build | Vite, template `react` |
-| Estilo | CSS Modules + variáveis CSS em `index.css` (sem Tailwind) |
+| Estilo | CSS Modules (sem Tailwind) |
+| Cores | Sempre em hexadecimal direto no CSS (`#5f7a58`), sem `var(--color-*)`, `rgb()` ou `color-mix()`. A paleta de referência fica em `index.css` (seção 6.6) |
 | Repositório | Separado do backend: `sublime-fisioterapia-frontend` |
 | Pasta dos módulos | `domain/` (não `features/`) |
 | Idioma | Código (classes, atributos, funções, pastas) em inglês; comentários e documentação em português |
@@ -342,6 +343,8 @@ O `mkdir -p` ignora pastas que já existem. O Git não versiona pastas vazias; p
  
 ### 6.6 Estilo global
  
+Os componentes escrevem as cores em hexadecimal direto (por exemplo, `color: #6b7280`), sem usar as variáveis. As variáveis abaixo são a paleta de referência: copie o hex daqui. Ainda usam `var(--color-*)` os componentes de `shared/ui/`, `app/layout/`, `PatientSearchInput` e `TechniqueSearchInput`; o `domain/consultation` já está em hexadecimal.
+
 ```css
 /* src/index.css */
 :root {
@@ -495,4 +498,5 @@ Projeto `sublime-app-front` criado e rodando no Vite. Atualizado em 2026-10-12. 
 - [ ] Criar a `Topbar`, se o design tiver barra superior.
 - [ ] Trocar o mock de `authApi.js` pelo endpoint real quando o backend definir o contrato de login, e ajustar os valores dos papéis em `roles.js`.
 - [ ] Escrever o README do repositório do front.
+- [ ] Passar para hexadecimal as cores de `shared/ui/`, `app/layout/`, `PatientSearchInput` e `TechniqueSearchInput` (`domain/consultation` já está).
 - [ ] Alinhar com o time o contrato OpenAPI e a convenção de branches.

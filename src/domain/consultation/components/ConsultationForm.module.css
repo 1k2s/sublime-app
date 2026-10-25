@@ -12,9 +12,9 @@
   justify-content: space-between;
   gap: 12px;
   padding: 12px 14px;
-  border: 1px solid var(--color-primary);
+  border: 1px solid #5f7a58;
   border-radius: var(--radius);
-  background: var(--color-primary-soft);
+  background: #dfe8dc;
 }
 
 .form-selected-info {
@@ -30,7 +30,7 @@
 
 .form-selected-cpf {
   font-size: 13px;
-  color: var(--color-muted);
+  color: #6b7280;
 }
 
 /* Altura de um alerta de uma linha */
@@ -43,7 +43,7 @@
   padding: 12px 16px;
   border-radius: var(--radius);
   background: #fef3f2;
-  color: var(--color-danger);
+  color: #b42318;
   font-size: 14px;
   line-height: 20px;
 }
@@ -59,10 +59,10 @@
 .form-progress-caption {
   margin: 0;
   font-size: 12px;
-  color: var(--color-muted);
+  color: #6b7280;
 }
 
 .form-progress-ready {
-  color: var(--color-primary);
+  color: #5f7a58;
   font-weight: 600;
 }
