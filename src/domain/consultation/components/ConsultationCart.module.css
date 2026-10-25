@@ -1,3 +1,8 @@
+.cart-card {
+  display: flex;
+  flex-direction: column;
+}
+
 .cart-list {
   display: flex;
   flex: 1;

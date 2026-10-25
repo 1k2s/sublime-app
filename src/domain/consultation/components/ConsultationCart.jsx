@@ -49,7 +49,7 @@ export function ConsultationCart({
   }
 
   return (
-    <Card title={`Carrinho (${items.length})`} className={className}>
+    <Card title={`Carrinho (${items.length})`} className={[styles["cart-card"], className].filter(Boolean).join(" ")}>
       <ul ref={listRef} className={styles["cart-list"]}>
         {items.map((item) => (
           <li key={item.key} className={`${styles["cart-slot"]} ${styles["cart-item"]}`}>

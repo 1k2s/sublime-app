@@ -137,6 +137,14 @@ Extras em `consultation`: `hooks/`, `components/wizard/` e `consultationStatus.j
 - A camada `app/` pode importar de qualquer domínio.
 - Usado em um domínio só: `domain/<modulo>/components/`. Genérico e sem regra de negócio: `shared/ui/`.
  
+### Tamanho e layout dos componentes
+
+- Cada componente define o tamanho e o layout dos próprios filhos (altura, padding, `display`, `flex`, espaçamento interno).
+- O pai pode, no máximo, definir o tamanho e a posição dos filhos diretos (largura, altura, coluna do grid, `gap` entre eles), passando um `className`.
+- Nenhum nível define tamanho ou layout de um neto. Para mudar uma peça, mexe-se só no componente que a renderiza.
+- Sem seletor de tag ou descendente para alcançar outro componente (`.form button`): passe um `className` para ele.
+- Exemplo: a `ConsultationPage` dá a altura dos cards (`.page-block`), e o `ConsultationForm` torna o próprio `Card` flex (`.form-card`) e define que o `.form-selected` tem 44px.
+
 ### Onde guardar cada tipo de estado
  
 | Tipo de dado | Exemplo | Onde fica |

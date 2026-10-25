@@ -53,7 +53,7 @@ export function ConsultationForm({
   }
 
   return (
-    <Card title="Adicionar lançamento" className={className}>
+    <Card title="Adicionar lançamento" className={[styles["form-card"], className].filter(Boolean).join(" ")}>
       <form className={styles["form-body"]} onSubmit={handleSubmit} noValidate>
         <FormField label="Paciente" htmlFor="consultation-patient" error={errors.patientId} reserveErrorSpace>
           {patient ? (
@@ -62,7 +62,7 @@ export function ConsultationForm({
                 <span className={styles["form-selected-name"]}>{patient.name}</span>
                 <span className={styles["form-selected-cpf"]}>{maskCpf(patient.cpf)}</span>
               </div>
-              <Button variant="secondary" onClick={() => onSelectPatient(null)}>
+              <Button variant="secondary" className={styles["form-selected-button"]} onClick={() => onSelectPatient(null)}>
                 Trocar
               </Button>
             </div>
@@ -83,7 +83,7 @@ export function ConsultationForm({
               <div className={styles["form-selected-info"]}>
                 <span className={styles["form-selected-name"]}>{technique.name}</span>
               </div>
-              <Button variant="secondary" onClick={() => onSelectTechnique(null)}>
+              <Button variant="secondary" className={styles["form-selected-button"]} onClick={() => onSelectTechnique(null)}>
                 Trocar
               </Button>
             </div>
