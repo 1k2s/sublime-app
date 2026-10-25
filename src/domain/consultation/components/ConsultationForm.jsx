@@ -6,8 +6,8 @@ import { Button } from "@/shared/ui/Button";
 import { Card } from "@/shared/ui/Card";
 import { FormField } from "@/shared/ui/FormField";
 import { Input } from "@/shared/ui/Input";
-import { ProgressSteps } from "@/shared/ui/ProgressSteps";
 import { maskCpf } from "@/shared/utils/masks";
+import { ConsultationAgenda } from "./ConsultationAgenda";
 import styles from "./ConsultationForm.module.css";
 
 export function ConsultationForm({
@@ -24,16 +24,6 @@ export function ConsultationForm({
 }) {
   const techniqueRef = useRef(null);
   const arrivalRef = useRef(null);
-
-  // Os campos são preenchidos em ordem: conta até o primeiro que falta. O horário já vem com a hora
-  // atual, então escolhida a técnica o item fica pronto para entrar no carrinho
-  const steps = [
-    { label: "Paciente", done: Boolean(patient) },
-    { label: "Técnica", done: Boolean(technique) },
-    { label: "Horário de chegada", done: Boolean(arrivalTime) },
-  ];
-  const firstPending = steps.findIndex((step) => !step.done);
-  const completed = firstPending === -1 ? steps.length : firstPending;
 
   function handleSelectPatient(selectedPatient) {
     onSelectPatient(selectedPatient);
@@ -112,12 +102,11 @@ export function ConsultationForm({
           />
         </FormField>
 
-        <ProgressSteps
+        <ConsultationAgenda
           className={styles["form-progress"]}
-          label="Progresso do lançamento"
-          steps={steps.map((step) => step.label)}
-          value={completed}
-          showMascot
+          patient={patient}
+          technique={technique}
+          arrivalTime={arrivalTime}
         />
 
         <Button type="submit" loading={isAdding}>
