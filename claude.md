@@ -58,8 +58,9 @@ npm i axios date-fns decimal.js
 | `axios` | Cliente HTTP (token e tratamento de 401) |
 | `date-fns` | Datas (`validFrom`/`validTo`, filtros por período) |
 | `decimal.js` | Cálculo preciso com valores monetários |
+| `sweetalert2` | Alertas de erro da API (via `shared/utils/alert.js`) |
  
-Total: 10 dependências de runtime. O template do Vite já traz `react`, `react-dom`, `vite`, `@vitejs/plugin-react` e ESLint.
+Total: 11 dependências de runtime. O template do Vite já traz `react`, `react-dom`, `vite`, `@vitejs/plugin-react` e ESLint.
  
 Pontos de atenção:
 - O `react-pro-sidebar` 1.1.0 está em uso com React 19 e o build passa. A manutenção dela é irregular: conferir a compatibilidade de novo antes de subir a versão do React.
@@ -88,7 +89,8 @@ src/
 │   ├── utils/
 │   │   ├── money.js               # formatCurrency (Decimal + Intl)
 │   │   ├── date.js                # formatDate (date-fns)
-│   │   └── masks.js               # CPF, telefone, CEP
+│   │   ├── masks.js               # CPF, telefone, CEP
+│   │   └── alert.js               # showError (SweetAlert2)
 │   └── ui/                        # Button, Card, Input, Select, FormField,
 │                                  # Stepper, Badge, PageHeader, Table, Modal
 │                                  # (cada um com seu .module.css)
@@ -233,6 +235,7 @@ Regras:
 - Padronizar as `queryKey` por módulo (`["patients", ...]`, `["consultations", ...]`).
 - Valores monetários trafegam como string e só são formatados em `shared/utils/money.js`.
 - Com o backend atrasado, o `xxxApi.js` pode devolver dados mockados sem afetar o resto.
+- Erro da API aparece com `showError` (`shared/utils/alert.js`), chamado pela page no `onError` do `mutate`. Components não chamam o Swal nem recebem o erro por prop; erros de validação de campo continuam no `FormField`.
  
 ## 5. Tela de Lançamentos (referência do design)
  
@@ -462,7 +465,7 @@ Projeto `sublime-app-front` criado e rodando no Vite. Atualizado em 2026-10-12. 
 | `app/layout/` | `AppLayout` (sidebar + conteúdo com rolagem própria), `AppSidebar` (`react-pro-sidebar` + `NavLink`) e `navigationItems.js` prontos. Falta `Topbar`, se o design tiver barra superior |
 | Menu lateral | Filtrado pelo papel do usuário logado, pelo campo `roles` de `navigationItems.js` (que usa o `ROLES` de `domain/auth/roles.js`). O rodapé mostra o nome e o papel da sessão, e o botão de sair chama o `signOut`. Dashboard e Configurações estão desabilitados (sem tela). Logo em texto |
 | `shared/http/httpClient.js` | Pronto: token do `localStorage` (`sublime.authToken`), tratamento de 401 e `setUnauthorizedHandler`, registrado pelo `AuthProvider` com o `signOut` |
-| `shared/utils/` | `money.js`, `date.js` e `masks.js` prontos |
+| `shared/utils/` | `money.js`, `date.js`, `masks.js` e `alert.js` (`showError` com SweetAlert2) prontos |
 | `shared/ui/` | `Button`, `Input` e `FormField` prontos, com `.module.css`. `PageLoader` e `RouteError` ainda usam estilo inline. Faltam `Card`, `Select`, `Stepper`, `Badge` e `PageHeader` |
 | `domain/auth/` | Prontos: tela de login (`LoginPage`, `LoginForm`, `loginSchema.js`), `roles.js`, `authApi.js` (login mockado: `admin@sublime.com` e `prestador@sublime.com`, senha com 6+ caracteres), `useLogin`, `useAuth`, `AuthProvider` (sessão no `localStorage`) e `ProtectedRoute` (só verifica se há sessão). A `LoginPage` autentica com `useLogin` + `signIn` e volta para a rota que o usuário tentou abrir. `getHomePath` e o campo `homePath` de `roles.js` estão sem uso |
 | `domain/<modulo>/pages/` | Uma page placeholder em `patient`, `pricing`, `provider`, `contract` e `consultation`. Faltam `api/`, `components/` e `schemas/` em todos. `domain/user/` ainda não tem arquivos |
