@@ -21,7 +21,6 @@ export function ConsultationForm({
   onArrivalTimeChange,
   onAdd,
   isAdding = false,
-  addError,
 }) {
   const techniqueRef = useRef(null);
   const arrivalRef = useRef(null);
@@ -126,15 +125,6 @@ export function ConsultationForm({
               ? "Tudo pronto: Enter adiciona ao carrinho"
               : `Próximo: ${steps[completed].label} · Enter avança`}
           </p>
-        </div>
-
-        {/* Espaço do alerta fica reservado mesmo vazio, para o botão não sair do lugar */}
-        <div className={styles["form-alert-slot"]}>
-          {addError && (
-            <p className={styles["form-alert"]} role="alert">
-              {addError.message}
-            </p>
-          )}
         </div>
 
         <Button type="submit" loading={isAdding}>

@@ -1,6 +1,7 @@
 // Lançamento do prestador: vai adicionando pacientes ao carrinho só com o Enter e grava tudo de uma vez
 import { useState } from "react";
 import { PageHeader } from "@/shared/ui/PageHeader";
+import { showError } from "@/shared/utils/alert";
 import { toDateInputValue } from "@/shared/utils/date";
 import { useConsultations, useCreateConsultations, usePreviewConsultation } from "../api/useConsultations";
 import { ConsultationCart } from "../components/ConsultationCart";
@@ -28,7 +29,10 @@ export function ConsultationPage() {
 
     createConsultations.reset();
     const { patient, technique } = cart;
-    preview.mutate(payload, { onSuccess: (result) => cart.addItem({ patient, technique, ...result }) });
+    preview.mutate(payload, {
+      onSuccess: (result) => cart.addItem({ patient, technique, ...result }),
+      onError: (error) => showError(error.message),
+    });
   }
 
   function handleFinish() {
@@ -37,7 +41,10 @@ export function ConsultationPage() {
       techniqueId: item.technique.id,
       arrivalTime: item.arrivalTime,
     }));
-    createConsultations.mutate(payloads, { onSuccess: cart.clear });
+    createConsultations.mutate(payloads, {
+      onSuccess: cart.clear,
+      onError: (error) => showError(error.message),
+    });
   }
 
   return (
@@ -56,7 +63,6 @@ export function ConsultationPage() {
           onArrivalTimeChange={cart.setArrivalTime}
           onAdd={handleAdd}
           isAdding={preview.isPending}
-          addError={preview.error}
         />
 
         <ConsultationCart
@@ -65,7 +71,6 @@ export function ConsultationPage() {
           onRemove={cart.removeItem}
           onFinish={handleFinish}
           isFinishing={createConsultations.isPending}
-          finishError={createConsultations.error}
           finishedCount={createConsultations.data?.length}
         />
 

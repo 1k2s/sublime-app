@@ -8,7 +8,7 @@ import { formatDateTime } from "@/shared/utils/date";
 import { formatCurrency } from "@/shared/utils/money";
 import styles from "./ConsultationCart.module.css";
 
-const CART_SLOTS = 6;
+const CART_SLOTS = 7;
 
 export function ConsultationCart({
   className,
@@ -16,7 +16,6 @@ export function ConsultationCart({
   onRemove,
   onFinish,
   isFinishing = false,
-  finishError,
   finishedCount = 0,
 }) {
   const listRef = useRef(null);
@@ -76,14 +75,6 @@ export function ConsultationCart({
       </ul>
 
       <div className={styles["cart-footer"]}>
-        <div className={styles["cart-alert-slot"]}>
-          {finishError && (
-            <p className={styles["cart-alert"]} role="alert">
-              {finishError.message}
-            </p>
-          )}
-        </div>
-
         <Button className={styles["cart-finish-button"]} onClick={onFinish} loading={isFinishing} disabled={items.length === 0}>
           Finalizar lançamentos
         </Button>

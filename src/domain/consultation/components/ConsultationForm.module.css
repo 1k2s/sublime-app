@@ -47,20 +47,6 @@
   padding: 0 12px;
 }
 
-.form-alert-slot {
-  min-height: 44px;
-}
-
-.form-alert {
-  margin: 0;
-  padding: 12px 16px;
-  border-radius: var(--radius);
-  background: #fef3f2;
-  color: #b42318;
-  font-size: 14px;
-  line-height: 20px;
-}
-
 .form-progress {
   display: flex;
   flex-direction: column;

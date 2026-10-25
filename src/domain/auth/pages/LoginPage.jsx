@@ -1,4 +1,5 @@
 import { Navigate, useLocation } from "react-router-dom";
+import { showError } from "@/shared/utils/alert";
 import { useLogin } from "../api/useLogin";
 import { LoginForm } from "../components/LoginForm";
 import { useAuth } from "../context/useAuth";
@@ -6,7 +7,7 @@ import styles from "./LoginPage.module.css";
 
 export function LoginPage() {
   const { user, signIn } = useAuth();
-  const { mutate: login, isPending, error } = useLogin();
+  const { mutate: login, isPending } = useLogin();
   const location = useLocation();
 
   if (user) {
@@ -14,7 +15,10 @@ export function LoginPage() {
   }
 
   function handleSubmit(credentials) {
-    login(credentials, { onSuccess: signIn });
+    login(credentials, {
+      onSuccess: signIn,
+      onError: (error) => showError(error.message),
+    });
   }
 
   return (
@@ -26,12 +30,6 @@ export function LoginPage() {
         </div>
 
         <h1 className={styles.title}>Acesse sua conta</h1>
-
-        {error && (
-          <p className={styles.error} role="alert">
-            {error.message}
-          </p>
-        )}
 
         <LoginForm onSubmit={handleSubmit} isSubmitting={isPending} />
       </section>

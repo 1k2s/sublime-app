@@ -40,13 +40,3 @@
   font-weight: 600;
   text-align: center;
 }
-
-.error {
-  margin: 0 0 16px;
-  padding: 10px 12px;
-  border-radius: 8px;
-  background: #fdecea;
-  color: #b42318;
-  font-size: 13px;
-  text-align: center;
-}
