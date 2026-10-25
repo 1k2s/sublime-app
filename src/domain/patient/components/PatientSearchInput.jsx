@@ -15,7 +15,6 @@ export function PatientSearchInput({ id, onSelect, invalid = false, autoFocus = 
   const [search, setSearch] = useState("");
   const [highlighted, setHighlighted] = useState(0);
 
-  // Só busca quando a pessoa para de digitar
   useEffect(() => {
     const timeout = setTimeout(() => setSearch(text.trim()), DEBOUNCE_MS);
     return () => clearTimeout(timeout);
@@ -26,7 +25,6 @@ export function PatientSearchInput({ id, onSelect, invalid = false, autoFocus = 
   const showResults = enabled && patients.length > 0;
   const activeIndex = Math.min(highlighted, patients.length - 1);
 
-  // Com muitos resultados a lista rola: mantém o destacado pelas setas à vista
   useEffect(() => {
     if (showResults) document.getElementById(`${listId}-${activeIndex}`)?.scrollIntoView({ block: "nearest" });
   }, [showResults, listId, activeIndex]);

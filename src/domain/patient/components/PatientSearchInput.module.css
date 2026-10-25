@@ -19,7 +19,6 @@
   padding-left: 42px;
 }
 
-/* Abre por cima do conteúdo abaixo, sem empurrar os outros campos */
 .search-results {
   position: absolute;
   top: calc(100% + 4px);
