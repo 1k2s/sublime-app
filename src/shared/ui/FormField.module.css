@@ -12,7 +12,7 @@
 .error {
   font-size: 12px;
   line-height: 15px;
-  color: var(--color-danger);
+  color: #b42318;
 }
 
 /* Espaço de uma linha de erro, ocupado mesmo sem erro */

@@ -343,7 +343,7 @@ O `mkdir -p` ignora pastas que já existem. O Git não versiona pastas vazias; p
  
 ### 6.6 Estilo global
  
-Os componentes escrevem as cores em hexadecimal direto (por exemplo, `color: #6b7280`), sem usar as variáveis. As variáveis abaixo são a paleta de referência: copie o hex daqui. Ainda usam `var(--color-*)` os componentes de `shared/ui/`, `app/layout/`, `PatientSearchInput` e `TechniqueSearchInput`; o `domain/consultation` já está em hexadecimal.
+Os componentes escrevem as cores em hexadecimal direto (por exemplo, `color: #6b7280`), sem usar as variáveis. As variáveis abaixo são só a paleta de referência: copie o hex daqui. Nenhum arquivo usa `var(--color-*)`.
 
 ```css
 /* src/index.css */
@@ -364,8 +364,8 @@ Os componentes escrevem as cores em hexadecimal direto (por exemplo, `color: #6b
  
 body {
   margin: 0;
-  background: var(--color-bg);
-  color: var(--color-text);
+  background: #faf7f0;
+  color: #374151;
   font-family: system-ui, sans-serif;
 }
 ```
@@ -449,7 +449,7 @@ Projeto `sublime-app-front` criado e rodando no Vite. Atualizado em 2026-10-12. 
 | Dependências da seção 2 | Todas instaladas (React 19, React Router 7, Zod 4) |
 | `main.jsx` | Pronto. Monta `AppProviders` e `RouterProvider` (data router) |
 | `app/providers.jsx` | Pronto: `AppProviders` agrupa `QueryClientProvider` e `AuthProvider` |
-| `index.css` | Variáveis de 6.6 aplicadas, incluindo `--color-accent` (barra do item ativo do menu) e `--color-danger` (erros de formulário) |
+| `index.css` | Paleta de 6.6 como referência, incluindo `--color-accent` (barra do item ativo do menu) e `--color-danger` (erros de formulário). Todos os componentes usam as cores em hexadecimal direto |
 | `app/router.jsx` | Pronto com `createBrowserRouter`, rotas `lazy` e imports com `@/`: `/login`, `/patients`, `/pricing`, `/providers`, `/contracts`, `/consultations` e `*`. Um `ProtectedRoute` envolve o `AppLayout` e todas as rotas internas: sem sessão, vai para `/login`. A rota `/` redireciona para `/consultations`, independente do papel. Não há bloqueio de rota por papel |
 | `app/layout/` | `AppLayout` (sidebar + conteúdo com rolagem própria), `AppSidebar` (`react-pro-sidebar` + `NavLink`) e `navigationItems.js` prontos. Falta `Topbar`, se o design tiver barra superior |
 | Menu lateral | Filtrado pelo papel do usuário logado, pelo campo `roles` de `navigationItems.js` (que usa o `ROLES` de `domain/auth/roles.js`). O rodapé mostra o nome e o papel da sessão, e o botão de sair chama o `signOut`. Dashboard e Configurações estão desabilitados (sem tela). Logo em texto |
@@ -498,5 +498,5 @@ Projeto `sublime-app-front` criado e rodando no Vite. Atualizado em 2026-10-12. 
 - [ ] Criar a `Topbar`, se o design tiver barra superior.
 - [ ] Trocar o mock de `authApi.js` pelo endpoint real quando o backend definir o contrato de login, e ajustar os valores dos papéis em `roles.js`.
 - [ ] Escrever o README do repositório do front.
-- [ ] Passar para hexadecimal as cores de `shared/ui/`, `app/layout/`, `PatientSearchInput` e `TechniqueSearchInput` (`domain/consultation` já está).
+- [x] Passar todas as cores para hexadecimal.
 - [ ] Alinhar com o time o contrato OpenAPI e a convenção de branches.

@@ -17,7 +17,7 @@
 }
 
 .progress-bar-value-text {
-  color: var(--color-muted);
+  color: #6b7280;
 }
 
 .progress-bar-track {
@@ -29,14 +29,14 @@
 .progress-bar-segment {
   height: 8px;
   border-radius: 4px;
-  background: var(--color-border);
+  background: #e5e0d5;
   transition: background-color 0.2s;
 }
 
 .progress-bar-segment-current {
-  background: color-mix(in srgb, var(--color-primary) 50%, var(--color-surface));
+  background: #afbdac;
 }
 
 .progress-bar-segment-done {
-  background: var(--color-primary);
+  background: #5f7a58;
 }

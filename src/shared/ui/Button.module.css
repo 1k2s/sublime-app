@@ -13,14 +13,14 @@
 }
 
 .primary {
-  background: var(--color-primary);
-  color: var(--color-surface);
+  background: #5f7a58;
+  color: #ffffff;
 }
 
 .secondary {
-  border-color: var(--color-border);
-  background: var(--color-surface);
-  color: var(--color-text);
+  border-color: #e5e0d5;
+  background: #ffffff;
+  color: #374151;
 }
 
 .button:hover:not(:disabled) {
@@ -28,7 +28,7 @@
 }
 
 .button:focus-visible {
-  outline: 2px solid var(--color-accent);
+  outline: 2px solid #3f6fb5;
   outline-offset: 2px;
 }
 

@@ -8,7 +8,7 @@ import { navigationItems } from "./navigationItems";
 import styles from "./AppSidebar.module.css";
 
 const sidebarRootStyles = {
-  borderRight: "1px solid var(--color-border)",
+  borderRight: "1px solid #e5e0d5",
   [`.${sidebarClasses.container}`]: {
     display: "flex",
     flexDirection: "column",
@@ -23,12 +23,12 @@ const menuItemStyles = {
     borderLeft: "3px solid transparent",
     borderRadius: 8,
     fontSize: 14,
-    color: disabled ? "var(--color-muted)" : "var(--color-text)",
+    color: disabled ? "#6b7280" : "#374151",
     opacity: disabled ? 0.6 : 1,
-    "&:hover": { backgroundColor: "var(--color-primary-soft)" },
+    "&:hover": { backgroundColor: "#dfe8dc" },
     "&.active": {
-      backgroundColor: "var(--color-primary-soft)",
-      borderLeftColor: "var(--color-accent)",
+      backgroundColor: "#dfe8dc",
+      borderLeftColor: "#3f6fb5",
       fontWeight: 500,
     },
   }),
@@ -40,7 +40,7 @@ export function AppSidebar() {
   const visibleItems = navigationItems.filter((item) => item.roles.includes(user.role));
 
   return (
-    <Sidebar width="240px" backgroundColor="var(--color-surface)" rootStyles={sidebarRootStyles}>
+    <Sidebar width="240px" backgroundColor="#ffffff" rootStyles={sidebarRootStyles}>
       <div className={styles.brand}>
         <span className={styles.brandName}>Sublime</span>
         <span className={styles.brandTagline}>Fisioterapia Especializada</span>

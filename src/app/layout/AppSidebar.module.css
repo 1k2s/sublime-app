@@ -9,12 +9,12 @@
   font-family: Georgia, "Times New Roman", serif;
   font-size: 32px;
   line-height: 1.1;
-  color: var(--color-primary);
+  color: #5f7a58;
 }
 
 .brandTagline {
   font-size: 10px;
-  color: var(--color-muted);
+  color: #6b7280;
 }
 
 .user {
@@ -23,7 +23,7 @@
   gap: 10px;
   margin: auto 12px 0;
   padding: 16px 4px;
-  border-top: 1px solid var(--color-border);
+  border-top: 1px solid #e5e0d5;
 }
 
 .avatar {
@@ -34,8 +34,8 @@
   width: 36px;
   height: 36px;
   border-radius: 50%;
-  background: var(--color-primary);
-  color: var(--color-surface);
+  background: #5f7a58;
+  color: #ffffff;
 }
 
 .userInfo {
@@ -52,7 +52,7 @@
 
 .userRole {
   font-size: 11px;
-  color: var(--color-muted);
+  color: #6b7280;
 }
 
 .logout {
@@ -61,12 +61,12 @@
   border: none;
   border-radius: 8px;
   background: none;
-  color: var(--color-text);
+  color: #374151;
   cursor: pointer;
 }
 
 .logout:hover:not(:disabled) {
-  background: var(--color-primary-soft);
+  background: #dfe8dc;
 }
 
 .logout:disabled {
