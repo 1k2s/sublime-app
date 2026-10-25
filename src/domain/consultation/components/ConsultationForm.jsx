@@ -6,7 +6,7 @@ import { Button } from "@/shared/ui/Button";
 import { Card } from "@/shared/ui/Card";
 import { FormField } from "@/shared/ui/FormField";
 import { Input } from "@/shared/ui/Input";
-import { ProgressBar } from "@/shared/ui/ProgressBar";
+import { ProgressSteps } from "@/shared/ui/ProgressSteps";
 import { maskCpf } from "@/shared/utils/masks";
 import styles from "./ConsultationForm.module.css";
 
@@ -34,7 +34,6 @@ export function ConsultationForm({
   ];
   const firstPending = steps.findIndex((step) => !step.done);
   const completed = firstPending === -1 ? steps.length : firstPending;
-  const isReady = completed === steps.length;
 
   function handleSelectPatient(selectedPatient) {
     onSelectPatient(selectedPatient);
@@ -113,19 +112,13 @@ export function ConsultationForm({
           />
         </FormField>
 
-        <div className={styles["form-progress"]}>
-          <ProgressBar
-            value={completed}
-            max={steps.length}
-            label="Progresso do lançamento"
-            valueText={`${completed} de ${steps.length} campos`}
-          />
-          <p className={isReady ? `${styles["form-progress-caption"]} ${styles["form-progress-ready"]}` : styles["form-progress-caption"]} aria-live="polite">
-            {isReady
-              ? "Tudo pronto: Enter adiciona ao carrinho"
-              : `Próximo: ${steps[completed].label} · Enter avança`}
-          </p>
-        </div>
+        <ProgressSteps
+          className={styles["form-progress"]}
+          label="Progresso do lançamento"
+          steps={steps.map((step) => step.label)}
+          value={completed}
+          showMascot
+        />
 
         <Button type="submit" loading={isAdding}>
           Adicionar ao carrinho
