@@ -1,0 +1,36 @@
+.tabs {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+  margin-bottom: 20px;
+}
+
+.tab {
+  height: 38px;
+  padding: 0 18px;
+  border: 1px solid var(--color-border);
+  border-radius: 999px;
+  background: var(--color-surface);
+  color: var(--color-text);
+  font: inherit;
+  font-size: 14px;
+  cursor: pointer;
+}
+
+.tab:hover {
+  background: var(--color-bg);
+}
+
+.active,
+.active:hover {
+  border-color: var(--color-primary);
+  background: var(--color-primary);
+  color: var(--color-surface);
+  font-weight: 600;
+}
+
+.message {
+  padding: 32px;
+  text-align: center;
+  color: var(--color-muted);
+}
