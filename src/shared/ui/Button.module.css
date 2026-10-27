@@ -2,6 +2,7 @@
   display: inline-flex;
   align-items: center;
   justify-content: center;
+  gap: 8px;
   height: 44px;
   padding: 0 20px;
   border: 1px solid transparent;
@@ -10,6 +11,13 @@
   font-size: 14px;
   font-weight: 600;
   cursor: pointer;
+  transition: all 0.2s ease;
+}
+
+.primary {
+  background: var(--color-primary);
+  color: var(--color-surface);
+  border-color: var(--color-primary);
 }
 
 .primary {
@@ -27,6 +35,27 @@
   filter: brightness(0.93);
 }
 
+.outline {
+  background: var(--color-surface);
+  color: var(--color-text);
+  border-color: var(--color-border);
+}
+
+.outline:hover:not(:disabled) {
+  background: #f9fafb;
+  border-color: #cbd5e1;
+}
+
+.secondary {
+  background: var(--color-primary-soft);
+  color: var(--color-primary);
+  border-color: transparent;
+}
+
+.secondary:hover:not(:disabled) {
+  filter: brightness(0.95);
+}
+
 .button:focus-visible {
   outline: 2px solid #3f6fb5;
   outline-offset: 2px;
@@ -36,3 +65,4 @@
   opacity: 0.6;
   cursor: not-allowed;
 }
+
