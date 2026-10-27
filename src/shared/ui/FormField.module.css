@@ -11,5 +11,12 @@
 
 .error {
   font-size: 12px;
-  color: var(--color-danger);
+  line-height: 15px;
+  color: #b42318;
+}
+
+/* Espaço de uma linha de erro, ocupado mesmo sem erro */
+.errorSlot {
+  display: block;
+  min-height: 15px;
 }

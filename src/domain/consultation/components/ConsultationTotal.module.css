@@ -1,0 +1,37 @@
+.total-bar {
+  display: flex;
+  align-items: center;
+  gap: 48px;
+  min-height: 72px;
+  padding: 0 28px;
+  border-radius: var(--radius);
+  background: #5f7a58;
+  color: #ffffff;
+}
+
+.total-label {
+  margin: 0;
+  font-size: 16px;
+  font-weight: 700;
+}
+
+.total-count {
+  font-size: 15px;
+  font-weight: 600;
+}
+
+/* Valor encostado à direita */
+.total-value {
+  margin-left: auto;
+  font-size: 22px;
+  font-weight: 700;
+  font-variant-numeric: tabular-nums;
+}
+
+@media (max-width: 600px) {
+  .total-bar {
+    flex-wrap: wrap;
+    gap: 4px 16px;
+    padding: 16px 20px;
+  }
+}

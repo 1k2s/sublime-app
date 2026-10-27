@@ -1,25 +1,13 @@
-/**
- * ======================================================================================
- * COMPONENTE REUTILIZÁVEL: Card
- * ======================================================================================
- *
- * Container de superfície com fundo branco (`--color-surface`), borda sutil (`--color-border`)
- * e cantos arredondados (`--radius`), utilizado como invólucro para tabelas, formulários e prévias.
- */
-
+// Caixa branca com borda. O título é opcional
 import styles from "./Card.module.css";
 
-/**
- * @param {Object} props
- * @param {string} [props.className] - Classes CSS adicionais
- * @param {import("react").ReactNode} props.children - Conteúdo interno do card
- */
-export function Card({ className, children, ...props }) {
+export function Card({ title, className, children }) {
   const classes = [styles.card, className].filter(Boolean).join(" ");
 
   return (
-    <div className={classes} {...props}>
+    <section className={classes}>
+      {title && <h2 className={styles["card-title"]}>{title}</h2>}
       {children}
-    </div>
+    </section>
   );
 }

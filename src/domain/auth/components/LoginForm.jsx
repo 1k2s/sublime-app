@@ -40,7 +40,7 @@ export function LoginForm({ onSubmit, isSubmitting = false }) {
         />
       </FormField>
 
-      <Button type="submit" loading={isSubmitting}>
+      <Button type="submit" className={styles["form-submit"]} loading={isSubmitting}>
         Entrar
       </Button>
     </form>

@@ -8,7 +8,8 @@ Consolida tudo o que foi definido e feito na conversa: decisões, dependências,
 |---|---|
 | Linguagem | JavaScript (sem TypeScript) |
 | Build | Vite, template `react` |
-| Estilo | CSS Modules + variáveis CSS em `index.css` (sem Tailwind) |
+| Estilo | CSS Modules (sem Tailwind) |
+| Cores | Sempre em hexadecimal direto no CSS (`#5f7a58`), sem `var(--color-*)`, `rgb()` ou `color-mix()`. A paleta de referência fica em `index.css` (seção 6.6) |
 | Repositório | Separado do backend: `sublime-fisioterapia-frontend` |
 | Pasta dos módulos | `domain/` (não `features/`) |
 | Idioma | Código (classes, atributos, funções, pastas) em inglês; comentários e documentação em português |
@@ -57,8 +58,9 @@ npm i axios date-fns decimal.js
 | `axios` | Cliente HTTP (token e tratamento de 401) |
 | `date-fns` | Datas (`validFrom`/`validTo`, filtros por período) |
 | `decimal.js` | Cálculo preciso com valores monetários |
+| `sweetalert2` | Alertas de erro da API (via `shared/utils/alert.js`) |
  
-Total: 10 dependências de runtime. O template do Vite já traz `react`, `react-dom`, `vite`, `@vitejs/plugin-react` e ESLint.
+Total: 11 dependências de runtime. O template do Vite já traz `react`, `react-dom`, `vite`, `@vitejs/plugin-react` e ESLint.
  
 Pontos de atenção:
 - O `react-pro-sidebar` 1.1.0 está em uso com React 19 e o build passa. A manutenção dela é irregular: conferir a compatibilidade de novo antes de subir a versão do React.
@@ -87,7 +89,8 @@ src/
 │   ├── utils/
 │   │   ├── money.js               # formatCurrency (Decimal + Intl)
 │   │   ├── date.js                # formatDate (date-fns)
-│   │   └── masks.js               # CPF, telefone, CEP
+│   │   ├── masks.js               # CPF, telefone, CEP
+│   │   └── alert.js               # showError (SweetAlert2)
 │   └── ui/                        # Button, Card, Input, Select, FormField,
 │                                  # Stepper, Badge, PageHeader, Table, Modal
 │                                  # (cada um com seu .module.css)
@@ -136,6 +139,14 @@ Extras em `consultation`: `hooks/`, `components/wizard/` e `consultationStatus.j
 - A camada `app/` pode importar de qualquer domínio.
 - Usado em um domínio só: `domain/<modulo>/components/`. Genérico e sem regra de negócio: `shared/ui/`.
  
+### Tamanho e layout dos componentes
+
+- Cada componente define o tamanho e o layout dos próprios filhos (altura, padding, `display`, `flex`, espaçamento interno).
+- O pai pode, no máximo, definir o tamanho e a posição dos filhos diretos (largura, altura, coluna do grid, `gap` entre eles), passando um `className`.
+- Nenhum nível define tamanho ou layout de um neto. Para mudar uma peça, mexe-se só no componente que a renderiza.
+- Sem seletor de tag ou descendente para alcançar outro componente (`.form button`): passe um `className` para ele.
+- Exemplo: a `ConsultationPage` dá a altura dos cards (`.page-block`), e o `ConsultationForm` torna o próprio `Card` flex (`.form-card`) e define que o `.form-selected` tem 44px.
+
 ### Onde guardar cada tipo de estado
  
 | Tipo de dado | Exemplo | Onde fica |
@@ -224,6 +235,7 @@ Regras:
 - Padronizar as `queryKey` por módulo (`["patients", ...]`, `["consultations", ...]`).
 - Valores monetários trafegam como string e só são formatados em `shared/utils/money.js`.
 - Com o backend atrasado, o `xxxApi.js` pode devolver dados mockados sem afetar o resto.
+- Erro da API aparece com `showError` (`shared/utils/alert.js`), chamado pela page no `onError` do `mutate`. Components não chamam o Swal nem recebem o erro por prop; erros de validação de campo continuam no `FormField`.
  
 ## 5. Tela de Lançamentos (referência do design)
  
@@ -342,6 +354,8 @@ O `mkdir -p` ignora pastas que já existem. O Git não versiona pastas vazias; p
  
 ### 6.6 Estilo global
  
+Os componentes escrevem as cores em hexadecimal direto (por exemplo, `color: #6b7280`), sem usar as variáveis. As variáveis abaixo são só a paleta de referência: copie o hex daqui. Nenhum arquivo usa `var(--color-*)`.
+
 ```css
 /* src/index.css */
 :root {
@@ -361,8 +375,8 @@ O `mkdir -p` ignora pastas que já existem. O Git não versiona pastas vazias; p
  
 body {
   margin: 0;
-  background: var(--color-bg);
-  color: var(--color-text);
+  background: #faf7f0;
+  color: #374151;
   font-family: system-ui, sans-serif;
 }
 ```
@@ -446,13 +460,13 @@ Projeto `sublime-app-front` criado e rodando no Vite. Atualizado em 2026-10-12. 
 | Dependências da seção 2 | Todas instaladas (React 19, React Router 7, Zod 4) |
 | `main.jsx` | Pronto. Monta `AppProviders` e `RouterProvider` (data router) |
 | `app/providers.jsx` | Pronto: `AppProviders` agrupa `QueryClientProvider` e `AuthProvider` |
-| `index.css` | Variáveis de 6.6 aplicadas, incluindo `--color-accent` (barra do item ativo do menu) e `--color-danger` (erros de formulário) |
+| `index.css` | Paleta de 6.6 como referência, incluindo `--color-accent` (barra do item ativo do menu) e `--color-danger` (erros de formulário). Todos os componentes usam as cores em hexadecimal direto |
 | `app/router.jsx` | Pronto com `createBrowserRouter`, rotas `lazy` e imports com `@/`: `/login`, `/patients`, `/pricing`, `/providers`, `/contracts`, `/consultations` e `*`. Um `ProtectedRoute` envolve o `AppLayout` e todas as rotas internas: sem sessão, vai para `/login`. A rota `/` redireciona para `/consultations`, independente do papel. Não há bloqueio de rota por papel |
 | `app/layout/` | `AppLayout` (sidebar + conteúdo com rolagem própria), `AppSidebar` (`react-pro-sidebar` + `NavLink`) e `navigationItems.js` prontos. Falta `Topbar`, se o design tiver barra superior |
 | Menu lateral | Filtrado pelo papel do usuário logado, pelo campo `roles` de `navigationItems.js` (que usa o `ROLES` de `domain/auth/roles.js`). O rodapé mostra o nome e o papel da sessão, e o botão de sair chama o `signOut`. Dashboard e Configurações estão desabilitados (sem tela). Logo em texto |
 | `shared/http/httpClient.js` | Pronto: token do `localStorage` (`sublime.authToken`), tratamento de 401 e `setUnauthorizedHandler`, registrado pelo `AuthProvider` com o `signOut` |
-| `shared/utils/` | `money.js`, `date.js` e `masks.js` prontos |
-| `shared/ui/` | `Button`, `Input` e `FormField` prontos, com `.module.css`. `PageLoader` e `RouteError` ainda usam estilo inline. Faltam `Card`, `Select`, `Stepper`, `Badge` e `PageHeader` |
+| `shared/utils/` | `money.js`, `date.js`, `masks.js` e `alert.js` (`showError` com SweetAlert2) prontos |
+| `shared/ui/` | `Button`, `Input` e `FormField` prontos, com `.module.css`. `ClockIcon` (relógio com ponteiros no horário recebido). O progresso do lançamento é a `ConsultationAgenda` (`domain/consultation/components/`), que usa o `TechniqueIcon` (`domain/pricing/components/`, ícone animado por palavra-chave no nome da técnica). Ela ocupa só a altura livre do card, com linhas de altura fixa. `PageLoader` e `RouteError` ainda usam estilo inline. Faltam `Card`, `Select`, `Stepper`, `Badge` e `PageHeader` |
 | `domain/auth/` | Prontos: tela de login (`LoginPage`, `LoginForm`, `loginSchema.js`), `roles.js`, `authApi.js` (login mockado: `admin@sublime.com` e `prestador@sublime.com`, senha com 6+ caracteres), `useLogin`, `useAuth`, `AuthProvider` (sessão no `localStorage`) e `ProtectedRoute` (só verifica se há sessão). A `LoginPage` autentica com `useLogin` + `signIn` e volta para a rota que o usuário tentou abrir. `getHomePath` e o campo `homePath` de `roles.js` estão sem uso |
 | `domain/<modulo>/pages/` | Uma page placeholder em `patient`, `pricing`, `provider`, `contract` e `consultation`. Faltam `api/`, `components/` e `schemas/` em todos. `domain/user/` ainda não tem arquivos |
 | `src/pages/NotFoundPage.jsx` | Existe fora da estrutura da seção 3. Decidir para onde mover (por exemplo, `app/`) |
@@ -495,4 +509,5 @@ Projeto `sublime-app-front` criado e rodando no Vite. Atualizado em 2026-10-12. 
 - [ ] Criar a `Topbar`, se o design tiver barra superior.
 - [ ] Trocar o mock de `authApi.js` pelo endpoint real quando o backend definir o contrato de login, e ajustar os valores dos papéis em `roles.js`.
 - [ ] Escrever o README do repositório do front.
+- [x] Passar todas as cores para hexadecimal.
 - [ ] Alinhar com o time o contrato OpenAPI e a convenção de branches.

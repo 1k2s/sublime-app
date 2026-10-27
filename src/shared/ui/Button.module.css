@@ -20,7 +20,18 @@
   border-color: var(--color-primary);
 }
 
-.primary:hover:not(:disabled) {
+.primary {
+  background: #5f7a58;
+  color: #ffffff;
+}
+
+.secondary {
+  border-color: #e5e0d5;
+  background: #ffffff;
+  color: #374151;
+}
+
+.button:hover:not(:disabled) {
   filter: brightness(0.93);
 }
 
@@ -46,7 +57,7 @@
 }
 
 .button:focus-visible {
-  outline: 2px solid var(--color-accent);
+  outline: 2px solid #3f6fb5;
   outline-offset: 2px;
 }
 
