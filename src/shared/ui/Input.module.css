@@ -24,3 +24,48 @@
 .invalid:focus {
   border-color: var(--color-danger);
 }
+
+.inputWrapper {
+  position: relative;
+  display: flex;
+  align-items: center;
+  width: 100%;
+}
+
+.iconSlot {
+  position: absolute;
+  left: 14px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  color: var(--color-muted);
+  pointer-events: none;
+}
+
+.inputWithIcon {
+  width: 100%;
+  height: 44px;
+  padding: 0 14px 0 42px;
+  border: 1px solid var(--color-border);
+  border-radius: var(--radius);
+  background: var(--color-surface);
+  color: var(--color-text);
+  font: inherit;
+  font-size: 14px;
+}
+
+.inputWithIcon::placeholder {
+  color: var(--color-muted);
+}
+
+.inputWithIcon:focus {
+  outline: none;
+  border-color: var(--color-primary);
+  box-shadow: 0 0 0 3px var(--color-primary-soft);
+}
+
+.invalidWrapper .inputWithIcon,
+.invalidWrapper .inputWithIcon:focus {
+  border-color: var(--color-danger);
+}
+

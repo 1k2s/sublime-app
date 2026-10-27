@@ -1,0 +1,27 @@
+.badge {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  padding: 4px 10px;
+  border-radius: 9999px;
+  font-size: 12px;
+  font-weight: 500;
+  line-height: 1;
+  text-transform: capitalize;
+}
+
+.active {
+  background-color: #eaf3e9;
+  color: #3b6e3f;
+}
+
+.inactive {
+  background-color: #fef2f2;
+  color: #b42318;
+  border: 1px solid #fee2e2;
+}
+
+.default {
+  background-color: var(--color-primary-soft);
+  color: var(--color-primary);
+}
