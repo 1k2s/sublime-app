@@ -1,14 +1,11 @@
-// Cabeçalho de página: título, subtítulo e, opcionalmente, uma ação à direita
+// Título da página com descrição opcional
 import styles from "./PageHeader.module.css";
 
-export function PageHeader({ title, subtitle, action }) {
+export function PageHeader({ title, description }) {
   return (
-    <header className={styles.header}>
-      <div>
-        <h1 className={styles.title}>{title}</h1>
-        {subtitle && <p className={styles.subtitle}>{subtitle}</p>}
-      </div>
-      {action}
+    <header className={styles["page-header"]}>
+      <h1 className={styles["page-header-title"]}>{title}</h1>
+      {description && <p className={styles["page-header-description"]}>{description}</p>}
     </header>
   );
 }

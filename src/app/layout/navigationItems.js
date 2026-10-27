@@ -9,7 +9,7 @@ const PROVIDER = ROLES.PROVIDER.value;
 export const navigationItems = [
   { label: "Dashboard", path: "/dashboard", icon: House, roles: [ADMIN], disabled: true },
   { label: "Lançamentos", path: "/consultations", icon: CalendarCheck, roles: [PROVIDER] },
-  { label: "Pacientes", path: "/patients", icon: User, roles: [ADMIN] },
+  { label: "Pacientes", path: "/patients", icon: User, roles: [ADMIN, PROVIDER] },
   { label: "Contratos", path: "/contracts", icon: FileText, roles: [ADMIN] },
   { label: "Preços", path: "/pricing", icon: Tag, roles: [ADMIN] },
   { label: "Configurações", path: "/settings", icon: Settings, roles: [ADMIN, PROVIDER], disabled: true },

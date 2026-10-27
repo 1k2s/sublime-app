@@ -22,7 +22,7 @@ export function RouteError() {
     <div style={{ padding: '2rem', textAlign: 'center', fontFamily: 'system-ui, sans-serif' }}>
       <h1>{title}</h1>
       <p>{message}</p>
-      <Link to="/" style={{ display: 'inline-block', marginTop: '1rem', padding: '0.5rem 1rem', background: 'var(--color-primary, #5f7a58)', color: 'white', textDecoration: 'none', borderRadius: 'var(--radius, 12px)' }}>
+      <Link to="/" style={{ display: 'inline-block', marginTop: '1rem', padding: '0.5rem 1rem', background: '#5f7a58', color: '#ffffff', textDecoration: 'none', borderRadius: 'var(--radius, 12px)' }}>
         Voltar para o início
       </Link>
     </div>

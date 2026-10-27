@@ -18,3 +18,13 @@ export function formatDate(value, pattern = "dd/MM/yyyy") {
 export function formatDateTime(value) {
   return formatDate(value, "dd/MM/yyyy HH:mm");
 }
+
+// Date -> "2026-10-06T14:30", formato do <input type="datetime-local">
+export function toDateTimeInputValue(date) {
+  return format(date, "yyyy-MM-dd'T'HH:mm");
+}
+
+// Date -> "2026-10-06", formato de data da API e do <input type="date">
+export function toDateInputValue(date) {
+  return format(date, "yyyy-MM-dd");
+}
