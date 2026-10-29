@@ -54,10 +54,23 @@ public class TechniqueEntity {
         this.active = false;
     }
 
+    // Reativação: a técnica volta a poder entrar em contratos e atendimentos novos
+    public void activate() {
+        requireInactive();
+        this.active = true;
+    }
+
     // Inativar duas vezes não é uma operação válida: 409 avisa que o estado já era esse
     private void requireActive() {
         if (!active) {
             throw new ConflictException("A técnica já está inativa.");
+        }
+    }
+
+    // Reativar uma técnica já ativa também não: 409
+    private void requireInactive() {
+        if (active) {
+            throw new ConflictException("A técnica já está ativa.");
         }
     }
 

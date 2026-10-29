@@ -100,7 +100,9 @@ public class PatientEntity {
         this.referringProvider = newReferringProvider;
     }
 
+    // Reativação: o paciente volta a poder entrar em contratos e atendimentos novos
     public void activate() {
+        requireInactive();
         this.active = true;
     }
 
@@ -113,6 +115,13 @@ public class PatientEntity {
     private void requireActive() {
         if (!active) {
             throw new ConflictException("O paciente já está inativo.");
+        }
+    }
+
+    // Reativar um paciente já ativo não é uma operação válida: 409 avisa que o estado já era esse
+    private void requireInactive() {
+        if (active) {
+            throw new ConflictException("O paciente já está ativo.");
         }
     }
 

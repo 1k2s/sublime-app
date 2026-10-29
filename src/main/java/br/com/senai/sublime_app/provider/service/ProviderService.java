@@ -92,6 +92,13 @@ public class ProviderService {
         provider.deactivate();
     }
 
+    // Reativação (ex: prestador que volta a atender). Gravado pelo dirty checking.
+    @Transactional
+    public void activate(Long id) {
+        ProviderEntity provider = getProviderOrThrow(id);
+        provider.activate();
+    }
+
     // Centraliza a busca + erro de "não encontrado", usada por findById, update e deactivate
     private ProviderEntity getProviderOrThrow(Long id) {
         return providerRepository.findById(id)

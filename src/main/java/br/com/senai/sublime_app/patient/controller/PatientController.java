@@ -6,6 +6,7 @@ import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.DeleteMapping;
 import org.springframework.web.bind.annotation.GetMapping;
+import org.springframework.web.bind.annotation.PatchMapping;
 import org.springframework.web.bind.annotation.PathVariable;
 import org.springframework.web.bind.annotation.PostMapping;
 import org.springframework.web.bind.annotation.PutMapping;
@@ -113,6 +114,22 @@ public class PatientController {
     public ResponseEntity<Void> deactivate(
             @Parameter(description = "Identificador do paciente", required = true, example = "1") @PathVariable Long id) {
         patientService.deactivate(id);
+        return ResponseEntity.noContent().build();
+    }
+
+    @Operation(summary = "Reativar paciente", description = """
+            Desfaz a inativação: o paciente volta a poder entrar em contratos e atendimentos
+            novos (ex: paciente que volta à clínica). Os dados do cadastro não mudam.
+            """)
+    @ApiResponses({
+            @ApiResponse(responseCode = "204", description = "Paciente reativado com sucesso"),
+            @ApiResponse(responseCode = "404", description = "Paciente não encontrado", content = @Content),
+            @ApiResponse(responseCode = "409", description = "O paciente já está ativo", content = @Content)
+    })
+    @PatchMapping("/{id}/activate")
+    public ResponseEntity<Void> activate(
+            @Parameter(description = "Identificador do paciente", required = true, example = "1") @PathVariable Long id) {
+        patientService.activate(id);
         return ResponseEntity.noContent().build();
     }
 }
