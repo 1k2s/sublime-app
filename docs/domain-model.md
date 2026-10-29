@@ -9,6 +9,36 @@
 > - O que ainda não existe (saldo do paciente, `Payment`, pagamento do repasse,
 >   agendamento) está no [`roadmap.md`](roadmap.md).
 
+## Índice <!-- omit from toc -->
+
+- [Diagrama entidade-relacionamento](#diagrama-entidade-relacionamento)
+- [`Patient`](#patient)
+- [`Technique`](#technique)
+- [`Plan`](#plan)
+- [`PricingGroup`](#pricinggroup)
+- [`SessionDurationPrice` (grupos `DURATION_BASED`)](#sessiondurationprice-grupos-duration_based)
+- [`SessionFrequencyPrice` (grupos `FREQUENCY_BASED`)](#sessionfrequencyprice-grupos-frequency_based)
+- [`Contract` e `ContractItem`](#contract-e-contractitem)
+  - [`Contract` (cabeçalho)](#contract-cabeçalho)
+  - [`ContractItem` (um por grupo de preço)](#contractitem-um-por-grupo-de-preço)
+  - [Titular e beneficiário](#titular-e-beneficiário)
+  - [Vigência e frequência](#vigência-e-frequência)
+  - [Plano do item do Grupo](#plano-do-item-do-grupo)
+  - [Vigente, vencimento e prorrogação](#vigente-vencimento-e-prorrogação)
+  - [Versionamento (aditivos)](#versionamento-aditivos)
+- [`User`](#user)
+- [`Provider`](#provider)
+- [`Consultation`](#consultation)
+  - [Status: só o que é cobrado e gera repasse](#status-só-o-que-é-cobrado-e-gera-repasse)
+  - [Contrato do atendimento](#contrato-do-atendimento)
+  - [Resolução de preço](#resolução-de-preço)
+  - [Saldo de sessões](#saldo-de-sessões)
+  - [Comissão](#comissão)
+  - [Repasse](#repasse)
+  - [Ciclo de vida](#ciclo-de-vida)
+  - [Quem lança](#quem-lança)
+  - [Leituras](#leituras)
+
 ## Diagrama entidade-relacionamento
 
 ```mermaid

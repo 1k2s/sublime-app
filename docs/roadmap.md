@@ -5,6 +5,20 @@ com status: [`architecture.md`](architecture.md) e
 [`domain-model.md`](domain-model.md) descrevem só o que está implementado, e a
 feature em andamento fica na spec dela, em [`specs/`](specs/).
 
+## Índice <!-- omit from toc -->
+
+- [Fases](#fases)
+- [Estado atual (Fase 1 — atualizado em 2026-10-29)](#estado-atual-fase-1--atualizado-em-2026-10-29)
+- [Próximos passos](#próximos-passos)
+- [Pendências técnicas](#pendências-técnicas)
+- [Melhorias futuras (anotadas, sem prioridade)](#melhorias-futuras-anotadas-sem-prioridade)
+- [Não modelado ainda](#não-modelado-ainda)
+- [Frontend](#frontend)
+  - [Estado atual (a revisar no inventário; atualizado em 2026-10-29)](#estado-atual-a-revisar-no-inventário-atualizado-em-2026-10-29)
+  - [Próximos passos](#próximos-passos-1)
+  - [Pendências](#pendências)
+  - [Melhorias (sem prioridade)](#melhorias-sem-prioridade)
+
 ## Fases
 
 - **Fase 1:** cadastros, contratos e lançamento de atendimentos (repasse ao
@@ -22,7 +36,7 @@ feature em andamento fica na spec dela, em [`specs/`](specs/).
 | `pricing` | implementado: grupos, técnicas (com reativação), planos (`PlanType`, `termWeeks`, de-para), preços com reajuste historizado |
 | `contract` | implementado: cabeçalho + `ContractItem`, vigência calculada (`SessionFrequency`), aditivos, opções do plano do Grupo, endpoints de apoio, beneficiário de no máximo um contrato vigente |
 | `consultation` | implementado: lançamento com contratos vinculados e escolha livre, resolução de preço (casos 1 a 3), `pricingSource`, comissão pela origem, repasse `HALF_UP`, saldo pela cadeia de versões, soft delete sem `PUT`, endpoints de apoio (`eligible-contracts`, `session-balance`) |
-| **frontend** | **em andamento** em `frontend/` (React + Vite): login (mockado), pacientes, catálogo de preços e lançamento de atendimentos com conteúdo; prestador e contrato só com a página placeholder. Convenções e próximos passos do front em [`frontend/CLAUDE.md`](../frontend/CLAUDE.md) |
+| **frontend** | **em andamento**: ver a seção [Frontend](#frontend) |
 
 - **Monorepo** desde 2026-10-29 ([ADR 0022](adr/0022-monorepo.md)): o backend em
   `backend/` e o frontend, importado com o histórico, em `frontend/`.
@@ -38,22 +52,12 @@ feature em andamento fica na spec dela, em [`specs/`](specs/).
 
 ## Próximos passos
 
-1. **Interface gráfica** (React + Vite, em `frontend/`) e testes por ela. Começar com
-   uma spec em [`specs/`](specs/README.md).
+1. **Interface gráfica** (React + Vite, em `frontend/`) e testes por ela: ver a seção
+   [Frontend](#frontend).
 
 ## Pendências técnicas
 
-- **Build do front quebrado** (já estava assim na `dev` do repositório antigo, antes
-  da importação): `npm run build` falha com 3 erros de sintaxe, em
-  `src/shared/ui/Badge.jsx` (`Expected '}' but found EOF`),
-  `src/shared/ui/PageHeader.module.css` (linha 14) e
-  `src/shared/ui/Select.module.css` (linha 1), ambos `Unclosed block`. Parecem
-  arquivos cortados num merge. Corrigir num PR próprio.
-- **`frontend/.env` versionado:** hoje só tem `VITE_API_URL` (sem segredo). Avaliar
-  trocar por um `.env.example` versionado e o `.env` no `.gitignore`, antes que
-  entre algum valor sensível.
-- **Arquivar o repositório antigo do front** (`1k2s/sublime-app-front`) no GitHub,
-  depois do merge do monorepo.
+Backend: nenhuma no momento. Frontend: ver a seção [Frontend](#frontend).
 
 ## Melhorias futuras (anotadas, sem prioridade)
 
@@ -112,3 +116,97 @@ feature em andamento fica na spec dela, em [`specs/`](specs/).
   agenda, onde ficam também as desmarcações sem cobrança e a taxa de desmarcação.
   Se um dia for integrado ao sistema, os cancelamentos sem cobrança voltam a ter
   onde ser registrados.
+
+## Frontend
+
+Convenções na seção "Frontend" do [`architecture.md`](architecture.md).
+
+### Estado atual (a revisar no inventário; atualizado em 2026-10-29)
+
+Levantado pelos arquivos de `frontend/src/`; **o comportamento de cada tela e se as
+chamadas batem com a API real ainda não foram conferidos.**
+
+| Módulo | O que existe |
+|---|---|
+| `auth` | tela de login, sessão no `localStorage`, `ProtectedRoute` (só confere sessão), menu filtrado por papel. **Login mockado** (`authApi.js`): o backend ainda não tem autenticação |
+| `patient` | listagem com filtros e busca, modal de detalhes, cadastro em wizard (dados pessoais, endereço com ViaCEP, confirmação). `patientApi.js` com trechos mockados |
+| `pricing` | catálogo de preços (tabela, busca de técnica, modal de preço) |
+| `consultation` | tela de lançamento (formulário, agenda, carrinho, total). `consultationApi.js` com trechos mockados |
+| `provider`, `contract` | só a página placeholder |
+| `user` | nada |
+| `app/`, `shared/` | layout com menu lateral, router com rotas `lazy`, `httpClient`, utilitários (`money`, `date`, `masks`, `alert`, `viacep`) e componentes de `shared/ui/` |
+
+- **`npm run build` falha** (ver "Pendências").
+- Monorepo desde 2026-10-29: o front foi importado com o histórico da `dev` do repositório
+  antigo.
+
+### Próximos passos
+
+1. **Inventário:** o que cada tela faz e se as chamadas batem com o contrato real da API
+   (Swagger). Atualizar esta seção com o resultado.
+2. **Corrigir o build** (ver "Pendências").
+3. **Trocar os mocks pelas chamadas reais** onde o backend já tem o endpoint (`patient`,
+   `pricing`, `consultation`).
+4. **Telas que faltam**, na ordem de cadastro (cada uma depende dos dados da anterior):
+   prestadores e usuários → contratos → lançamento ligado à API real. Cada tela começa
+   com uma spec em [`specs/`](specs/README.md).
+5. **Login real**, quando o backend tiver autenticação (ver "Autenticação" nas melhorias
+   futuras): trocar o mock do `authApi.js` e alinhar os papéis.
+
+Checklist da Fase 1 no front (herdado do guia original):
+- [ ] Login funcionando e rotas protegidas.
+- [ ] CRUD de `Patient` com endereço e ViaCEP.
+- [ ] Catálogo de `pricing` consultável.
+- [ ] Cadastro de `provider` e `contract`.
+- [ ] Fluxo completo de lançamento.
+- [ ] Histórico de atendimentos com filtro por período.
+- [ ] Valores monetários sempre como string, formatados só na exibição.
+- [ ] `npm run lint` sem erros e `npm run build` gerando o bundle.
+
+### Pendências
+
+- **Build quebrado** (já estava assim na `dev` do repositório antigo, antes da
+  importação): `npm run build` falha com 3 erros de sintaxe, em
+  `src/shared/ui/Badge.jsx` (`Expected '}' but found EOF`),
+  `src/shared/ui/PageHeader.module.css` (linha 14) e `src/shared/ui/Select.module.css`
+  (linha 1), ambos `Unclosed block`. Parecem arquivos cortados num merge.
+- **Tela de lançamento planejada em conflito com a API.** O guia original dizia que o
+  front envia só `patientId` e `arrivalTime` e que o prestador vem do login. O
+  `POST /api/consultations` espera `patientId`, `contractId` (escolhido entre os
+  vinculados), `providerId`, `techniqueId`, `durationMinutes`, `occurredAt` e `status`
+  (ver `Consultation` no [`domain-model.md`](domain-model.md)). Redesenhar a tela sobre o
+  contrato real, com spec.
+- **Papéis divergentes:** `domain/auth/roles.js` usa `"admin"` e `"provider"`; o enum
+  `Role` do backend é `ADMIN` e `PROVIDER`. Alinhar junto com o login real.
+- **Origem do paciente:** conferir se o cadastro de paciente envia o
+  `referringProviderId` (prestador que trouxe o paciente), que define a comissão.
+- **Menu e rotas por papel:** o admin cai em `/consultations` depois do login, que não
+  está no menu dele; `/providers` existe, mas não está no menu do design; Dashboard
+  (Fase 2) e Configurações (sem tela definida) ficam no menu, desabilitados. Decidir o
+  destino de cada papel após o login e usar ou remover `getHomePath`/`homePath` do
+  `roles.js`.
+- **Fora das convenções** da seção "Frontend" do [`architecture.md`](architecture.md):
+  `src/pages/NotFoundPage.jsx` fora da estrutura (mover para `app/`); `PageLoader` e
+  `RouteError` com estilo inline; `AuthContext` chamando o HTTP fora da camada `api/`;
+  `PatientWizard` com imports relativos (`../../`) em vez de `@/`.
+- **`frontend/.env` versionado:** hoje só tem `VITE_API_URL` (sem segredo). Avaliar trocar
+  por um `.env.example` versionado e o `.env` no `.gitignore`, antes que entre algum valor
+  sensível.
+- **Arquivar o repositório antigo do front** (`1k2s/sublime-app-front`) no GitHub, depois
+  do merge do monorepo.
+- Sidebar: trocar a logo em texto pelo arquivo da marca; criar a `Topbar`, se o design
+  tiver barra superior.
+
+### Melhorias (sem prioridade)
+
+- **Cores em variáveis CSS em todos os componentes.** Hoje o código está misturado: parte
+  dos `.module.css` usa `var(--color-*)` e parte usa o hexadecimal direto (uma regra antiga
+  do guia, já removida). Padronizar em variáveis, para a paleta mudar num lugar só.
+- **Regras de dependência entre módulos garantidas pelo ESLint**
+  (`import/no-restricted-paths` ou `eslint-plugin-boundaries`): o lint falha quando um
+  módulo importa quem não deve.
+- **Tradução DTO ↔ tela na camada `api/`:** converter a resposta da API para o formato da
+  tela (e de volta), para uma mudança de contrato mexer num arquivo só.
+- **Tipos do contrato da API:** decidir sobre TypeScript com tipos gerados do OpenAPI do
+  backend (`openapi-typescript`), para o editor acusar quando a API mudar.
+- **Testes automatizados** do front.

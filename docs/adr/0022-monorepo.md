@@ -27,7 +27,9 @@ docs/       documentação do produto, vale para os dois
 - O frontend foi importado com `git subtree add --prefix=frontend` a partir da branch
   `dev` do repositório antigo, preservando os commits do time. Para ver o histórico de
   um arquivo do front anterior à importação: `git log --follow -- frontend/<arquivo>`.
-- Cada lado mantém o próprio `.gitignore` e o próprio guia (`frontend/CLAUDE.md`).
+- Cada lado mantém o próprio `.gitignore`. A documentação é uma só, em `docs/`
+  (o front ganha uma seção "Frontend" no `architecture.md` e no `roadmap.md`), e as
+  instruções do agente ficam no `CLAUDE.md` da raiz.
 - O `.github` é um só, na raiz (o GitHub ignora `.github` em subpastas). Workflows de
   CI, quando existirem, ficam separados por arquivo (`backend.yml`, `frontend.yml`) e
   filtrados por pasta (`paths: ['backend/**']`).

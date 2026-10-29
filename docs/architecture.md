@@ -1,14 +1,39 @@
 # Sublime Fisioterapia — Arquitetura
 
+## Índice <!-- omit from toc -->
+
+- [Sobre o projeto](#sobre-o-projeto)
+- [Convenção de idioma (importante, sempre seguir)](#convenção-de-idioma-importante-sempre-seguir)
+- [Arquitetura: monolito modular](#arquitetura-monolito-modular)
+  - [Mapa de módulos (Fase 1)](#mapa-de-módulos-fase-1)
+- [Princípios de modelagem já fixados (não reabrir sem justificativa forte)](#princípios-de-modelagem-já-fixados-não-reabrir-sem-justificativa-forte)
+- [Padrão de construção (todos os módulos implementados seguem)](#padrão-de-construção-todos-os-módulos-implementados-seguem)
+- [Formato dos erros](#formato-dos-erros)
+- [Frontend](#frontend)
+  - [Princípios](#princípios)
+  - [Stack](#stack)
+  - [Estrutura de pastas](#estrutura-de-pastas)
+  - [Mapa de módulos e regras de dependência](#mapa-de-módulos-e-regras-de-dependência)
+  - [Camada `api/`](#camada-api)
+  - [Estado](#estado)
+  - [Componentes: tamanho e layout](#componentes-tamanho-e-layout)
+  - [Estilo](#estilo)
+  - [Rotas e sessão](#rotas-e-sessão)
+  - [Convenções de nomes](#convenções-de-nomes)
+
 ## Sobre o projeto
 
 Sistema de controle de atendimento e repasse de honorários para a clínica Sublime
 Fisioterapia. Serve dois propósitos: entregar um sistema de negócio funcional e
 funcionar como exercício prático de arquitetura de software e inglês técnico.
 
-**Stack:** Java + Spring Boot (monolito modular), MySQL, ReactJS. Versões, setup e
+**Stack:** Java + Spring Boot (monolito modular), MySQL, React + Vite. Versões, setup e
 ambiente: [`development.md`](development.md). Fases, estado atual e próximos
 passos: [`roadmap.md`](roadmap.md).
+
+Este documento cobre os dois lados: as seções a seguir descrevem o **backend** e as
+convenções do projeto inteiro (como a convenção de idioma), e a seção
+[Frontend](#frontend), no fim, descreve o front.
 
 ## Convenção de idioma (importante, sempre seguir)
 
@@ -207,3 +232,202 @@ Ordem em que os erros acontecem: leitura do JSON → DTO (todos os erros de uma
 vez) → service (404/409, um por vez) → entidade (400, um por vez) → banco. O
 frontend trata `errors` como erro de formulário (por campo) e `detail` como
 mensagem geral.
+
+## Frontend
+
+Como o frontend (`frontend/`) é construído. A convenção de idioma é a mesma do projeto
+(seção acima): código em inglês; comentários, documentação e textos de tela em português.
+As regras de negócio estão no [`domain-model.md`](domain-model.md): o front as **exibe**,
+não as decide. Como rodar: [`development.md`](development.md). Estado e pendências: seção
+"Frontend" do [`roadmap.md`](roadmap.md).
+
+### Princípios
+
+1. **O backend é a fonte da verdade.** O front não reimplementa regra de negócio: preço,
+   saldo de sessões, comissão, repasse, vigência e de qual contrato sai a sessão são
+   resolvidos pela API, e a tela mostra o resultado. Uma regra duplicada no front diverge
+   na primeira mudança do backend.
+   - Validação no front (Zod) é só de **formato**, para dar resposta rápida no formulário
+     (campo obrigatório, máscara, tamanho). A validação que vale é a da API, e as mensagens
+     de erro dela (`detail`, `errors`) aparecem para o usuário.
+2. **Os mesmos módulos e nomes do backend.** Cada módulo do backend tem uma pasta em
+   `src/domain/` com o mesmo nome (`patient`, `contract`, `consultation`...). Os campos usam
+   os nomes da API. É o DDD do front: a mesma linguagem e as mesmas fronteiras, sem as
+   regras.
+3. **Autorização é do backend.** Esconder um item do menu por papel é só visual: qualquer
+   usuário logado abre qualquer rota pela URL, e o papel guardado no navegador pode ser
+   editado. Cada endpoint confere o papel pelo token.
+4. **Dinheiro trafega como string** (o JSON da API) e só é formatado na exibição
+   (`shared/utils/money.js`, com `decimal.js`). Cálculo oficial é do backend.
+
+### Stack
+
+| Tema | Escolha |
+|---|---|
+| Linguagem | JavaScript (sem TypeScript); Zod e JSDoc compensam a falta de tipos |
+| Build | Vite (template `react`) |
+| Estilo | CSS Modules (um `.module.css` por componente) |
+| Dados do servidor | TanStack Query (cache, carregamento, erro, invalidação) |
+| Rotas | React Router (data router, rotas `lazy`) |
+| Formulários | React Hook Form + Zod (`@hookform/resolvers`) |
+| HTTP | Axios, num cliente único (`shared/http/httpClient.js`) |
+
+Lista de dependências: [`development.md`](development.md).
+
+### Estrutura de pastas
+
+```
+frontend/src/
+├── main.jsx                 # monta AppProviders e RouterProvider
+├── index.css                # estilo global e paleta (variáveis CSS)
+├── app/                     # casca da aplicação
+│   ├── providers.jsx        # AppProviders: QueryClientProvider, AuthProvider
+│   ├── router.jsx           # rotas, rotas lazy, ProtectedRoute
+│   └── layout/              # AppLayout, AppSidebar, navigationItems.js
+├── shared/                  # genérico, sem regra de negócio
+│   ├── http/httpClient.js   # axios: baseURL, token, 401
+│   ├── utils/               # money, date, masks, alert (SweetAlert2), viacep
+│   └── ui/                  # Button, Card, Input, Select, FormField, Modal,
+│                            # Stepper, Badge, PageHeader, PageLoader, RouteError...
+└── domain/                  # um módulo por módulo do backend
+    ├── auth/                # sessão, login, ProtectedRoute, roles.js (transversal)
+    ├── user/
+    ├── pricing/
+    ├── provider/
+    ├── patient/
+    ├── contract/
+    └── consultation/
+```
+
+Dentro de cada módulo, só as pastas que ele usa:
+
+| Pasta | O que vai lá |
+|---|---|
+| `api/` | chamadas ao backend (`xxxApi.js`) e hooks do TanStack Query (`useXxx.js`). Ver "Camada `api/`" |
+| `components/` | peças do módulo; recebem dados por props |
+| `pages/` | telas inteiras, uma por rota; buscam dados pelos hooks e montam os componentes |
+| `schemas/` | schemas Zod dos formulários |
+| `hooks/` | estado de uma tela ou fluxo (ex: `useConsultationCart`) |
+| `context/` | só no `auth` (sessão) |
+
+| Onde | O quê |
+|---|---|
+| `domain/<módulo>/components/` | usado num módulo só |
+| `shared/ui/` | genérico e sem regra de negócio, usado por vários módulos |
+| `app/layout/` | menu lateral e layout geral |
+
+### Mapa de módulos e regras de dependência
+
+O mapa é o mesmo do backend (ver "Mapa de módulos" acima): um módulo só importa os que
+estão abaixo dele, nunca o contrário.
+
+```
+pricing          user
+   |               |
+   |           provider
+   |               |
+   |           patient        ← lista prestadores (origem do paciente)
+    \             /
+     contract                 ← paciente + preços
+         \
+       consultation           ← todos os anteriores
+
+auth  ← transversal: qualquer módulo importa (sessão e papéis); auth não importa nenhum
+```
+
+- `shared/` nunca importa de `domain/` nem de `app/`.
+- `domain/` nunca importa de `app/`.
+- `app/` pode importar de qualquer módulo (é quem monta as rotas).
+- Imports sempre pelo alias `@/` (`@/domain/patient/...`), que aponta para `src/`
+  (`vite.config.js` para o build, `jsconfig.json` para o editor). O caminho completo deixa a
+  regra de dependência visível na revisão.
+
+### Camada `api/`
+
+```
+api (xxxApi.js)  →  hook (useXxx.js)  →  components / pages
+```
+
+| Camada | O que faz | O que não sabe |
+|---|---|---|
+| `xxxApi.js` | uma função por endpoint, chama o `httpClient` e devolve os dados | que existe React |
+| `useXxx.js` | transforma a chamada em estado de tela: `useQuery` para leitura (com cache), `useMutation` para ação (com invalidação) | como a tela é desenhada |
+| components / pages | mostram os dados e disparam as ações | de onde os dados vêm |
+
+```js
+// domain/patient/api/patientApi.js — uma função por endpoint
+export async function listPatients() {
+  const { data } = await httpClient.get("/patients");
+  return data;
+}
+
+// domain/patient/api/usePatients.js — leitura com cache, escrita com invalidação
+export function usePatients() {
+  return useQuery({ queryKey: ["patients"], queryFn: listPatients });
+}
+
+export function useCreatePatient() {
+  const queryClient = useQueryClient();
+  return useMutation({
+    mutationFn: createPatient,
+    onSuccess: () => queryClient.invalidateQueries({ queryKey: ["patients"] }),
+  });
+}
+```
+
+Regras:
+- Pages e components usam só os hooks, nunca o `httpClient` direto.
+- Sem JSX e sem regra de negócio em `api/`.
+- `queryKey` padronizada por módulo (`["patients", ...]`, `["consultations", ...]`).
+- Erro da API: a page mostra com `showError` (`shared/utils/alert.js`) no `onError` do
+  `mutate`. Components não chamam o alerta. Erros por campo (`errors` do `ProblemDetail`,
+  ver "Formato dos erros" acima) aparecem no `FormField`.
+
+### Estado
+
+| Tipo de dado | Exemplo | Onde fica |
+|---|---|---|
+| Vem da API | pacientes, contratos, preços, lançamentos | TanStack Query (hooks em `api/`) |
+| Global, que não vem de listagem | sessão do usuário | contexto, com o provider em `app/providers.jsx` |
+| De uma tela ou fluxo | itens do lançamento em montagem | `useState` ou hook local (`hooks/`) |
+
+- Dado do servidor nunca vai para contexto: o cache do TanStack Query já compartilha a mesma
+  lista entre componentes.
+- Provider global fica no `AppProviders`; o `main.jsx` não monta providers. Provider que
+  serve a uma tela só é montado em volta dela.
+
+### Componentes: tamanho e layout
+
+- Cada componente define o tamanho e o layout dos próprios filhos (altura, padding,
+  `display`, `flex`, espaçamento interno).
+- O pai define no máximo o tamanho e a posição dos filhos diretos (largura, altura, coluna do
+  grid, `gap`), passando um `className`.
+- Nenhum nível define tamanho ou layout de um neto: para mudar uma peça, mexe-se só no
+  componente que a renderiza.
+- Sem seletor de tag ou descendente para alcançar outro componente (`.form button`): passe
+  um `className` para ele.
+
+### Estilo
+
+- CSS Modules: um `.module.css` ao lado de cada componente.
+- Paleta e medidas globais em variáveis CSS no `index.css` (`--color-bg`, `--color-surface`,
+  `--color-primary`, `--color-primary-soft`, `--color-accent`, `--color-danger`,
+  `--color-border`, `--color-text`, `--color-muted`, `--radius`). Os componentes usam as
+  variáveis (`var(--color-primary)`), para a paleta mudar num lugar só.
+
+### Rotas e sessão
+
+- `app/router.jsx`: `createBrowserRouter` com rotas `lazy`. `/login` é pública; as demais
+  ficam dentro do `ProtectedRoute` + `AppLayout` (`/patients`, `/pricing`, `/providers`,
+  `/contracts`, `/consultations`); `*` é a página de não encontrado.
+- `ProtectedRoute` só confere se há sessão (não bloqueia por papel; ver o princípio 3).
+- `httpClient` envia o token salvo no `localStorage` (`sublime.authToken`) e, num 401, apaga
+  o token e encerra a sessão (`setUnauthorizedHandler`, registrado pelo `AuthProvider`).
+- Os papéis ficam em `domain/auth/roles.js`; o valor de cada um precisa ser idêntico ao que
+  o backend devolve.
+
+### Convenções de nomes
+
+- Componentes e pages: `PascalCase.jsx`, com o `.module.css` de mesmo nome.
+- Hooks: começam com `use`.
+- Demais arquivos: `camelCase.js`.

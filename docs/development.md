@@ -1,8 +1,24 @@
 # Ambiente de desenvolvimento
 
-Como rodar, preparar o banco e cadastrar os dados do sistema localmente. Para a
-arquitetura e as regras de negócio, ver [`architecture.md`](architecture.md) e
+Como rodar, preparar o banco e cadastrar os dados do sistema localmente (backend e
+frontend). Para a arquitetura e as regras de negócio, ver
+[`architecture.md`](architecture.md) (com a seção "Frontend") e
 [`domain-model.md`](domain-model.md).
+
+## Índice <!-- omit from toc -->
+
+- [Stack](#stack)
+- [Estrutura do repositório](#estrutura-do-repositório)
+- [Rodando localmente](#rodando-localmente)
+- [Frontend e API](#frontend-e-api)
+- [Banco e schema (Flyway)](#banco-e-schema-flyway)
+  - [Criando uma migration](#criando-uma-migration)
+  - [Banco local antigo](#banco-local-antigo)
+  - [Constraints do banco](#constraints-do-banco)
+- [Dados de teste](#dados-de-teste)
+- [Catálogo atual da clínica (dados para o cadastro inicial)](#catálogo-atual-da-clínica-dados-para-o-cadastro-inicial)
+- [Fluxo de git](#fluxo-de-git)
+- [Problemas conhecidos do ambiente](#problemas-conhecidos-do-ambiente)
 
 ## Stack
 
@@ -11,8 +27,9 @@ arquitetura e as regras de negócio, ver [`architecture.md`](architecture.md) e
 - **MySQL 8** via `docker-compose.yml` (container `mysql-dev`, porta **3307**,
   banco `sublime_db`, usuário `root`/`root`).
 - **Frontend:** React 19 + Vite, JavaScript (sem TypeScript), CSS Modules, React
-  Router, TanStack Query, React Hook Form + Zod, Axios. Node 22. Detalhes e
-  convenções em [`frontend/CLAUDE.md`](../frontend/CLAUDE.md).
+  Router, TanStack Query, React Hook Form + Zod, Axios. Node 22. Convenções na seção
+  "Frontend" do [`architecture.md`](architecture.md); dependências abaixo, em
+  "Frontend e API".
 
 ## Estrutura do repositório
 
@@ -47,6 +64,26 @@ referência quando a IDE acusa erro (ver "Problemas conhecidos"). No front:
   do Vite? Ajuste lá.
 - **Contrato:** o Swagger do backend é a referência dos endpoints, DTOs e mensagens
   de erro. As regras de negócio estão no [`domain-model.md`](domain-model.md).
+- **Alias `@/`:** aponta para `frontend/src/`. Configurado no `vite.config.js` (build) e
+  no `jsconfig.json` (autocomplete e "ir para definição" no editor; reinicie o VS Code se
+  o editor não reconhecer).
+
+**Dependências do frontend** (`frontend/package.json`):
+
+| Dependência | Para que serve |
+|---|---|
+| `react-router-dom` | rotas |
+| `@tanstack/react-query` | cache e invalidação das chamadas à API |
+| `axios` | cliente HTTP (token e tratamento de 401) |
+| `react-hook-form`, `zod`, `@hookform/resolvers` | formulários e validação de formato |
+| `date-fns` | datas (filtros por período, `validFrom`/`validTo`) |
+| `decimal.js` | exibição precisa de valores monetários |
+| `lucide-react` | ícones |
+| `react-pro-sidebar` | menu lateral |
+| `sweetalert2` | alertas de erro da API (`shared/utils/alert.js`) |
+
+O `react-pro-sidebar` 1.1.0 funciona com React 19, mas tem manutenção irregular: confira
+a compatibilidade antes de subir a versão do React.
 
 ## Banco e schema (Flyway)
 
