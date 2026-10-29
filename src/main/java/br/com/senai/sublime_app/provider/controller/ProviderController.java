@@ -6,6 +6,7 @@ import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.DeleteMapping;
 import org.springframework.web.bind.annotation.GetMapping;
+import org.springframework.web.bind.annotation.PatchMapping;
 import org.springframework.web.bind.annotation.PathVariable;
 import org.springframework.web.bind.annotation.PostMapping;
 import org.springframework.web.bind.annotation.PutMapping;
@@ -120,6 +121,23 @@ public class ProviderController {
     public ResponseEntity<Void> deactivate(
             @Parameter(description = "Identificador do prestador", required = true, example = "1") @PathVariable Long id) {
         providerService.deactivate(id);
+        return ResponseEntity.noContent().build();
+    }
+
+    @Operation(summary = "Reativar prestador", description = """
+            Desfaz a inativação: o prestador volta a poder receber lançamentos de atendimento
+            (ex: prestador que volta a atender). Os percentuais e o usuário vinculado não mudam.
+            Não exige usuário ativo: o lançamento informa o prestador explicitamente.
+            """)
+    @ApiResponses({
+            @ApiResponse(responseCode = "204", description = "Prestador reativado com sucesso"),
+            @ApiResponse(responseCode = "404", description = "Prestador não encontrado", content = @Content),
+            @ApiResponse(responseCode = "409", description = "O prestador já está ativo", content = @Content)
+    })
+    @PatchMapping("/{id}/activate")
+    public ResponseEntity<Void> activate(
+            @Parameter(description = "Identificador do prestador", required = true, example = "1") @PathVariable Long id) {
+        providerService.activate(id);
         return ResponseEntity.noContent().build();
     }
 }

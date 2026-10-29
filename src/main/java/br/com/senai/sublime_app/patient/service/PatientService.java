@@ -108,6 +108,13 @@ public class PatientService {
         patient.deactivate();
     }
 
+    // Reativação (ex: paciente que volta à clínica). Gravado pelo dirty checking.
+    @Transactional
+    public void activate(Long id) {
+        PatientEntity patient = getPatientOrThrow(id);
+        patient.activate();
+    }
+
     // Centraliza a busca + erro de "não encontrado", usada por findById, update e deactivate
     private PatientEntity getPatientOrThrow(Long id) {
         return patientRepository.findById(id)

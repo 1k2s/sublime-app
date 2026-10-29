@@ -11,7 +11,9 @@ public record TechniqueResponseDTO(
         String name,
         Long pricingGroupId,
         String pricingGroupName,
-        PricingModel pricingModel
+        PricingModel pricingModel,
+        // false só aparece na listagem completa (GET /api/techniques/all)
+        boolean active
 
 ) {
     public static TechniqueResponseDTO fromEntity(TechniqueEntity entity) {
@@ -20,6 +22,7 @@ public record TechniqueResponseDTO(
                 entity.getName(),
                 entity.getPricingGroup().getId(),
                 entity.getPricingGroup().getName(),
-                entity.getPricingGroup().getPricingModel());
+                entity.getPricingGroup().getPricingModel(),
+                entity.isActive());
     }
 }

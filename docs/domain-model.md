@@ -170,6 +170,14 @@ removidos do banco; o `DELETE` só inativa (`active = false`). Inativar um regis
 que **já está inativo** é rejeitado com 409 — a regra fica no `deactivate()` da
 própria entidade, que conhece o próprio estado.
 
+**Reativação:** `Patient`, `Provider` e `Technique` podem ser reativados com
+`PATCH /api/{patients|providers|techniques}/{id}/activate` (204), espelhando o
+inativar: reativar um registro **já ativo** → 409 (`activate()` com
+`requireInactive()`). É o caminho de volta para quem foi inativado e volta à
+clínica: registro inativo não entra em contrato nem em atendimento novo. `User`,
+`Contract` e `Consultation` não têm reativação (contrato e atendimento se corrigem
+por aditivo e por novo lançamento).
+
 **Unicidade de nome e CPF:** nome de `PricingGroup`, `Technique` e `Plan`, CPF de
 `Patient` e e-mail de `User` são únicos. A garantia real é o `unique` da coluna; o
 service checa antes (`existsBy...`) só para devolver um 409 com mensagem clara. A
@@ -252,6 +260,15 @@ uma técnica nova no grupo certo e inativar a antiga
 **Sem preço nem duração:** técnicas do mesmo grupo de precificação compartilham o
 mesmo valor, que mora no grupo
 ([ADR 0004](adr/0004-grupo-de-preco-e-duas-tabelas.md)).
+
+**Duas listagens:**
+- `GET /api/techniques` — só as **ativas**: telas de contrato e de lançamento, onde
+  técnica inativa não pode entrar.
+- `GET /api/techniques/all` — **todas**, com o campo `active`, por nome: tela de
+  cadastro. Quando o prestador não encontra uma técnica (inativa), pede à clínica,
+  que a encontra nessa listagem e a reativa (`PATCH /api/techniques/{id}/activate`).
+  Paciente e prestador não precisam disso: a listagem deles já traz ativos e
+  inativos.
 
 ---
 
@@ -852,6 +869,9 @@ um prestador válido. Por ser fixo, a alteração do prestador (`PUT`) nem receb
   administrador remove o acesso do prestador ao sistema. O prestador continua no
   banco.
 - Um prestador que não está atendendo é inativado, sem desvincular o usuário.
+- **Reativar o prestador não exige usuário ativo:** o lançamento de atendimento
+  recebe o `providerId` explícito e não depende de login, e o usuário ainda não tem
+  reativação. Com a autenticação, isso é revisto (ver [`roadmap.md`](roadmap.md)).
 
 ---
 

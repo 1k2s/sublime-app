@@ -15,6 +15,11 @@ public interface TechniqueRepository extends JpaRepository<TechniqueEntity, Long
     @EntityGraph(attributePaths = "pricingGroup")
     List<TechniqueEntity> findByActiveTrue();
 
+    // Todas as técnicas, ativas e inativas, por nome: listagem de cadastro, onde a
+    // clínica encontra uma técnica inativa para reativar. Grupo junto pelo mesmo motivo.
+    @EntityGraph(attributePaths = "pricingGroup")
+    List<TechniqueEntity> findAllByOrderByNameAsc();
+
     // Checagem prévia de nome no cadastro. A garantia real é o unique da coluna;
     // este método só permite devolver uma mensagem clara em vez de um erro do banco.
     boolean existsByName(String name);

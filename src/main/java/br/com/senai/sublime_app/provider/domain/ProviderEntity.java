@@ -99,7 +99,11 @@ public class ProviderEntity {
         this.active = false;
     }
 
+    // Reativação: o prestador volta a poder receber lançamentos. Não exige usuário ativo:
+    // o lançamento recebe o providerId explícito, sem depender de login (a reativação do
+    // usuário entra com a autenticação).
     public void activate() {
+        requireInactive();
         this.active = true;
     }
 
@@ -112,6 +116,13 @@ public class ProviderEntity {
     private void requireActive() {
         if (!active) {
             throw new ConflictException("O prestador já está inativo.");
+        }
+    }
+
+    // Reativar um prestador já ativo não é uma operação válida: 409 avisa que o estado já era esse
+    private void requireInactive() {
+        if (active) {
+            throw new ConflictException("O prestador já está ativo.");
         }
     }
 

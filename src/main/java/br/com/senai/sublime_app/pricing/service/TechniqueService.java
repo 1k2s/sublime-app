@@ -49,13 +49,32 @@ public class TechniqueService {
                 .toList();
     }
 
+    // Listagem de cadastro (ativas e inativas): é onde a clínica reativa uma técnica
+    @Transactional(readOnly = true)
+    public List<TechniqueResponseDTO> findAll() {
+        return techniqueRepository.findAllByOrderByNameAsc().stream()
+                .map(TechniqueResponseDTO::fromEntity)
+                .toList();
+    }
+
     // Soft delete: a técnica sai da listagem de novos contratos, mas contratos e
     // atendimentos antigos continuam apontando para ela. A mudança é gravada pelo
     // dirty checking do Hibernate, pois a entidade foi carregada nesta transação.
     @Transactional
     public void deactivate(Long id) {
-        TechniqueEntity technique = techniqueRepository.findById(id)
+        getTechniqueOrThrow(id).deactivate();
+    }
+
+    // Reativação: a técnica volta para a listagem e pode entrar em contratos e
+    // atendimentos novos. Gravado pelo dirty checking.
+    @Transactional
+    public void activate(Long id) {
+        getTechniqueOrThrow(id).activate();
+    }
+
+    // Centraliza a busca + erro de "não encontrado", usada por deactivate e activate
+    private TechniqueEntity getTechniqueOrThrow(Long id) {
+        return techniqueRepository.findById(id)
                 .orElseThrow(() -> new ResourceNotFoundException("Técnica não encontrada com id: " + id));
-        technique.deactivate();
     }
 }

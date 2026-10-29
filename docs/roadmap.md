@@ -16,10 +16,10 @@ feature em andamento fica na spec dela, em [`specs/`](specs/).
 
 | Módulo | Situação |
 |---|---|
-| `patient` | implementado: incl. origem do paciente (`referringProvider`) e soft delete com 409 |
+| `patient` | implementado: incl. origem do paciente (`referringProvider`), soft delete e reativação com 409 |
 | `user` | implementado: soft delete, e-mail único (409) |
-| `provider` | implementado: dois percentuais (padrão 40/45), usuário ativo obrigatório |
-| `pricing` | implementado: grupos, técnicas, planos (`PlanType`, `termWeeks`, de-para), preços com reajuste historizado |
+| `provider` | implementado: dois percentuais (padrão 40/45), usuário ativo obrigatório na criação, reativação |
+| `pricing` | implementado: grupos, técnicas (com reativação), planos (`PlanType`, `termWeeks`, de-para), preços com reajuste historizado |
 | `contract` | implementado: cabeçalho + `ContractItem`, vigência calculada (`SessionFrequency`), aditivos, opções do plano do Grupo, endpoints de apoio, beneficiário de no máximo um contrato vigente |
 | `consultation` | implementado: lançamento com contratos vinculados e escolha livre, resolução de preço (casos 1 a 3), `pricingSource`, comissão pela origem, repasse `HALF_UP`, saldo pela cadeia de versões, soft delete sem `PUT`, endpoints de apoio (`eligible-contracts`, `session-balance`) |
 
@@ -41,12 +41,6 @@ feature em andamento fica na spec dela, em [`specs/`](specs/).
 
 ## Pendências técnicas
 
-- **Reativação de paciente, prestador e técnica** (endpoint), antes ou junto da
-  interface gráfica. O lançamento de atendimento recusa registro inativo (400) e a
-  regra é "o admin reativa antes de lançar", mas não existe caminho pela API:
-  `PatientEntity.activate()` e `ProviderEntity.activate()` existem sem service nem
-  endpoint, e a `TechniqueEntity` não tem o método. *Em aberto:* se reativar um
-  registro já ativo dá 409 (espelhando o `deactivate`).
 - **Migrations (Flyway):**
   - `CHECK` do exclusive arc em `contract_item` e `consultation`
     (`(session_duration_price_id IS NULL) <> (session_frequency_price_id IS NULL)`).
@@ -67,7 +61,11 @@ feature em andamento fica na spec dela, em [`specs/`](specs/).
 - **Autenticação:** senha em texto puro e `SecurityConfig` com `permitAll`. Entram
   hash de senha, login e perfis (`ADMIN`/`PROVIDER`) com visibilidade por perfil;
   junto, o `launchedByUserId` no `Consultation` (quem lançou) e a regra de
-  permissão do lançamento.
+  permissão do lançamento. Também a reativação do `User` e a decisão de exigir
+  usuário ativo para reativar o prestador (hoje não exige). Restringir ao perfil
+  `ADMIN` as operações de cadastro da clínica, como a listagem completa de técnicas
+  (`GET /api/techniques/all`) e as reativações. Hoje tudo é liberado de propósito,
+  para facilitar o desenvolvimento.
 - `PUT` de grupo, técnica e plano (renomear).
 - Reajuste de preço agendado (`validFrom` futuro).
 - Categorias de prestador (Padrão, Estagiário...) com o par de percentuais, se
