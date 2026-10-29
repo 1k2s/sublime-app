@@ -13,6 +13,9 @@ import br.com.senai.sublime_app.provider.domain.Percentage;
 import br.com.senai.sublime_app.provider.domain.ProviderEntity;
 import br.com.senai.sublime_app.shared.exception.BusinessRuleException;
 import br.com.senai.sublime_app.shared.exception.ConflictException;
+import org.hibernate.annotations.JdbcTypeCode;
+import org.hibernate.type.SqlTypes;
+
 import jakarta.persistence.Column;
 import jakarta.persistence.Entity;
 import jakarta.persistence.EnumType;
@@ -74,12 +77,15 @@ public class ConsultationEntity {
     @Column(name = "occurred_at", nullable = false)
     private LocalDate occurredAt;
 
+    // Enums gravados como varchar, não como enum nativo do MySQL (ADR 0021)
     @Enumerated(EnumType.STRING)
+    @JdbcTypeCode(SqlTypes.VARCHAR)
     @Column(nullable = false, length = 30)
     private ConsultationStatus status;
 
     // Caso do preço (1, 2 ou 3), calculado aqui; só CONTRACT_ITEM debita o saldo do item
     @Enumerated(EnumType.STRING)
+    @JdbcTypeCode(SqlTypes.VARCHAR)
     @Column(name = "pricing_source", nullable = false, length = 30)
     private PricingSource pricingSource;
 

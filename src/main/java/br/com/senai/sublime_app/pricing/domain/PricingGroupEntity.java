@@ -2,6 +2,9 @@ package br.com.senai.sublime_app.pricing.domain;
 
 import br.com.senai.sublime_app.pricing.enums.PricingModel;
 import br.com.senai.sublime_app.shared.exception.BusinessRuleException;
+import org.hibernate.annotations.JdbcTypeCode;
+import org.hibernate.type.SqlTypes;
+
 import jakarta.persistence.Column;
 import jakarta.persistence.Entity;
 import jakarta.persistence.EnumType;
@@ -31,8 +34,10 @@ public class PricingGroupEntity {
 
     // Fixo após a criação (sem método que o altere): as linhas de preço do grupo
     // já estão na tabela correspondente a ele.
+    // varchar, não o enum nativo do MySQL: valor novo no enum não exige migration (ADR 0021)
     @Enumerated(EnumType.STRING)
-    @Column(name = "pricing_model", nullable = false)
+    @JdbcTypeCode(SqlTypes.VARCHAR)
+    @Column(name = "pricing_model", nullable = false, length = 30)
     private PricingModel pricingModel;
 
     // Construtor publico para criar um grupo de preço com os dados obrigatórios

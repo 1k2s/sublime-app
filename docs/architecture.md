@@ -108,10 +108,10 @@ de propor mudanças de schema.
 4. **"Exclusive arc"**: quando uma entidade pode referenciar uma de duas tabelas
    diferentes (nunca as duas), usar duas FKs nullable garantindo exatamente uma
    preenchida. Usado em `ContractItem` e `Consultation` para
-   `sessionDurationPriceId` / `sessionFrequencyPriceId`. Hoje garantido no código
+   `sessionDurationPriceId` / `sessionFrequencyPriceId`. Garantido no código
    (`ContractItemDraft` e `@AssertTrue` no DTO; validação no construtor do
-   `ConsultationEntity`); o `CHECK` no banco entra com as migrations (ver
-   [`roadmap.md`](roadmap.md)).
+   `ConsultationEntity`) e no banco, por um `CHECK` (migration V2; ver "Banco e
+   schema" no [`development.md`](development.md)).
 5. **Snapshot de valores financeiros no momento em que viram obrigação.** Valores
    tecnicamente deriváveis (valor da sessão, percentual aplicado, repasse) são
    gravados quando representam obrigação de pagamento já consumada — nunca devem

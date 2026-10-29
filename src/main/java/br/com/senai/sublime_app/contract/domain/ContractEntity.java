@@ -9,6 +9,8 @@ import br.com.senai.sublime_app.pricing.enums.PlanType;
 import br.com.senai.sublime_app.shared.exception.BusinessRuleException;
 import br.com.senai.sublime_app.shared.exception.ConflictException;
 import jakarta.persistence.*;
+import org.hibernate.annotations.JdbcTypeCode;
+import org.hibernate.type.SqlTypes;
 import lombok.*;
 
 import java.time.LocalDate;
@@ -54,8 +56,10 @@ public class ContractEntity {
     @Column(name = "end_date", nullable = false)
     private LocalDate endDate;
 
+    // varchar, não o enum nativo do MySQL: valor novo no enum não exige migration (ADR 0021)
     @Enumerated(EnumType.STRING)
-    @Column(name = "payment_method", nullable = false)
+    @JdbcTypeCode(SqlTypes.VARCHAR)
+    @Column(name = "payment_method", nullable = false, length = 30)
     private PaymentMethod paymentMethod;
 
     @Column(nullable = false)

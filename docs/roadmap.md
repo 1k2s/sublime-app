@@ -23,13 +23,13 @@ feature em andamento fica na spec dela, em [`specs/`](specs/).
 | `contract` | implementado: cabeçalho + `ContractItem`, vigência calculada (`SessionFrequency`), aditivos, opções do plano do Grupo, endpoints de apoio, beneficiário de no máximo um contrato vigente |
 | `consultation` | implementado: lançamento com contratos vinculados e escolha livre, resolução de preço (casos 1 a 3), `pricingSource`, comissão pela origem, repasse `HALF_UP`, saldo pela cadeia de versões, soft delete sem `PUT`, endpoints de apoio (`eligible-contracts`, `session-balance`) |
 
-- **A aplicação sobe** (verificado em 2026-10-21, com o banco zerado): o Spring
-  aceitou os métodos derivados e os `@Query`, e o schema gerado confere com as
-  entidades. **Nenhum endpoint foi chamado ainda**, em nenhum módulo.
-- **Outro computador ou banco antigo:** zerar o banco antes de rodar
-  (`docker compose down -v`; ver [`development.md`](development.md)). As mudanças de
-  outubro em `plan`, `contract`, `contract_item`, `provider`, `patient` e
-  `consultation` removem colunas e mudam constraints.
+- **Schema versionado pelo Flyway** (V1 a V3, desde 2026-10-29; ver
+  [`development.md`](development.md)), com `ddl-auto=validate`. Banco local criado
+  antes disso: zerar uma vez (`docker compose down -v`).
+- **Teste de ponta a ponta pela API** (2026-10-29, comandos manuais, sem script): o
+  catálogo, os cadastros, o contrato (incluindo o aditivo), os três casos de
+  lançamento, o saldo, a reativação e as constraints do banco funcionaram como
+  esperado. Testes automatizados continuam como melhoria futura.
 - **Testes:** decidido testar pela **interface gráfica** (não por Swagger nem por
   testes automatizados por enquanto).
 
@@ -37,24 +37,10 @@ feature em andamento fica na spec dela, em [`specs/`](specs/).
 
 1. **Interface gráfica** (ReactJS) e testes por ela. Começar com uma spec em
    [`specs/`](specs/README.md).
-2. **Migrations do Flyway** e o que depende delas (ver "Pendências técnicas").
 
 ## Pendências técnicas
 
-- **Migrations (Flyway):**
-  - `CHECK` do exclusive arc em `contract_item` e `consultation`
-    (`(session_duration_price_id IS NULL) <> (session_frequency_price_id IS NULL)`).
-    Até lá, garantido no código;
-  - unique de "uma linha de preço vigente": coluna gerada
-    `current_flag = IF(valid_to IS NULL, 1, NULL) STORED` +
-    `UNIQUE (pricing_group_id, plan_id, duration_minutes|weekly_frequency, current_flag)`.
-    Resolve também a concorrência no cadastro de preço (duas requisições
-    simultâneas criando duas linhas vigentes). Por causa dela, o reajuste fecha a
-    linha antiga com `saveAndFlush` antes do INSERT da nova (o Hibernate executa
-    INSERTs antes de UPDATEs no flush);
-  - trocar `ddl-auto` para `validate` e zerar o banco local;
-  - dados reais do catálogo (grupos, técnicas, planos, preços) podem virar
-    migration em `src/main/resources/db/migration/`.
+Nenhuma no momento.
 
 ## Melhorias futuras (anotadas, sem prioridade)
 
@@ -74,6 +60,8 @@ feature em andamento fica na spec dela, em [`specs/`](specs/).
   bloquear alguma combinação abaixo do teto de 52 semanas.
 - Código de erro nas respostas (ex: `PATIENT_HAS_CURRENT_CONTRACT`).
 - Value object `Cpf` (com dígitos verificadores).
+- Carga inicial do catálogo da clínica pronta ao subir. Hoje ele é cadastrado pela
+  API; como migration, os `INSERT`s pulariam as regras do domínio (ADR 0021).
 - Testes automatizados.
 
 ## Não modelado ainda

@@ -7,6 +7,9 @@ import br.com.senai.sublime_app.pricing.domain.SessionDurationPriceEntity;
 import br.com.senai.sublime_app.pricing.domain.SessionFrequencyPriceEntity;
 import br.com.senai.sublime_app.pricing.domain.TechniqueEntity;
 import br.com.senai.sublime_app.shared.exception.BusinessRuleException;
+import org.hibernate.annotations.JdbcTypeCode;
+import org.hibernate.type.SqlTypes;
+
 import jakarta.persistence.Column;
 import jakarta.persistence.Entity;
 import jakarta.persistence.EnumType;
@@ -58,8 +61,10 @@ public class ContractItemEntity {
     private TechniqueEntity technique;
 
     // Ritmo negociado; só em item de grupo por duração (nulo no item do Grupo)
+    // varchar, não o enum nativo do MySQL: valor novo no enum não exige migration (ADR 0021)
     @Enumerated(EnumType.STRING)
-    @Column(name = "frequency")
+    @JdbcTypeCode(SqlTypes.VARCHAR)
+    @Column(name = "frequency", length = 30)
     private SessionFrequency frequency;
 
     // Sem "public": só o ContractEntity (mesmo pacote) cria itens. "previous" é o
