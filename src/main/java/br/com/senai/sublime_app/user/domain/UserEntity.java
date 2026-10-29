@@ -3,6 +3,9 @@ package br.com.senai.sublime_app.user.domain;
 import br.com.senai.sublime_app.shared.exception.BusinessRuleException;
 import br.com.senai.sublime_app.shared.exception.ConflictException;
 import br.com.senai.sublime_app.user.enums.Role;
+import org.hibernate.annotations.JdbcTypeCode;
+import org.hibernate.type.SqlTypes;
+
 import jakarta.persistence.Column;
 import jakarta.persistence.Entity;
 import jakarta.persistence.EnumType;
@@ -34,8 +37,10 @@ public class UserEntity {
     @Column(nullable = false)
     private String password;
 
+    // varchar, não o enum nativo do MySQL: valor novo no enum não exige migration (ADR 0021)
     @Enumerated(EnumType.STRING)
-    @Column(nullable = false)
+    @JdbcTypeCode(SqlTypes.VARCHAR)
+    @Column(nullable = false, length = 30)
     private Role role;
 
     @Column(nullable = false)

@@ -467,9 +467,10 @@ em si.
 
 **Regra de unicidade:** só pode existir uma linha com `validTo IS NULL` por
 combinação de `(pricingGroupId, durationMinutes, planId)` — ou
-`(pricingGroupId, weeklyFrequency, planId)` na tabela de frequência. Hoje checada
-no código; a garantia no banco entra com as migrations (ver
-[`roadmap.md`](roadmap.md)).
+`(pricingGroupId, weeklyFrequency, planId)` na tabela de frequência. Checada no
+código antes de criar e garantida pelo banco, inclusive contra duas gravações
+simultâneas: coluna calculada `current_flag` + `UNIQUE` (migration V3; como funciona
+em "Banco e schema", no [`development.md`](development.md)).
 
 **Reajuste nunca é `UPDATE`.** Sempre: fecha a linha vigente (`validTo` = hoje) e
 insere uma nova com `validFrom` = hoje. Preserva o histórico completo de preços e
@@ -596,8 +597,8 @@ não a repete):
   nula: a frequência (1x/2x/3x por semana) é o eixo do preço e já está na linha
   travada.
 - **Exclusive arc no item:** exatamente uma das duas FKs de preço preenchida,
-  garantida no `ContractItemDraft` e no `ContractItemRequestDTO` (o `CHECK` no
-  banco entra com as migrations).
+  garantida no `ContractItemDraft`, no `ContractItemRequestDTO` e no banco
+  (`CHECK chk_contract_item_one_price`, migration V2).
 
 **Preço travado:** o item trava, na assinatura, a linha de preço vigente naquele
 instante — mesmo que o catálogo seja reajustado depois, o contrato mantém o valor

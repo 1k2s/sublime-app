@@ -21,17 +21,119 @@ arquitetura e as regras de negócio, ver [`architecture.md`](architecture.md) e
 Para conferir se o código compila: `./mvnw -q compile`. É a referência quando a
 IDE acusa erro (ver "Problemas conhecidos").
 
-## Banco e schema
+## Banco e schema (Flyway)
 
-- **Schema gerado pelo Hibernate:** `spring.jpa.hibernate.ddl-auto=update` e
-  `spring.flyway.enabled=false`, até as migrations do Flyway (ver
-  [`roadmap.md`](roadmap.md)).
-- O `update` cria tabelas e colunas, mas **não remove colunas nem ajusta
-  constraints antigas**. Quando uma entidade perde campos ou muda de
-  obrigatoriedade, é preciso zerar o banco:
-  1. `docker compose down -v` (apaga o volume `mysql_data`);
-  2. `docker compose up -d`;
-  3. subir a aplicação (o Hibernate recria as tabelas).
+O schema é criado e alterado **só pelas migrations do Flyway**
+([ADR 0021](adr/0021-schema-versionado-flyway.md)):
+
+- As migrations ficam em `src/main/resources/db/migration/` e rodam sozinhas ao
+  subir a aplicação. O Flyway anota as que já aplicou na tabela
+  `flyway_schema_history` e roda só as que faltam.
+- `spring.jpa.hibernate.ddl-auto=validate`: o Hibernate só **confere** se as
+  entidades batem com o banco (colunas e tipos). Se não baterem, a aplicação **não
+  sobe**, e o log diz qual coluna está diferente. Ele nunca cria nem altera tabelas.
+
+| Migration | O que faz |
+|---|---|
+| `V1__initial_schema.sql` | todas as tabelas, com constraints de nomes legíveis |
+| `V2__price_exclusive_arc_check.sql` | `CHECK` do exclusive arc em `contract_item` e `consultation` |
+| `V3__single_current_price.sql` | uma linha de preço vigente por combinação (`current_flag` + `UNIQUE`) |
+
+### Criando uma migration
+
+1. Mude a entidade (ex: um campo novo).
+2. Crie o arquivo seguinte: `V4__descricao_em_ingles.sql` (dois sublinhados; o
+   número define a ordem de execução).
+3. Escreva o SQL (`ALTER TABLE ...`) e suba a aplicação: o Flyway aplica, e o
+   `validate` confere se a entidade e o banco ficaram iguais.
+
+Regras:
+- **Uma migration já aplicada nunca é editada.** O Flyway guarda um checksum de
+  cada arquivo e recusa subir se ele mudar. Corrigir = um arquivo novo. Antes do
+  merge, enquanto ninguém mais aplicou, ainda dá para ajustar o arquivo e zerar o
+  banco local.
+- Enum novo ou valor novo num enum **não exige migration**: as colunas de enum são
+  `varchar(30)`, e quem valida o valor é o enum Java.
+
+### Banco local antigo
+
+Um banco criado antes do Flyway (pelo antigo `ddl-auto=update`) não tem o
+histórico, e o Flyway recusa iniciar num schema que já tem tabelas. **Zere uma vez:**
+1. `docker compose down -v` (apaga o volume `mysql_data` e todos os dados locais);
+2. `docker compose up -d`;
+3. subir a aplicação (o Flyway cria tudo do zero).
+
+Depois disso, ninguém mais precisa zerar: cada mudança chega como migration.
+
+### Constraints do banco
+
+As constraints são as regras que o próprio banco garante, recusando a gravação que as
+viola, venha ela da aplicação ou de um `INSERT` manual. Os nomes seguem um prefixo,
+para a mensagem de erro já dizer qual regra foi violada:
+
+| Prefixo | Significado | Exemplo |
+|---|---|---|
+| `pk_` | primary key (identificador da linha) | `pk_patient` |
+| `fk_` | foreign key (aponta para outra tabela) | `fk_contract_patient` |
+| `uk_` | unique key (valor que não pode repetir) | `uk_patient_cpf` |
+| `chk_` | check (condição que a linha precisa cumprir) | `chk_consultation_one_price` |
+
+**`UNIQUE` é um índice.** O MySQL implementa todo `UNIQUE` como um índice: uma
+estrutura ordenada, à parte da tabela, como o índice remissivo de um livro. É
+consultando o índice que o banco descobre rapidamente se o valor já existe. Como
+efeito colateral, ele acelera buscas por essas colunas. As foreign keys também ganham
+índice automaticamente. Índices só de desempenho (`idx_`) ainda não foram
+necessários. Todo índice ocupa espaço e deixa a gravação um pouco mais lenta, então
+só entram onde se pagam.
+
+**`CHECK` do exclusive arc (V2).** Item de contrato e atendimento apontam para
+exatamente uma linha de preço: por duração **ou** por frequência.
+
+```sql
+CHECK ((session_duration_price_id IS NULL) <> (session_frequency_price_id IS NULL))
+```
+
+| duração | frequência | Resultado |
+|---|---|---|
+| 5 | NULL | ✅ grava |
+| NULL | 3 | ✅ grava |
+| 5 | 3 | ❌ `Check constraint 'chk_..._one_price' is violated` |
+| NULL | NULL | ❌ idem |
+
+O código já valida isso (`ContractItemDraft`, `ConsultationEntity`); o `CHECK` é a
+última barreira.
+
+**Um preço vigente por combinação (V3).** Para cada grupo + plano + duração (ou
+frequência), só pode existir uma linha com `valid_to` nulo. O código checa antes de
+criar, mas duas gravações **simultâneas** passariam as duas pela checagem e criariam
+dois preços vigentes. Um `UNIQUE (grupo, plano, duração)` simples não serve, porque
+bloquearia também o histórico de reajustes. A solução tem duas peças:
+
+1. **Coluna calculada `current_flag`**, que ninguém preenche: o banco calcula o valor
+   a partir de `valid_to`, no mesmo comando que o altera. Vale `1` na linha vigente e
+   `NULL` na fechada. É `TINYINT` (o menor inteiro), e as fechadas são `NULL`, não
+   `0`, pelo motivo do item 2. Tentar escrever nela dá erro.
+
+   ```sql
+   current_flag TINYINT AS (IF(valid_to IS NULL, 1, NULL)) STORED
+   ```
+
+2. **`UNIQUE (pricing_group_id, plan_id, duration_minutes, current_flag)`.** O MySQL
+   não considera um `NULL` igual a outro no `UNIQUE`, então as linhas fechadas podem
+   se repetir à vontade (histórico), e só o `1` (vigente) não pode aparecer duas
+   vezes.
+
+| grupo | plano | duração | `valid_to` | `current_flag` | |
+|---|---|---|---|---|---|
+| Ind. Padrão | Evolução | 60 | 2026-10-01 | NULL | histórico ✅ |
+| Ind. Padrão | Evolução | 60 | 2026-10-15 | NULL | histórico ✅ |
+| Ind. Padrão | Evolução | 60 | NULL | 1 | vigente ✅ |
+| Ind. Padrão | Evolução | 60 | NULL | 1 | ❌ `Duplicate entry ... for key 'uk_duration_price_current'` |
+
+No reajuste, a ordem importa: a linha antiga é fechada no banco **antes** do
+`INSERT` da nova (`saveAndFlush` no `PricingService`), senão as duas teriam `1` por
+um instante. Uma violação que escapa das checagens do código chega à API como 409
+genérico ("conflito de integridade"); a causa exata aparece no log da aplicação.
 
 ## Dados de teste
 

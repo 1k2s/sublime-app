@@ -3,6 +3,9 @@ package br.com.senai.sublime_app.pricing.domain;
 import br.com.senai.sublime_app.pricing.enums.PlanType;
 import br.com.senai.sublime_app.pricing.enums.PricingModel;
 import br.com.senai.sublime_app.shared.exception.BusinessRuleException;
+import org.hibernate.annotations.JdbcTypeCode;
+import org.hibernate.type.SqlTypes;
+
 import jakarta.persistence.Column;
 import jakarta.persistence.Entity;
 import jakarta.persistence.EnumType;
@@ -36,8 +39,10 @@ public class PlanEntity {
 
     // Fixo após a criação (sem método que o altere): o tipo define em quais tabelas
     // de preço o plano tem linhas e se ele pode entrar em contrato.
+    // varchar, não o enum nativo do MySQL: valor novo no enum não exige migration (ADR 0021)
     @Enumerated(EnumType.STRING)
-    @Column(name = "plan_type", nullable = false)
+    @JdbcTypeCode(SqlTypes.VARCHAR)
+    @Column(name = "plan_type", nullable = false, length = 30)
     private PlanType type;
 
     // Obrigatório em SINGLE_SESSION/PACKAGE, nulo em MONTHLY_FEE (o Grupo é
