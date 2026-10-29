@@ -12,7 +12,7 @@ feature em andamento fica na spec dela, em [`specs/`](specs/).
 - **Fase 2:** `Payment` e saldo financeiro do paciente (visão da clínica).
 - **Fase 3:** app de consulta de saldo para o paciente.
 
-## Estado atual (Fase 1 — atualizado em 2026-10-21)
+## Estado atual (Fase 1 — atualizado em 2026-10-29)
 
 | Módulo | Situação |
 |---|---|
@@ -22,7 +22,10 @@ feature em andamento fica na spec dela, em [`specs/`](specs/).
 | `pricing` | implementado: grupos, técnicas (com reativação), planos (`PlanType`, `termWeeks`, de-para), preços com reajuste historizado |
 | `contract` | implementado: cabeçalho + `ContractItem`, vigência calculada (`SessionFrequency`), aditivos, opções do plano do Grupo, endpoints de apoio, beneficiário de no máximo um contrato vigente |
 | `consultation` | implementado: lançamento com contratos vinculados e escolha livre, resolução de preço (casos 1 a 3), `pricingSource`, comissão pela origem, repasse `HALF_UP`, saldo pela cadeia de versões, soft delete sem `PUT`, endpoints de apoio (`eligible-contracts`, `session-balance`) |
+| **frontend** | **em andamento** em `frontend/` (React + Vite): login (mockado), pacientes, catálogo de preços e lançamento de atendimentos com conteúdo; prestador e contrato só com a página placeholder. Convenções e próximos passos do front em [`frontend/CLAUDE.md`](../frontend/CLAUDE.md) |
 
+- **Monorepo** desde 2026-10-29 ([ADR 0022](adr/0022-monorepo.md)): o backend em
+  `backend/` e o frontend, importado com o histórico, em `frontend/`.
 - **Schema versionado pelo Flyway** (V1 a V3, desde 2026-10-29; ver
   [`development.md`](development.md)), com `ddl-auto=validate`. Banco local criado
   antes disso: zerar uma vez (`docker compose down -v`).
@@ -35,12 +38,22 @@ feature em andamento fica na spec dela, em [`specs/`](specs/).
 
 ## Próximos passos
 
-1. **Interface gráfica** (ReactJS) e testes por ela. Começar com uma spec em
-   [`specs/`](specs/README.md).
+1. **Interface gráfica** (React + Vite, em `frontend/`) e testes por ela. Começar com
+   uma spec em [`specs/`](specs/README.md).
 
 ## Pendências técnicas
 
-Nenhuma no momento.
+- **Build do front quebrado** (já estava assim na `dev` do repositório antigo, antes
+  da importação): `npm run build` falha com 3 erros de sintaxe, em
+  `src/shared/ui/Badge.jsx` (`Expected '}' but found EOF`),
+  `src/shared/ui/PageHeader.module.css` (linha 14) e
+  `src/shared/ui/Select.module.css` (linha 1), ambos `Unclosed block`. Parecem
+  arquivos cortados num merge. Corrigir num PR próprio.
+- **`frontend/.env` versionado:** hoje só tem `VITE_API_URL` (sem segredo). Avaliar
+  trocar por um `.env.example` versionado e o `.env` no `.gitignore`, antes que
+  entre algum valor sensível.
+- **Arquivar o repositório antigo do front** (`1k2s/sublime-app-front`) no GitHub,
+  depois do merge do monorepo.
 
 ## Melhorias futuras (anotadas, sem prioridade)
 

@@ -67,3 +67,4 @@ discussões que estavam no `domain-model.md` e no `architecture.md`.
 | [0019](0019-repasse-com-half-up.md) | Repasse arredondado com `HALF_UP` | aceito |
 | [0020](0020-lancamento-imutavel.md) | Lançamento de atendimento imutável | aceito |
 | [0021](0021-schema-versionado-flyway.md) | Schema versionado pelo Flyway, com `validate`, e enums como `varchar` | aceito |
+| [0022](0022-monorepo.md) | Monorepo: backend e frontend no mesmo repositório | aceito |

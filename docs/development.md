@@ -10,23 +10,50 @@ arquitetura e as regras de negócio, ver [`architecture.md`](architecture.md) e
   `com.fasterxml`), Lombok, springdoc (Swagger).
 - **MySQL 8** via `docker-compose.yml` (container `mysql-dev`, porta **3307**,
   banco `sublime_db`, usuário `root`/`root`).
-- **Frontend:** ReactJS (planejado).
+- **Frontend:** React 19 + Vite, JavaScript (sem TypeScript), CSS Modules, React
+  Router, TanStack Query, React Hook Form + Zod, Axios. Node 22. Detalhes e
+  convenções em [`frontend/CLAUDE.md`](../frontend/CLAUDE.md).
+
+## Estrutura do repositório
+
+Monorepo ([ADR 0022](adr/0022-monorepo.md)):
+
+| Pasta | Conteúdo | Comandos rodam em |
+|---|---|---|
+| `backend/` | API Spring Boot (Maven) | `backend/` (`./mvnw ...`) |
+| `frontend/` | interface React + Vite (npm) | `frontend/` (`npm ...`) |
+| `docs/` | documentação do produto (vale para os dois) | — |
+| raiz | `docker-compose.yml`, `CLAUDE.md`, `README.md`, `.github` | `docker compose ...` |
 
 ## Rodando localmente
 
-1. Subir o banco: `docker compose up -d`.
-2. Subir a aplicação: `./mvnw spring-boot:run`.
-3. Swagger: `http://localhost:8080/swagger-ui.html` (OpenAPI em `/api-docs`).
+1. Subir o banco (na raiz): `docker compose up -d`.
+2. Subir a API (em `backend/`): `./mvnw spring-boot:run`.
+   Swagger: `http://localhost:8080/swagger-ui.html` (OpenAPI em `/api-docs`).
+3. Subir a interface (em `frontend/`): `npm ci` na primeira vez (instala as
+   dependências do `package-lock.json`) e depois `npm run dev`. Abre em
+   `http://localhost:5173`.
 
-Para conferir se o código compila: `./mvnw -q compile`. É a referência quando a
-IDE acusa erro (ver "Problemas conhecidos").
+Para conferir se o backend compila: `./mvnw -q compile` (em `backend/`). É a
+referência quando a IDE acusa erro (ver "Problemas conhecidos"). No front:
+`npm run build` e `npm run lint` (em `frontend/`).
+
+## Frontend e API
+
+- **Endereço da API:** variável `VITE_API_URL` no `frontend/.env`
+  (`http://localhost:8080/api`). Depois de alterar, reinicie o `npm run dev`.
+- **CORS:** o `SecurityConfig` do backend libera `http://localhost:5173` em
+  `/api/**` (GET, POST, PUT, PATCH, DELETE), só para desenvolvimento. Mudou a porta
+  do Vite? Ajuste lá.
+- **Contrato:** o Swagger do backend é a referência dos endpoints, DTOs e mensagens
+  de erro. As regras de negócio estão no [`domain-model.md`](domain-model.md).
 
 ## Banco e schema (Flyway)
 
 O schema é criado e alterado **só pelas migrations do Flyway**
 ([ADR 0021](adr/0021-schema-versionado-flyway.md)):
 
-- As migrations ficam em `src/main/resources/db/migration/` e rodam sozinhas ao
+- As migrations ficam em `backend/src/main/resources/db/migration/` e rodam sozinhas ao
   subir a aplicação. O Flyway anota as que já aplicou na tabela
   `flyway_schema_history` e roda só as que faltam.
 - `spring.jpa.hibernate.ddl-auto=validate`: o Hibernate só **confere** se as
@@ -200,7 +227,10 @@ Não são do código:
 
 - **Erros falsos do Lombok no VS Code** ("Can't initialize javac processor...",
   `getX()` não encontrado): o processador do Lombok falha dentro da extensão Java.
-  O Maven compila normalmente; vale o `./mvnw -q compile`.
+  O Maven compila normalmente; vale o `./mvnw -q compile` (em `backend/`).
+  Depois da mudança para o monorepo, se a extensão continuar procurando o
+  `pom.xml` na raiz (ou recriar uma pasta `target/` vazia na raiz), use
+  **Ctrl+Shift+P → "Java: Clean Java Language Server Workspace"**.
 - **Sem acesso ao Maven Central e ao GitHub por HTTPS** (erro de certificado
   PKIX/SSL, provável proxy da rede): só o cache local do Maven funciona (plugins
   novos não baixam) e o `git push` pode falhar. Tentar outra rede ou

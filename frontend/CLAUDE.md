@@ -10,30 +10,25 @@ Consolida tudo o que foi definido e feito na conversa: decisões, dependências,
 | Build | Vite, template `react` |
 | Estilo | CSS Modules (sem Tailwind) |
 | Cores | Sempre em hexadecimal direto no CSS (`#5f7a58`), sem `var(--color-*)`, `rgb()` ou `color-mix()`. A paleta de referência fica em `index.css` (seção 6.6) |
-| Repositório | Separado do backend: `sublime-fisioterapia-frontend` |
+| Repositório | Monorepo: o front fica em `frontend/` do repositório `sublime-app`, junto com o backend (`backend/`) e a documentação do produto (`docs/`). Ver `docs/adr/0022-monorepo.md` |
 | Pasta dos módulos | `domain/` (não `features/`) |
 | Idioma | Código (classes, atributos, funções, pastas) em inglês; comentários e documentação em português |
 | Time | Todos fazem de tudo, com divisão parcial por módulo |
  
-### Por que repositório separado
+### Monorepo (antes: repositório separado)
  
-O backend é um projeto Spring Boot com Maven (`pom.xml`, `mvnw`, `src`, `docs`), com 1 commit e 4 branches. Para não reestruturar o backend nem arriscar as branches abertas, o frontend fica em um repositório próprio.
+O front começou num repositório próprio (`sublime-app-front`) e foi unificado com o backend em 2026-10-29, com `git subtree`, preservando o histórico (ver `docs/adr/0022-monorepo.md`). O motivo foi o vai-e-vem entre dois PRs que esta seção previa. O que muda:
  
-| Perda | Como compensar |
+| Antes (repositório separado) | Agora (monorepo) |
 |---|---|
-| Mudança de API e tela em um PR só | Dois PRs ligados, citando um ao outro. O do backend entra primeiro, sem quebrar a compatibilidade |
-| `docs/domain-model.md` só no backend | Manter lá como fonte única e colocar o link no README do front |
-| DTOs duplicados à mão | OpenAPI do backend (springdoc-openapi) como contrato |
-| Convenções em um lado só | `CLAUDE.md` no repositório do front com idioma, estrutura e regra de dependência |
+| Mudança de API e tela em dois PRs ligados | Um PR só, com o endpoint e a tela |
+| `docs/domain-model.md` só no backend | `docs/` na raiz, vale para os dois lados |
+| Convenções do front só neste arquivo | Este arquivo (`frontend/CLAUDE.md`) + o `CLAUDE.md` da raiz (regras do projeto) |
  
-Combinados mínimos:
-1. Nomes padronizados: `sublime-fisioterapia-backend` e `sublime-fisioterapia-frontend`.
-2. Contrato da API exposto pelo backend e lido antes de implementar cada tela.
-3. Mesmo nome de branch nos dois repositórios quando a funcionalidade cruza ambos (por exemplo, `feat/consultation-create`).
-4. CORS liberado no Spring só em desenvolvimento, para `http://localhost:5173`.
-5. README do front com o link do backend, a variável `VITE_API_URL` e como subir os dois lados.
- 
-Reavaliar o monorepo se o vai-e-vem entre dois PRs começar a atrapalhar. A unificação posterior é possível com `git subtree`, preservando o histórico.
+Combinados que continuam valendo:
+1. Contrato da API exposto pelo backend (Swagger/OpenAPI) e lido antes de implementar cada tela.
+2. CORS liberado no Spring só em desenvolvimento, para `http://localhost:5173`.
+3. Comandos do front rodam em `frontend/` (`npm ci`, `npm run dev`); como subir os dois lados está em `docs/development.md`.
  
 ## 2. Dependências
  
@@ -303,7 +298,7 @@ export default defineConfig({
  
 ### 6.4 Variável de ambiente
  
-Na raiz, crie o `.env` (reinicie o `npm run dev` depois de alterar):
+Na pasta do front (`frontend/`), crie o `.env` (reinicie o `npm run dev` depois de alterar):
  
 ```
 VITE_API_URL=http://localhost:8080/api
@@ -411,6 +406,8 @@ Rode `npm run dev`. Se o título aparecer sobre fundo creme, o setup está pront
 Este arquivo serve só para validar o setup. O `main.jsx` atual do projeto usa `AppProviders` (`app/providers.jsx`) e `RouterProvider` com o router de `app/router.jsx`.
  
 ### 6.8 Versionar
+ 
+Registro de como o repositório separado foi criado. Hoje o front é versionado dentro do monorepo `sublime-app` (pasta `frontend/`), e estes comandos não se aplicam mais.
  
 ```bash
 git init

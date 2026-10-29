@@ -1,7 +1,18 @@
 # Sublime Fisioterapia — instruções para o Claude Code
 
 Sistema de controle de atendimento e repasse de honorários da clínica Sublime
-Fisioterapia (Java + Spring Boot, monolito modular, MySQL, ReactJS).
+Fisioterapia (Java + Spring Boot, monolito modular, MySQL, React + Vite).
+
+## Estrutura do repositório
+
+Monorepo ([ADR 0022](docs/adr/0022-monorepo.md)):
+
+- `backend/` — API Spring Boot (Maven). Comandos rodam em `backend/` (`./mvnw ...`).
+- `frontend/` — interface React + Vite (npm). Comandos rodam em `frontend/`
+  (`npm ...`). Convenções do front (estrutura de pastas, estilo, camadas, regras de
+  dependência) em [`frontend/CLAUDE.md`](frontend/CLAUDE.md): **leia antes de
+  mexer no front**.
+- `docs/` — documentação do produto, vale para os dois lados.
 
 ## Documentação
 
