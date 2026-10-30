@@ -55,3 +55,5 @@ docs/       documentação do produto, vale para os dois
 - Branches abertas antes da migração não aplicam mais (os caminhos mudaram); a
   migração foi feita com os PRs dos dois lados fechados.
 - Bancos e ambientes locais não mudam; só os caminhos dos comandos.
+
+

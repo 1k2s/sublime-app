@@ -43,7 +43,7 @@ feature em andamento fica na spec dela, em [`specs/`](specs/).
 - **Schema versionado pelo Flyway** (V1 a V3, desde 2026-10-29; ver
   [`development.md`](development.md)), com `ddl-auto=validate`. Banco local criado
   antes disso: zerar uma vez (`docker compose down -v`).
-- **Teste de ponta a ponta pela API** (2026-10-29, comandos manuais, sem script): o
+- **Teste manual do fluxo completo pela API** (2026-10-29, comandos manuais, sem script): o
   catálogo, os cadastros, o contrato (incluindo o aditivo), os três casos de
   lançamento, o saldo, a reativação e as constraints do banco funcionaram como
   esperado. Testes automatizados continuam como melhoria futura.
