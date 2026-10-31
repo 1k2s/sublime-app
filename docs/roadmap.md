@@ -52,8 +52,19 @@ feature em andamento fica na spec dela, em [`specs/`](specs/).
 
 ## Próximos passos
 
-1. **Interface gráfica** (React + Vite, em `frontend/`) e testes por ela: ver a seção
+1. **Autenticação** (backend + tela de login): login com JWT, rotas da API protegidas e
+   senha com hash. Spec: [`specs/autenticacao.md`](specs/autenticacao.md).
+2. **Interface gráfica** (React + Vite, em `frontend/`) e testes por ela: ver a seção
    [Frontend](#frontend).
+3. **Autorização por perfil** (`ADMIN`/`PROVIDER`), depois da autenticação e com spec
+   própria:
+   - quais endpoints e dados cada perfil acessa: restringir ao `ADMIN` as operações de
+     cadastro da clínica, como a listagem completa de técnicas
+     (`GET /api/techniques/all`) e as reativações; definir o que o prestador vê;
+   - o `launchedByUserId` no `Consultation` (quem lançou) e a regra de permissão do
+     lançamento, com o prestador vindo do login;
+   - a reativação do `User` e a decisão de exigir usuário ativo para reativar o
+     prestador (hoje não exige).
 
 ## Pendências técnicas
 
@@ -61,14 +72,6 @@ Backend: nenhuma no momento. Frontend: ver a seção [Frontend](#frontend).
 
 ## Melhorias futuras (anotadas, sem prioridade)
 
-- **Autenticação:** senha em texto puro e `SecurityConfig` com `permitAll`. Entram
-  hash de senha, login e perfis (`ADMIN`/`PROVIDER`) com visibilidade por perfil;
-  junto, o `launchedByUserId` no `Consultation` (quem lançou) e a regra de
-  permissão do lançamento. Também a reativação do `User` e a decisão de exigir
-  usuário ativo para reativar o prestador (hoje não exige). Restringir ao perfil
-  `ADMIN` as operações de cadastro da clínica, como a listagem completa de técnicas
-  (`GET /api/techniques/all`) e as reativações. Hoje tudo é liberado de propósito,
-  para facilitar o desenvolvimento.
 - `PUT` de grupo, técnica e plano (renomear).
 - Reajuste de preço agendado (`validFrom` futuro).
 - Categorias de prestador (Padrão, Estagiário...) com o par de percentuais, se
@@ -142,16 +145,17 @@ chamadas batem com a API real ainda não foram conferidos.**
 
 ### Próximos passos
 
-1. **Inventário:** o que cada tela faz e se as chamadas batem com o contrato real da API
+1. **Corrigir o build** (ver "Pendências"): pré-requisito da autenticação.
+2. **Login real**, junto com a autenticação do backend
+   ([`specs/autenticacao.md`](specs/autenticacao.md)): trocar o mock do `authApi.js`,
+   alinhar os papéis, tela inicial por perfil e mensagens de erro da API.
+3. **Inventário:** o que cada tela faz e se as chamadas batem com o contrato real da API
    (Swagger). Atualizar esta seção com o resultado.
-2. **Corrigir o build** (ver "Pendências").
-3. **Trocar os mocks pelas chamadas reais** onde o backend já tem o endpoint (`patient`,
+4. **Trocar os mocks pelas chamadas reais** onde o backend já tem o endpoint (`patient`,
    `pricing`, `consultation`).
-4. **Telas que faltam**, na ordem de cadastro (cada uma depende dos dados da anterior):
+5. **Telas que faltam**, na ordem de cadastro (cada uma depende dos dados da anterior):
    prestadores e usuários → contratos → lançamento ligado à API real. Cada tela começa
    com uma spec em [`specs/`](specs/README.md).
-5. **Login real**, quando o backend tiver autenticação (ver "Autenticação" nas melhorias
-   futuras): trocar o mock do `authApi.js` e alinhar os papéis.
 
 Checklist da Fase 1 no front (herdado do guia original):
 - [ ] Login funcionando e rotas protegidas.
@@ -177,14 +181,19 @@ Checklist da Fase 1 no front (herdado do guia original):
   (ver `Consultation` no [`domain-model.md`](domain-model.md)). Redesenhar a tela sobre o
   contrato real, com spec.
 - **Papéis divergentes:** `domain/auth/roles.js` usa `"admin"` e `"provider"`; o enum
-  `Role` do backend é `ADMIN` e `PROVIDER`. Alinhar junto com o login real.
+  `Role` do backend é `ADMIN` e `PROVIDER`. Resolvido pela spec de autenticação.
+- **Mensagem de erro da API não aparece:** a `ConsultationPage` mostra `error.message`
+  (a mensagem técnica do Axios) e o `PriceFormModal` lê `data.message`, campo que o
+  `ProblemDetail` não tem (o texto está no `detail`). Corrigir com o
+  `getApiErrorMessage` que a spec de autenticação cria em `shared/http/`.
 - **Origem do paciente:** conferir se o cadastro de paciente envia o
   `referringProviderId` (prestador que trouxe o paciente), que define a comissão.
 - **Menu e rotas por papel:** o admin cai em `/consultations` depois do login, que não
   está no menu dele; `/providers` existe, mas não está no menu do design; Dashboard
-  (Fase 2) e Configurações (sem tela definida) ficam no menu, desabilitados. Decidir o
-  destino de cada papel após o login e usar ou remover `getHomePath`/`homePath` do
-  `roles.js`.
+  (Fase 2) e Configurações (sem tela definida) ficam no menu, desabilitados. O destino
+  de cada papel após o login já foi decidido na spec de autenticação (`ADMIN` →
+  `/patients`, `PROVIDER` → `/consultations`, pelo `getHomePath`); falta decidir os
+  itens do menu.
 - **Fora das convenções** da seção "Frontend" do [`architecture.md`](architecture.md):
   `src/pages/NotFoundPage.jsx` fora da estrutura (mover para `app/`); `PageLoader` e
   `RouteError` com estilo inline; `AuthContext` chamando o HTTP fora da camada `api/`;
