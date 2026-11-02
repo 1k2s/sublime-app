@@ -233,6 +233,8 @@ Regras:
 - Pages e components usam só os hooks, nunca o `httpClient` direto.
 - Sem JSX e sem regra de negócio nessa pasta.
 - Padronizar as `queryKey` por módulo (`["patients", ...]`, `["consultations", ...]`).
+- O `QueryClient` usa `staleTime: Infinity`: os dados só são buscados de novo no F5 ou quando uma escrita invalida a chave. Toda mutation precisa chamar `invalidateQueries` com a chave do módulo no `onSuccess`, senão a tela não atualiza.
+- Listas pequenas (como contratos) vêm inteiras em uma requisição, e a busca e os filtros da tela rodam em memória, no `select` do `useQuery`. Filtro no backend só quando a lista precisar de paginação.
 - Valores monetários trafegam como string e só são formatados em `shared/utils/money.js`.
 - Com o backend atrasado, o `xxxApi.js` pode devolver dados mockados sem afetar o resto.
 - Erro da API aparece com `showError` (`shared/utils/alert.js`), chamado pela page no `onError` do `mutate`. Components não chamam o Swal nem recebem o erro por prop; erros de validação de campo continuam no `FormField`.
