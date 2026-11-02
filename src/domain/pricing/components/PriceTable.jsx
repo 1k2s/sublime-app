@@ -3,15 +3,11 @@ import { Pencil } from "lucide-react";
 import { Badge } from "@/shared/ui/Badge";
 import { formatCurrency } from "@/shared/utils/money";
 import { formatDate } from "@/shared/utils/date";
+import { formatPriceAxis, getPriceAxisLabel } from "../priceAxis";
 import styles from "./PriceTable.module.css";
 
-function formatAxis(price) {
-  if (price.durationMinutes != null) return `${price.durationMinutes} min`;
-  return `${price.weeklyFrequency}x por semana`;
-}
-
 export function PriceTable({ prices, pricingModel, onEdit }) {
-  const axisLabel = pricingModel === "DURATION_BASED" ? "Duração" : "Frequência semanal";
+  const axisLabel = getPriceAxisLabel(pricingModel);
 
   return (
     <div className={styles.wrapper}>
@@ -30,7 +26,7 @@ export function PriceTable({ prices, pricingModel, onEdit }) {
           {prices.map((price) => (
             <tr key={price.id}>
               <td>{price.planName}</td>
-              <td>{formatAxis(price)}</td>
+              <td>{formatPriceAxis(price)}</td>
               <td className={styles.value}>{formatCurrency(price.sessionValue)}</td>
               <td>Desde {formatDate(price.validFrom)}</td>
               <td>

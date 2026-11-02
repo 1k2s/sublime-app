@@ -1,6 +1,7 @@
 import { Pencil } from "lucide-react";
 import { Card } from "@/shared/ui/Card";
 import { Badge } from "@/shared/ui/Badge";
+import { formatPriceAxis } from "@/domain/pricing/priceAxis";
 import { formatDate } from "@/shared/utils/date";
 import styles from "./ContractTable.module.css";
 
@@ -9,13 +10,6 @@ function getInitials(name = "") {
   if (parts.length === 0) return "--";
   if (parts.length === 1) return parts[0].slice(0, 2).toUpperCase();
   return (parts[0][0] + parts[1][0]).toUpperCase();
-}
-
-// Preço por frequência mostra as vezes por semana; por duração, os minutos da sessão
-function formatFrequency(contract) {
-  if (contract.weeklyFrequency) return `${contract.weeklyFrequency}x/semana`;
-  if (contract.durationMinutes) return `${contract.durationMinutes} min`;
-  return "--";
 }
 
 function formatValidity(contract) {
@@ -78,7 +72,7 @@ export function ContractTable({
                 <td className={styles["table-td"]}>
                   {contract.planName} · {contract.techniqueName}
                 </td>
-                <td className={styles["table-td"]}>{formatFrequency(contract)}</td>
+                <td className={styles["table-td"]}>{formatPriceAxis(contract) || "--"}</td>
                 <td className={styles["table-td"]}>{formatValidity(contract)}</td>
                 <td className={styles["table-td"]}>
                   <Badge variant={isActive ? "active" : "inactive"}>{isActive ? "Ativo" : "Encerrado"}</Badge>
