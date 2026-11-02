@@ -4,8 +4,10 @@ import { useAuth } from "@/domain/auth/context/useAuth";
 import { ROLES } from "@/domain/auth/roles";
 import { PageHeader } from "@/shared/ui/PageHeader";
 import { Button } from "@/shared/ui/Button";
-import { useContracts } from "../api/useContracts";
+import { showError } from "@/shared/utils/alert";
+import { useContracts, useCreateContract } from "../api/useContracts";
 import { ContractFilters } from "../components/ContractFilters";
+import { ContractForm } from "../components/ContractForm";
 import { ContractTable } from "../components/ContractTable";
 import styles from "./ContractPage.module.css";
 
@@ -18,15 +20,24 @@ export function ContractPage() {
   const [status, setStatus] = useState("ACTIVE");
 
   const { data: contracts = [], isLoading, isError } = useContracts({ search, status });
+  const createContract = useCreateContract();
   const isFiltered = search.trim() !== "" || status !== "ALL";
+
+  function handleCreate(contract) {
+    createContract.mutate(contract, {
+      onSuccess: () => setView("list"),
+      onError: (error) => showError(error.message),
+    });
+  }
 
   if (view === "create" && isAdmin) {
     return (
-      <div className={styles.page}>
-        <PageHeader
-          title="Novo contrato"
-          description="Vincule paciente, plano e técnica para emitir um novo contrato."
-          onBack={() => setView("list")}
+      <div className={styles["page-create"]}>
+        <PageHeader title="Novo contrato" description="Vincule paciente, plano e técnica para emitir um novo contrato." />
+        <ContractForm
+          onSubmit={handleCreate}
+          onCancel={() => setView("list")}
+          isSubmitting={createContract.isPending}
         />
       </div>
     );
