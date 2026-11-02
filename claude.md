@@ -118,7 +118,7 @@ Extras em `consultation`: `hooks/`, `components/wizard/` e `consultationStatus.j
 | `auth` | `LoginForm`, `ProtectedRoute`, `AuthContext`, `useAuth`, `authApi.js`, `useLogin`, `roles.js`, `loginSchema.js`, `LoginPage`. Exceção à regra de um diretório por módulo do backend: a sessão atravessa o app inteiro, então fica separada de `user` |
 | `user` | Gestão de usuários (cadastro e contas). Ainda sem arquivos |
 | `provider` | `ProviderForm` (inclui percentual de comissão), `ProviderTable` |
-| `contract` | `ContractForm`, `PriceSelector`, `ContractTable`, `contractSchema.js` (exclusive arc) |
+| `contract` | `ContractForm` (selects de preço e envio), `ContractSection`, `ContractSummary`, `PatientPicker`, `ContractFilters`, `ContractTable`, `contractSchema.js` |
 | `consultation` | `ConsultationWizard`, `PatientStep`, `ConfirmationStep`, `SuccessStep`, `ConsultationPreview`, `ConsultationTable`, `ConsultationFilters`, `StatusBadge`, `useConsultationWizard`, `consultationStatus.js` |
  
 ### Onde fica cada coisa
@@ -434,7 +434,7 @@ Confira se o `.gitignore` inclui `node_modules` e `dist` (e o `.env`, se tiver d
 5. **Camada `app/`:** providers, router, `AppLayout`, sidebar e topbar. Marco: a casca abre com menu e página vazia.
 6. **Módulo `auth`:** login, `AuthContext`, `ProtectedRoute` (pode começar com usuário mock).
 7. **Módulos `patient` e `pricing`:** api, hooks, schema, componentes e pages. Criar já o `PatientSearchInput`.
-8. **Módulos `provider` e `contract`:** o contrato valida o exclusive arc (exatamente um dos dois preços preenchido).
+8. **Módulos `provider` e `contract`:** o contrato respeita o exclusive arc (exatamente um dos dois preços preenchido).
 9. **Módulo `consultation`:** status, api, wizard de 3 passos, prévia e a página de Lançamentos.
 10. **Fechar a Fase 1:** histórico com filtros, lint, build e checklist final.
  
@@ -487,7 +487,7 @@ Projeto `sublime-app-front` criado e rodando no Vite. Atualizado em 2026-10-12. 
 - **Admin depois do login:** cai em `/consultations`, que não está no menu de admin, então nenhum item fica marcado. Rever quando o destino inicial por papel for definido.
 - **Valores monetários** sempre como string vinda da API. O cálculo oficial fica no backend (`BigDecimal`).
 - **Preços historizados:** nunca editar. O reajuste fecha a linha antiga (`validTo`) e abre uma nova.
-- **Exclusive arc** (`groupPlanPriceId` / `groupPlanFrequencyPriceId`): validado no schema Zod do front, com a `CHECK` constraint no banco como garantia final.
+- **Exclusive arc** (`groupPlanPriceId` / `groupPlanFrequencyPriceId`): o `ContractForm` monta o envio a partir de um único preço escolhido, então só um dos dois vai preenchido, sem schema extra. A `CHECK` constraint no banco é a garantia final.
  
 ## 10. Próximos passos
  
