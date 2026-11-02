@@ -97,15 +97,9 @@ function delay(ms) {
   return new Promise((resolve) => setTimeout(resolve, ms));
 }
 
-export async function listContracts({ search = "", status = "ALL" } = {}) {
+export async function listContracts() {
   await delay(200);
-  const term = search.trim().toLowerCase();
-
-  return getStoredContracts().filter((contract) => {
-    if (status !== "ALL" && contract.status !== status) return false;
-    if (!term) return true;
-    return [contract.patientName, contract.beneficiaryName].some((name) => name?.toLowerCase().includes(term));
-  });
+  return getStoredContracts();
 }
 
 export async function createContract(payload) {
