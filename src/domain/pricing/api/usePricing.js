@@ -17,9 +17,8 @@ export function usePlans() {
   return useQuery({ queryKey: ["plans"], queryFn: listPlans });
 }
 
-// Catálogo muda pouco: não precisa buscar de novo a cada tela
 export function useTechniques() {
-  return useQuery({ queryKey: ["techniques"], queryFn: listTechniques, staleTime: 5 * 60 * 1000 });
+  return useQuery({ queryKey: ["techniques"], queryFn: listTechniques });
 }
 
 // techniqueId nulo (grupo sem técnica) mantém a consulta desligada

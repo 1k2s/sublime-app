@@ -1,0 +1,118 @@
+.table-card {
+  padding: 0;
+  overflow: hidden;
+}
+
+.table {
+  width: 100%;
+  border-collapse: collapse;
+  text-align: left;
+}
+
+.table-head-row {
+  border-bottom: 1px solid #e5e0d5;
+}
+
+.table-th {
+  padding: 16px 20px;
+  color: #6b7280;
+  font-size: 11px;
+  font-weight: 600;
+  letter-spacing: 0.05em;
+}
+
+.table-first {
+  padding-left: 24px;
+}
+
+.table-last {
+  padding-right: 24px;
+  text-align: right;
+}
+
+.table-row {
+  border-bottom: 1px solid #e5e0d5;
+  transition: background-color 0.15s ease;
+}
+
+.table-row:last-child {
+  border-bottom: none;
+}
+
+.table-row:hover {
+  background-color: #fafbfc;
+}
+
+.table-td {
+  padding: 16px 20px;
+  color: #4b5563;
+  font-size: 13px;
+  vertical-align: middle;
+}
+
+.table-patient {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+}
+
+.table-avatar {
+  display: flex;
+  flex-shrink: 0;
+  align-items: center;
+  justify-content: center;
+  width: 38px;
+  height: 38px;
+  border-radius: 50%;
+  background: #f1f3f0;
+  color: #4b5563;
+  font-size: 12px;
+  font-weight: 600;
+}
+
+.table-patient-name {
+  color: #1f2937;
+  font-size: 14px;
+  font-weight: 600;
+}
+
+.table-edit {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 32px;
+  height: 32px;
+  padding: 0;
+  border: none;
+  border-radius: 8px;
+  background: none;
+  color: #374151;
+  cursor: pointer;
+}
+
+.table-edit:hover:not(:disabled) {
+  background: #f1f3f0;
+}
+
+.table-edit:disabled {
+  color: #6b7280;
+  cursor: not-allowed;
+  opacity: 0.5;
+}
+
+.table-message {
+  padding: 48px;
+  text-align: center;
+}
+
+.table-message-title {
+  margin: 0 0 6px;
+  color: #374151;
+  font-size: 16px;
+  font-weight: 600;
+}
+
+.table-message-text {
+  color: #6b7280;
+  font-size: 14px;
+}
