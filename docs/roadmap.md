@@ -14,7 +14,7 @@ feature em andamento fica na spec dela, em [`specs/`](specs/).
 - [Melhorias futuras (anotadas, sem prioridade)](#melhorias-futuras-anotadas-sem-prioridade)
 - [Não modelado ainda](#não-modelado-ainda)
 - [Frontend](#frontend)
-  - [Estado atual (a revisar no inventário; atualizado em 2026-10-29)](#estado-atual-a-revisar-no-inventário-atualizado-em-2026-10-29)
+  - [Estado atual (a revisar no inventário; atualizado em 2026-11-05)](#estado-atual-a-revisar-no-inventário-atualizado-em-2026-11-05)
   - [Próximos passos](#próximos-passos-1)
   - [Pendências](#pendências)
   - [Melhorias (sem prioridade)](#melhorias-sem-prioridade)
@@ -124,7 +124,7 @@ Backend: nenhuma no momento. Frontend: ver a seção [Frontend](#frontend).
 
 Convenções na seção "Frontend" do [`architecture.md`](architecture.md).
 
-### Estado atual (a revisar no inventário; atualizado em 2026-10-29)
+### Estado atual (a revisar no inventário; atualizado em 2026-11-05)
 
 Levantado pelos arquivos de `frontend/src/`; **o comportamento de cada tela e se as
 chamadas batem com a API real ainda não foram conferidos.**
@@ -135,27 +135,30 @@ chamadas batem com a API real ainda não foram conferidos.**
 | `patient` | listagem com filtros e busca, modal de detalhes, cadastro em wizard (dados pessoais, endereço com ViaCEP, confirmação). `patientApi.js` com trechos mockados |
 | `pricing` | catálogo de preços (tabela, busca de técnica, modal de preço) |
 | `consultation` | tela de lançamento (formulário, agenda, carrinho, total). `consultationApi.js` com trechos mockados |
-| `provider`, `contract` | só a página placeholder |
+| `contract` | tela de contratos (filtros, tabela, formulário com seleção de paciente e preço, resumo), com fallback mockado no `contractApi.js`. **Envio no modelo antigo do contrato** (ver "Pendências") |
+| `provider` | só a página placeholder |
 | `user` | nada |
 | `app/`, `shared/` | layout com menu lateral, router com rotas `lazy`, `httpClient`, utilitários (`money`, `date`, `masks`, `alert`, `viacep`) e componentes de `shared/ui/` |
 
-- **`npm run build` falha** (ver "Pendências").
+- **`npm run build` funciona** desde a atualização de 2026-11-05 (as correções do PR #13
+  do repositório antigo resolveram os arquivos cortados). `npm run lint`: sem erros, 1
+  aviso (ver "Pendências").
 - Monorepo desde 2026-10-29: o front foi importado com o histórico da `dev` do repositório
-  antigo.
+  antigo e atualizado em 2026-11-05 com os PRs #13 (correções) e #14 (tela de contratos).
+  O repositório antigo está congelado.
 
 ### Próximos passos
 
-1. **Corrigir o build** (ver "Pendências"): pré-requisito da autenticação.
-2. **Login real**, junto com a autenticação do backend
+1. **Login real**, junto com a autenticação do backend
    ([`specs/autenticacao.md`](specs/autenticacao.md)): trocar o mock do `authApi.js`,
    alinhar os papéis, tela inicial por perfil e mensagens de erro da API.
-3. **Inventário:** o que cada tela faz e se as chamadas batem com o contrato real da API
+2. **Inventário:** o que cada tela faz e se as chamadas batem com o contrato real da API
    (Swagger). Atualizar esta seção com o resultado.
-4. **Trocar os mocks pelas chamadas reais** onde o backend já tem o endpoint (`patient`,
-   `pricing`, `consultation`).
-5. **Telas que faltam**, na ordem de cadastro (cada uma depende dos dados da anterior):
-   prestadores e usuários → contratos → lançamento ligado à API real. Cada tela começa
-   com uma spec em [`specs/`](specs/README.md).
+3. **Trocar os mocks pelas chamadas reais** onde o backend já tem o endpoint (`patient`,
+   `pricing`, `contract`, `consultation`).
+4. **Telas que faltam**, na ordem de cadastro (cada uma depende dos dados da anterior):
+   prestadores e usuários → ajuste dos contratos ao contrato real → lançamento ligado à
+   API real. Cada tela começa com uma spec em [`specs/`](specs/README.md).
 
 Checklist da Fase 1 no front (herdado do guia original):
 - [ ] Login funcionando e rotas protegidas.
@@ -169,11 +172,8 @@ Checklist da Fase 1 no front (herdado do guia original):
 
 ### Pendências
 
-- **Build quebrado** (já estava assim na `dev` do repositório antigo, antes da
-  importação): `npm run build` falha com 3 erros de sintaxe, em
-  `src/shared/ui/Badge.jsx` (`Expected '}' but found EOF`),
-  `src/shared/ui/PageHeader.module.css` (linha 14) e `src/shared/ui/Select.module.css`
-  (linha 1), ambos `Unclosed block`. Parecem arquivos cortados num merge.
+- **Aviso do lint** em `PatientWizard.jsx`: o `watch()` do React Hook Form não pode ser
+  memoizado (`react-hooks/incompatible-library`). O usual é trocar por `useWatch`.
 - **Tela de lançamento planejada em conflito com a API.** O guia original dizia que o
   front envia só `patientId` e `arrivalTime` e que o prestador vem do login. O
   `POST /api/consultations` espera `patientId`, `contractId` (escolhido entre os

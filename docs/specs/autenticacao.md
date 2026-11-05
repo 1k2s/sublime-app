@@ -230,7 +230,6 @@ endpoints, para o botão "Authorize" funcionar; o login fica sem exigência de t
 
 | Arquivo | Mudança |
 |---|---|
-| `shared/ui/Badge.jsx`, `PageHeader.module.css`, `Select.module.css` | **pré-requisito:** corrigir o build (arquivos cortados) |
 | `shared/http/apiError.js` (novo) | `getApiErrorMessage(error, fallback)`: devolve o `detail` do `ProblemDetail` ou o `fallback` |
 | `domain/auth/api/authApi.js` | troca o mock por `httpClient.post("/auth/login", { email, password })`; devolve `{ token, expiresAt, user }` |
 | `domain/auth/context/AuthContext.jsx` | `signIn` guarda também a `expiresAt`; `readStoredUser` descarta a sessão vencida; `signOut` limpa o cache (`queryClient.clear()`) |
@@ -252,7 +251,8 @@ O `httpClient` não muda: já envia o token e trata o 401.
 - [ ] Teste manual pelo Swagger: login certo; senha errada; e-mail inexistente; usuário inativo (mesma mensagem); chamada sem token, com token inválido e com token vencido (401); criar e alterar usuário (com e sem senha); primeiro admin com e sem as variáveis.
 
 **Frontend** (`npm run build` e `npm run lint` ao fim):
-- [ ] Corrigir o build.
+- [x] Corrigir o build (resolvido pelo PR #13 do repositório antigo, trazido para o
+      monorepo em 2026-11-05).
 - [ ] `getApiErrorMessage`.
 - [ ] `authApi.js` real.
 - [ ] `AuthContext`: `expiresAt` e limpeza do cache.
