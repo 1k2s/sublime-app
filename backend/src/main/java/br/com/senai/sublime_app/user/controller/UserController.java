@@ -15,6 +15,7 @@ import org.springframework.web.bind.annotation.RestController;
 
 import br.com.senai.sublime_app.user.dto.UserRequestDTO;
 import br.com.senai.sublime_app.user.dto.UserResponseDTO;
+import br.com.senai.sublime_app.user.dto.UserUpdateRequestDTO;
 import br.com.senai.sublime_app.user.service.UserService;
 import io.swagger.v3.oas.annotations.Operation;
 import io.swagger.v3.oas.annotations.Parameter;
@@ -40,7 +41,10 @@ public class UserController {
         this.userService = userService;
     }
 
-    @Operation(summary = "Cadastrar usuário", description = "Cria um usuário ativo. A senha nunca é devolvida nas respostas.")
+    @Operation(summary = "Cadastrar usuário", description = """
+            Cria um usuário ativo. A senha precisa ter no mínimo 8 caracteres, é gravada com
+            hash e nunca é devolvida nas respostas.
+            """)
     @ApiResponses({
             @ApiResponse(responseCode = "201", description = "Usuário criado", content = @Content(schema = @Schema(implementation = UserResponseDTO.class))),
             @ApiResponse(responseCode = "400", description = "Dados inválidos", content = @Content),
@@ -71,7 +75,10 @@ public class UserController {
         return ResponseEntity.ok(userService.findById(id));
     }
 
-    @Operation(summary = "Atualizar usuário", description = "Atualiza e-mail, senha e perfil. Todos os campos são obrigatórios.")
+    @Operation(summary = "Atualizar usuário", description = """
+            Atualiza e-mail e perfil (obrigatórios). A **senha é opcional**: vazia ou ausente
+            mantém a atual; preenchida, troca (mínimo de 8 caracteres).
+            """)
     @ApiResponses({
             @ApiResponse(responseCode = "200", description = "Usuário atualizado", content = @Content(schema = @Schema(implementation = UserResponseDTO.class))),
             @ApiResponse(responseCode = "400", description = "Dados inválidos", content = @Content),
@@ -81,7 +88,7 @@ public class UserController {
     @PutMapping("/{id}")
     public ResponseEntity<UserResponseDTO> update(
             @Parameter(description = "Identificador do usuário", required = true, example = "1") @PathVariable Long id,
-            @Valid @RequestBody UserRequestDTO dto) {
+            @Valid @RequestBody UserUpdateRequestDTO dto) {
         return ResponseEntity.ok(userService.update(id, dto));
     }
 

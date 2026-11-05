@@ -9,6 +9,7 @@
 - [Princípios de modelagem já fixados (não reabrir sem justificativa forte)](#princípios-de-modelagem-já-fixados-não-reabrir-sem-justificativa-forte)
 - [Padrão de construção (todos os módulos implementados seguem)](#padrão-de-construção-todos-os-módulos-implementados-seguem)
 - [Formato dos erros](#formato-dos-erros)
+- [Segurança](#segurança)
 - [Frontend](#frontend)
   - [Princípios](#princípios)
   - [Stack](#stack)
@@ -73,21 +74,24 @@ Um único deploy, separado em módulos com fronteiras de domínio
 
 ```
 pricing          user          ← módulos de base, sem dependência
-   |               |
-   |           provider        ← referencia user
-   |               |
-   |           patient         ← referencia provider (origem do paciente)
-    \             /
-     contract                  ← referencia patient + pricing
-         \
-       consultation            ← depende de todos os anteriores
+   |            /    \
+   |      provider    auth     ← provider e auth referenciam user
+   |         |
+   |      patient              ← referencia provider (origem do paciente)
+    \       /
+    contract                   ← referencia patient + pricing
+        \
+     consultation              ← depende de todos os anteriores
 ```
 
 - `pricing`: técnicas, planos e catálogo de preços (`Technique`, `Plan`,
   `PricingGroup`, `SessionDurationPrice`, `SessionFrequencyPrice`). Ficam juntos porque
   mudam sempre em conjunto e nenhum outro módulo deve conhecer a fiação interna
   entre eles.
-- `user`: autenticação genérica (`User`).
+- `user`: usuários de acesso ao sistema (`User`: e-mail, senha com hash, perfil).
+- `auth`: login, emissão e validação do token e as regras de acesso da API (ver
+  "Segurança"), referencia `user`. O `user` não importa nada do `auth`: recebe só o
+  `PasswordEncoder`, que é uma interface do Spring Security.
 - `provider`: dado de negócio do prestador (`Provider`), referencia `user`.
 - `patient`: cadastro de pacientes (`Patient`), referencia `provider` — a origem
   do paciente (prestador que o trouxe; `null` = clínica) define o percentual de
@@ -227,11 +231,50 @@ português:
 | `ResourceNotFoundException` | 404 | `detail` |
 | `ConflictException` (duplicidade, estado inválido) | 409 | `detail` |
 | `DataIntegrityViolationException` (constraint que escapou das checagens) | 409 | `detail` genérico |
+| Login recusado (`AuthenticationException` no `POST /api/auth/login`) | 401 | `detail`: "E-mail ou senha inválidos." (o mesmo para e-mail inexistente, senha errada e usuário inativo) |
+| Rota protegida sem token, com token inválido ou vencido, ou de usuário inativado / com perfil alterado | 401 | `detail`: "Sessão inválida ou expirada. Faça login novamente." + header `WWW-Authenticate: Bearer` |
+| Sem permissão para o recurso (com a autorização por perfil, ainda não usada) | 403 | `detail`: "Você não tem permissão para acessar este recurso." |
 
-Ordem em que os erros acontecem: leitura do JSON → DTO (todos os erros de uma
-vez) → service (404/409, um por vez) → entidade (400, um por vez) → banco. O
+Os 401/403 de rota protegida acontecem nos filtros de segurança, antes do Spring MVC:
+quem os escreve é o `auth` (`ProblemDetailAuthenticationEntryPoint`,
+`ProblemDetailAccessDeniedHandler`, pelo `ProblemDetailResponseWriter`), no mesmo formato
+`ProblemDetail`.
+
+Ordem em que os erros acontecem: token (401) → leitura do JSON → DTO (todos os erros
+de uma vez) → service (404/409, um por vez) → entidade (400, um por vez) → banco. O
 frontend trata `errors` como erro de formulário (por campo) e `detail` como
 mensagem geral.
+
+## Segurança
+
+Autenticação por **token JWT emitido pelo próprio sistema** e validado pelo resource
+server do Spring ([ADR 0023](adr/0023-autenticacao-jwt-resource-server.md)). Código no
+módulo `auth`.
+
+- **Login:** `POST /api/auth/login` (e-mail e senha) → `{ token, expiresAt, user }`. O
+  `AuthenticationManager` (`DaoAuthenticationProvider` + `DatabaseUserDetailsService`)
+  confere se o usuário existe e está ativo, e a senha contra o hash BCrypt.
+- **Token:** HMAC SHA-256 (`JwtConfig`, chave do `JWT_SECRET`), válido por 8 horas
+  (`jwt.expiration`), sem refresh token. Claims: `iss` = `sublime-app`, `sub` = e-mail,
+  `userId`, `roles` (lista, ex: `["ADMIN"]`), `iat`, `exp`. Gerado pelo `TokenService`.
+- **Em cada requisição** o `JwtDecoder` confere a assinatura, a validade e o emissor e, por
+  fim, o `ActiveUserTokenValidator`: o usuário do token precisa existir, estar ativo e ter
+  o mesmo perfil do token (uma consulta por chave primária). Se não, 401.
+- **Perfis:** a claim `roles` vira as autoridades `ROLE_ADMIN` / `ROLE_PROVIDER`, prontas
+  para o `hasRole(...)` da autorização por perfil (ainda não aplicada: hoje qualquer
+  usuário logado acessa todos os endpoints).
+- **Rotas públicas** (`SecurityConfig`, em `auth/config`): `POST /api/auth/login`, o
+  Swagger (`/swagger-ui.html`, `/swagger-ui/**`, `/api-docs/**`) e o `/error` interno.
+  Todo o resto exige `Authorization: Bearer <token>`.
+- **Sem sessão no servidor** (`STATELESS`) e **sem CSRF** (o token vai no header, não em
+  cookie). **CORS** liberado só para o front de desenvolvimento (`http://localhost:5173`,
+  em `/api/**`).
+- **Segredos** (`JWT_SECRET`, `ADMIN_EMAIL`, `ADMIN_PASSWORD`) nunca no git: vêm do
+  `backend/.env` local ou das variáveis de ambiente (ver
+  [`development.md`](development.md)). Sem `JWT_SECRET` válido (32 bytes ou mais), a
+  aplicação não sobe.
+- **Swagger:** esquema `bearer` em todas as rotas (botão "Authorize"); o login é marcado
+  sem exigência de token (`@SecurityRequirements` vazio).
 
 ## Frontend
 

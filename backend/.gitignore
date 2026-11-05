@@ -31,3 +31,7 @@ build/
 
 ### VS Code ###
 .vscode/
+
+### Variáveis locais (segredos) ###
+# O modelo versionado é o .env.example
+.env

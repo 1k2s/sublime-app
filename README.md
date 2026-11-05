@@ -44,7 +44,7 @@ Detalhes (banco, migrations, dados de teste, problemas conhecidos):
 | Framework | Spring Boot 4 |
 | Persistência | Spring Data JPA + MySQL |
 | Migrations | Flyway |
-| Segurança | Spring Security (OAuth2) |
+| Segurança | Spring Security (login com JWT, resource server) |
 | Documentação de API | Swagger / OpenAPI |
 | Frontend | React + Vite (JavaScript), CSS Modules, React Router, TanStack Query |
 
@@ -62,7 +62,9 @@ graph BT
   contract[contract]
   provider[provider]
   consultation[consultation]
+  auth[auth]
 
+  auth --> user
   contract --> patient
   contract --> pricing
   patient --> provider
@@ -91,5 +93,6 @@ infraestrutura, não uma reescrita do domínio.
 O projeto está na primeira fase. O backend dos cadastros (pacientes,
 prestadores, catálogo de preços), dos contratos e do lançamento de atendimentos,
 com o cálculo do repasse e do saldo de sessões, está implementado, com o schema do
-banco versionado por migrations. A interface gráfica está em desenvolvimento.
+banco versionado por migrations e as rotas da API protegidas por login (JWT). A
+interface gráfica está em desenvolvimento.
 
