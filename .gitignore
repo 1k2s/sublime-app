@@ -1,3 +1,9 @@
 ### Editores ###
 .vscode/
 .idea/
+
+### Build ###
+# Proteção: o build do Maven fica em backend/target/ (ignorado pelo backend/.gitignore),
+# mas a extensão Java do VS Code pode recriar um target/ na raiz depois da mudança para
+# o monorepo (ver "Problemas conhecidos" no docs/development.md)
+target/
