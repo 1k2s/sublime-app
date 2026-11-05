@@ -34,6 +34,7 @@ public class UserEntity {
     @Column(nullable = false, unique = true)
     private String email;
 
+    // Sempre o hash (BCrypt), nunca a senha digitada: quem faz o hash é o UserService
     @Column(nullable = false)
     private String password;
 
@@ -46,20 +47,28 @@ public class UserEntity {
     @Column(nullable = false)
     private boolean active = true;
 
-    // Construtor publico para criar um usuário com os dados obrigatórios
-    public UserEntity(String email, String password, Role role) {
-        validateEmailPasswordAndRole(email, password, role);
+    // Construtor publico para criar um usuário com os dados obrigatórios. Recebe a senha
+    // já com hash (encodedPassword).
+    public UserEntity(String email, String encodedPassword, Role role) {
+        validateEmailAndRole(email, role);
+        validateEncodedPassword(encodedPassword);
         this.email = email;
-        this.password = password;
+        this.password = encodedPassword;
         this.role = role;
         this.active = true;
     }
 
-    public void update(String email, String password, Role role) {
-        validateEmailPasswordAndRole(email, password, role);
+    // Alteração dos dados de acesso, sem a senha (ver changePassword)
+    public void update(String email, Role role) {
+        validateEmailAndRole(email, role);
         this.email = email;
-        this.password = password;
         this.role = role;
+    }
+
+    // Troca de senha, separada do update: na alteração a senha é opcional
+    public void changePassword(String encodedPassword) {
+        validateEncodedPassword(encodedPassword);
+        this.password = encodedPassword;
     }
 
     // Soft delete: o usuário pode estar vinculado a um prestador com atendimentos
@@ -76,17 +85,21 @@ public class UserEntity {
         }
     }
 
-    // Invariantes mínimas do usuário. Formato do e-mail fica no DTO (@Email);
-    // regras de senha (tamanho, hash) virão com o módulo de autenticação.
-    private static void validateEmailPasswordAndRole(String email, String password, Role role) {
+    // Invariantes mínimas do usuário. Formato do e-mail fica no DTO (@Email)
+    private static void validateEmailAndRole(String email, Role role) {
         if (email == null || email.isBlank()) {
             throw new BusinessRuleException("O e-mail é obrigatório.");
         }
-        if (password == null || password.isBlank()) {
-            throw new BusinessRuleException("A senha é obrigatória.");
-        }
         if (role == null) {
             throw new BusinessRuleException("O perfil do usuário é obrigatório.");
+        }
+    }
+
+    // A entidade só recebe o hash, então só confere que ele existe. O tamanho mínimo
+    // só existe na senha digitada e fica no DTO.
+    private static void validateEncodedPassword(String encodedPassword) {
+        if (encodedPassword == null || encodedPassword.isBlank()) {
+            throw new BusinessRuleException("A senha é obrigatória.");
         }
     }
 }

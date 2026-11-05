@@ -832,10 +832,35 @@ fica preservado ([ADR 0011](adr/0011-contrato-versionado-por-aditivos.md)). Regr
 | Atributo | Tipo | Observação |
 |---|---|---|
 | `id` | Long | auto-increment |
-| `email` | string, unique | e-mail duplicado → 409 (na criação e na atualização) |
-| `password` | string | nunca devolvida nas respostas (texto puro por enquanto — hash entra com a autenticação) |
-| `role` | ENUM: `ADMIN` \| `PROVIDER` | |
-| `active` | boolean | soft delete |
+| `email` | string, unique | e-mail duplicado → 409 (na criação e na atualização); é o login |
+| `password` | string | **hash BCrypt**, nunca a senha digitada; nunca devolvida nas respostas |
+| `role` | ENUM: `ADMIN` \| `PROVIDER` | perfil, levado no token |
+| `active` | boolean | soft delete; inativo não acessa o sistema |
+
+**Acesso ao sistema** (login e token: ver "Segurança" no
+[`architecture.md`](architecture.md); [ADR 0023](adr/0023-autenticacao-jwt-resource-server.md)):
+- Só usuário **ativo** faz login. Login recusado tem sempre a mesma mensagem (e-mail
+  inexistente, senha errada ou inativo), para não revelar quais e-mails existem.
+- **Inativar o usuário ou mudar o perfil dele corta o acesso na hora:** o token que ele
+  já tinha deixa de valer na próxima requisição, e ele faz login de novo.
+- Não há cadastro público: usuários são criados pelo `POST /api/users`.
+
+**Senha:**
+- **Mínimo de 8 caracteres**, sem exigir maiúscula ou símbolo (o que protege é o tamanho,
+  NIST SP 800-63B).
+- **Na alteração (`PUT`), a senha é opcional:** vazia ou ausente mantém a atual; preenchida,
+  troca (mínimo de 8). Com hash, a senha atual não volta para o formulário, e exigir uma
+  nova obrigaria o admin a inventar uma só para corrigir um e-mail. Por isso a alteração
+  usa um DTO próprio (`UserUpdateRequestDTO`).
+- A entidade recebe sempre o hash (`UserEntity(email, encodedPassword, role)`,
+  `changePassword(encodedPassword)`); o tamanho mínimo só existe na senha digitada e fica
+  nos DTOs. Quem faz o hash é o `UserService` (pela interface `PasswordEncoder`).
+
+**Primeiro admin:** ao subir, se não houver nenhum `ADMIN` ativo, a aplicação cria um com
+`ADMIN_EMAIL` e `ADMIN_PASSWORD` (variáveis de ambiente), pelo `UserService`, com as mesmas
+regras do cadastro. Valores inválidos impedem a aplicação de subir; sem as variáveis, ela
+sobe com um aviso no log e ninguém consegue logar. Com um `ADMIN` ativo, as variáveis são
+ignoradas.
 
 **Por que soft delete também no usuário:** o usuário pode estar vinculado a um
 prestador. Remover o registro quebraria esse histórico (ou seria barrado pela FK

@@ -7,7 +7,7 @@ feature enquanto ela não está pronta.
 
 | Spec | Feature |
 |---|---|
-| [`autenticacao.md`](autenticacao.md) | login com JWT, rotas da API protegidas e tela de login ligada à API |
+| [`autenticacao.md`](autenticacao.md) | login com JWT, rotas da API protegidas e tela de login ligada à API. Backend concluído; falta o frontend |
 
 ## O que uma spec tem
 

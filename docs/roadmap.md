@@ -8,7 +8,7 @@ feature em andamento fica na spec dela, em [`specs/`](specs/).
 ## Índice <!-- omit from toc -->
 
 - [Fases](#fases)
-- [Estado atual (Fase 1 — atualizado em 2026-10-29)](#estado-atual-fase-1--atualizado-em-2026-10-29)
+- [Estado atual (Fase 1 — atualizado em 2026-11-05)](#estado-atual-fase-1--atualizado-em-2026-11-05)
 - [Próximos passos](#próximos-passos)
 - [Pendências técnicas](#pendências-técnicas)
 - [Melhorias futuras (anotadas, sem prioridade)](#melhorias-futuras-anotadas-sem-prioridade)
@@ -26,12 +26,13 @@ feature em andamento fica na spec dela, em [`specs/`](specs/).
 - **Fase 2:** `Payment` e saldo financeiro do paciente (visão da clínica).
 - **Fase 3:** app de consulta de saldo para o paciente.
 
-## Estado atual (Fase 1 — atualizado em 2026-10-29)
+## Estado atual (Fase 1 — atualizado em 2026-11-05)
 
 | Módulo | Situação |
 |---|---|
 | `patient` | implementado: incl. origem do paciente (`referringProvider`), soft delete e reativação com 409 |
-| `user` | implementado: soft delete, e-mail único (409) |
+| `user` | implementado: soft delete, e-mail único (409), senha com hash BCrypt (mínimo 8), senha opcional na alteração |
+| `auth` | **backend implementado** (2026-11-05): login com JWT, todas as rotas protegidas (exceto login e Swagger), corte imediato do acesso ao inativar ou mudar o perfil, primeiro admin, Swagger com "Authorize". **Falta o front** ([`specs/autenticacao.md`](specs/autenticacao.md)) |
 | `provider` | implementado: dois percentuais (padrão 40/45), usuário ativo obrigatório na criação, reativação |
 | `pricing` | implementado: grupos, técnicas (com reativação), planos (`PlanType`, `termWeeks`, de-para), preços com reajuste historizado |
 | `contract` | implementado: cabeçalho + `ContractItem`, vigência calculada (`SessionFrequency`), aditivos, opções do plano do Grupo, endpoints de apoio, beneficiário de no máximo um contrato vigente |
@@ -47,13 +48,19 @@ feature em andamento fica na spec dela, em [`specs/`](specs/).
   catálogo, os cadastros, o contrato (incluindo o aditivo), os três casos de
   lançamento, o saldo, a reativação e as constraints do banco funcionaram como
   esperado. Testes automatizados continuam como melhoria futura.
+- **Teste manual da autenticação pela API** (2026-11-05): login, tokens inválidos e
+  vencidos, senha com e sem troca, corte imediato do acesso, primeiro admin, Swagger e CORS
+  funcionaram como esperado.
+- **Variáveis locais:** a aplicação precisa do `backend/.env` (ver "Variáveis de ambiente"
+  no [`development.md`](development.md)); sem `JWT_SECRET`, não sobe.
 - **Testes:** decidido testar pela **interface gráfica** (não por Swagger nem por
   testes automatizados por enquanto).
 
 ## Próximos passos
 
-1. **Autenticação** (backend + tela de login): login com JWT, rotas da API protegidas e
-   senha com hash. Spec: [`specs/autenticacao.md`](specs/autenticacao.md).
+1. **Autenticação: o frontend** (tela de login ligada à API, sessão que expira, papéis
+   `ADMIN`/`PROVIDER`, tela inicial por perfil, mensagens de erro da API). O backend está
+   pronto. Spec: [`specs/autenticacao.md`](specs/autenticacao.md).
 2. **Interface gráfica** (React + Vite, em `frontend/`) e testes por ela: ver a seção
    [Frontend](#frontend).
 3. **Autorização por perfil** (`ADMIN`/`PROVIDER`), depois da autenticação e com spec
@@ -68,7 +75,11 @@ feature em andamento fica na spec dela, em [`specs/`](specs/).
 
 ## Pendências técnicas
 
-Backend: nenhuma no momento. Frontend: ver a seção [Frontend](#frontend).
+- **Primeiro admin, dois casos sem teste em execução:** `ADMIN_PASSWORD` ou `ADMIN_EMAIL`
+  inválidos (a aplicação não deve subir) e `ADMIN_EMAIL` já usado por outro usuário (só
+  aviso no log). A lógica está no `AdminInitializer`.
+
+Frontend: ver a seção [Frontend](#frontend).
 
 ## Melhorias futuras (anotadas, sem prioridade)
 
@@ -149,9 +160,10 @@ chamadas batem com a API real ainda não foram conferidos.**
 
 ### Próximos passos
 
-1. **Login real**, junto com a autenticação do backend
-   ([`specs/autenticacao.md`](specs/autenticacao.md)): trocar o mock do `authApi.js`,
-   alinhar os papéis, tela inicial por perfil e mensagens de erro da API.
+1. **Login real** ([`specs/autenticacao.md`](specs/autenticacao.md); o backend já está
+   pronto): trocar o mock do `authApi.js`, alinhar os papéis, tela inicial por perfil,
+   sessão que expira e mensagens de erro da API. **Até lá, o front não consegue chamar a
+   API:** todas as rotas exigem o token, e o login mockado não gera um token válido.
 2. **Inventário:** o que cada tela faz e se as chamadas batem com o contrato real da API
    (Swagger). Atualizar esta seção com o resultado.
 3. **Trocar os mocks pelas chamadas reais** onde o backend já tem o endpoint (`patient`,

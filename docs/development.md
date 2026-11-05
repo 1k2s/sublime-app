@@ -10,6 +10,7 @@ frontend). Para a arquitetura e as regras de negócio, ver
 - [Stack](#stack)
 - [Estrutura do repositório](#estrutura-do-repositório)
 - [Rodando localmente](#rodando-localmente)
+- [Variáveis de ambiente](#variáveis-de-ambiente)
 - [Frontend e API](#frontend-e-api)
 - [Banco e schema (Flyway)](#banco-e-schema-flyway)
   - [Criando uma migration](#criando-uma-migration)
@@ -45,15 +46,53 @@ Monorepo ([ADR 0022](adr/0022-monorepo.md)):
 ## Rodando localmente
 
 1. Subir o banco (na raiz): `docker compose up -d`.
-2. Subir a API (em `backend/`): `./mvnw spring-boot:run`.
-   Swagger: `http://localhost:8080/swagger-ui.html` (OpenAPI em `/api-docs`).
-3. Subir a interface (em `frontend/`): `npm ci` na primeira vez (instala as
+2. **Na primeira vez:** criar o `backend/.env` a partir do `backend/.env.example` (ver
+   "Variáveis de ambiente" abaixo).
+3. Subir a API (em `backend/`): `./mvnw spring-boot:run`.
+   Swagger: `http://localhost:8080/swagger-ui.html` (OpenAPI em `/api-docs`). Para
+   chamar as rotas pelo Swagger, faça o login em `POST /api/auth/login`, copie o `token`
+   e cole em **Authorize** (cadeado, no topo).
+4. Subir a interface (em `frontend/`): `npm ci` na primeira vez (instala as
    dependências do `package-lock.json`) e depois `npm run dev`. Abre em
    `http://localhost:5173`.
 
 Para conferir se o backend compila: `./mvnw -q compile` (em `backend/`). É a
 referência quando a IDE acusa erro (ver "Problemas conhecidos"). No front:
 `npm run build` e `npm run lint` (em `frontend/`).
+
+## Variáveis de ambiente
+
+O backend lê três valores que **não ficam no git**:
+
+| Variável | Para que serve | Obrigatória? |
+|---|---|---|
+| `JWT_SECRET` | segredo da assinatura do token de login, com **pelo menos 32 caracteres** | **sim**: sem ela, a aplicação não sobe |
+| `ADMIN_EMAIL` | e-mail do primeiro admin (e-mail válido) | só enquanto não existir nenhum `ADMIN` ativo no banco |
+| `ADMIN_PASSWORD` | senha do primeiro admin (8 caracteres ou mais) | idem |
+
+**Onde ficam:** no arquivo **`backend/.env`**, um por pessoa, ignorado pelo
+`backend/.gitignore`. Para criar, copie o modelo versionado `backend/.env.example` e troque
+os valores:
+
+```powershell
+Copy-Item backend/.env.example backend/.env   # depois edite o backend/.env
+```
+
+- O `application.properties` importa o arquivo (`spring.config.import=optional:file:.env[.properties]`).
+  O caminho é relativo à pasta de onde a aplicação sobe: rode a partir de `backend/`.
+- Sem o arquivo, valem as variáveis de ambiente do sistema (é como funciona num servidor):
+  `$env:JWT_SECRET = "..."` no PowerShell, por exemplo.
+- **Nunca commite o `.env`.** Uma variável nova entra também no `.env.example`, com um
+  valor de exemplo.
+
+**Primeiro admin:** ao subir, se não houver nenhum `ADMIN` ativo, a aplicação cria um com
+`ADMIN_EMAIL` e `ADMIN_PASSWORD`. Se já houver, as duas são ignoradas, e trocá-las no `.env`
+**não muda** o admin existente: para isso, altere o usuário pela API
+(`PUT /api/users/{id}`) ou zere o banco. Sem as duas e sem admin, a aplicação sobe, mas
+ninguém consegue logar (um aviso aparece no log).
+
+**Usuários criados antes da autenticação** (senha gravada em texto puro) não conseguem
+logar: troque a senha pela API ou recrie o usuário.
 
 ## Frontend e API
 
@@ -204,6 +243,9 @@ genérico ("conflito de integridade"); a causa exata aparece no log da aplicaç�
 - Criados **pela API** (Swagger ou frontend), nunca por `INSERT`/`data.sql`, para
   passar pelas regras do domínio. Scripts de apoio, se houver, ficam em `scripts/`.
 - **Ordem de cadastro** (cada passo depende dos anteriores):
+  0. login como admin (`POST /api/auth/login`, com o admin criado pelo `ADMIN_EMAIL` /
+     `ADMIN_PASSWORD` do `.env`) e o token em **Authorize** no Swagger: todas as rotas
+     abaixo exigem o token;
   1. grupos de preço;
   2. técnicas;
   3. planos;
