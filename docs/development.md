@@ -1,8 +1,24 @@
 # Ambiente de desenvolvimento
 
-Como rodar, preparar o banco e cadastrar os dados do sistema localmente. Para a
-arquitetura e as regras de negócio, ver [`architecture.md`](architecture.md) e
+Como rodar, preparar o banco e cadastrar os dados do sistema localmente (backend e
+frontend). Para a arquitetura e as regras de negócio, ver
+[`architecture.md`](architecture.md) (com a seção "Frontend") e
 [`domain-model.md`](domain-model.md).
+
+## Índice <!-- omit from toc -->
+
+- [Stack](#stack)
+- [Estrutura do repositório](#estrutura-do-repositório)
+- [Rodando localmente](#rodando-localmente)
+- [Frontend e API](#frontend-e-api)
+- [Banco e schema (Flyway)](#banco-e-schema-flyway)
+  - [Criando uma migration](#criando-uma-migration)
+  - [Banco local antigo](#banco-local-antigo)
+  - [Constraints do banco](#constraints-do-banco)
+- [Dados de teste](#dados-de-teste)
+- [Catálogo atual da clínica (dados para o cadastro inicial)](#catálogo-atual-da-clínica-dados-para-o-cadastro-inicial)
+- [Fluxo de git](#fluxo-de-git)
+- [Problemas conhecidos do ambiente](#problemas-conhecidos-do-ambiente)
 
 ## Stack
 
@@ -10,23 +26,71 @@ arquitetura e as regras de negócio, ver [`architecture.md`](architecture.md) e
   `com.fasterxml`), Lombok, springdoc (Swagger).
 - **MySQL 8** via `docker-compose.yml` (container `mysql-dev`, porta **3307**,
   banco `sublime_db`, usuário `root`/`root`).
-- **Frontend:** ReactJS (planejado).
+- **Frontend:** React 19 + Vite, JavaScript (sem TypeScript), CSS Modules, React
+  Router, TanStack Query, React Hook Form + Zod, Axios. Node 22. Convenções na seção
+  "Frontend" do [`architecture.md`](architecture.md); dependências abaixo, em
+  "Frontend e API".
+
+## Estrutura do repositório
+
+Monorepo ([ADR 0022](adr/0022-monorepo.md)):
+
+| Pasta | Conteúdo | Comandos rodam em |
+|---|---|---|
+| `backend/` | API Spring Boot (Maven) | `backend/` (`./mvnw ...`) |
+| `frontend/` | interface React + Vite (npm) | `frontend/` (`npm ...`) |
+| `docs/` | documentação do produto (vale para os dois) | — |
+| raiz | `docker-compose.yml`, `CLAUDE.md`, `README.md`, `.github` | `docker compose ...` |
 
 ## Rodando localmente
 
-1. Subir o banco: `docker compose up -d`.
-2. Subir a aplicação: `./mvnw spring-boot:run`.
-3. Swagger: `http://localhost:8080/swagger-ui.html` (OpenAPI em `/api-docs`).
+1. Subir o banco (na raiz): `docker compose up -d`.
+2. Subir a API (em `backend/`): `./mvnw spring-boot:run`.
+   Swagger: `http://localhost:8080/swagger-ui.html` (OpenAPI em `/api-docs`).
+3. Subir a interface (em `frontend/`): `npm ci` na primeira vez (instala as
+   dependências do `package-lock.json`) e depois `npm run dev`. Abre em
+   `http://localhost:5173`.
 
-Para conferir se o código compila: `./mvnw -q compile`. É a referência quando a
-IDE acusa erro (ver "Problemas conhecidos").
+Para conferir se o backend compila: `./mvnw -q compile` (em `backend/`). É a
+referência quando a IDE acusa erro (ver "Problemas conhecidos"). No front:
+`npm run build` e `npm run lint` (em `frontend/`).
+
+## Frontend e API
+
+- **Endereço da API:** variável `VITE_API_URL` no `frontend/.env`
+  (`http://localhost:8080/api`). Depois de alterar, reinicie o `npm run dev`.
+- **CORS:** o `SecurityConfig` do backend libera `http://localhost:5173` em
+  `/api/**` (GET, POST, PUT, PATCH, DELETE), só para desenvolvimento. Mudou a porta
+  do Vite? Ajuste lá.
+- **Contrato:** o Swagger do backend é a referência dos endpoints, DTOs e mensagens
+  de erro. As regras de negócio estão no [`domain-model.md`](domain-model.md).
+- **Alias `@/`:** aponta para `frontend/src/`. Configurado no `vite.config.js` (build) e
+  no `jsconfig.json` (autocomplete e "ir para definição" no editor; reinicie o VS Code se
+  o editor não reconhecer).
+
+**Dependências do frontend** (`frontend/package.json`):
+
+| Dependência | Para que serve |
+|---|---|
+| `react-router-dom` | rotas |
+| `@tanstack/react-query` | cache e invalidação das chamadas à API |
+| `axios` | cliente HTTP (token e tratamento de 401) |
+| `react-hook-form`, `zod`, `@hookform/resolvers` | formulários e validação de formato |
+| `date-fns` | datas (filtros por período, `validFrom`/`validTo`) |
+| `decimal.js` | exibição precisa de valores monetários |
+| `lucide-react` | ícones |
+| `react-pro-sidebar` | menu lateral |
+| `sweetalert2` | alertas de erro da API (`shared/utils/alert.js`) |
+
+O `react-pro-sidebar` 1.1.0 funciona com React 19, mas tem manutenção irregular: confira
+a compatibilidade antes de subir a versão do React.
 
 ## Banco e schema (Flyway)
 
 O schema é criado e alterado **só pelas migrations do Flyway**
 ([ADR 0021](adr/0021-schema-versionado-flyway.md)):
 
-- As migrations ficam em `src/main/resources/db/migration/` e rodam sozinhas ao
+- As migrations ficam em `backend/src/main/resources/db/migration/` e rodam sozinhas ao
   subir a aplicação. O Flyway anota as que já aplicou na tabela
   `flyway_schema_history` e roda só as que faltam.
 - `spring.jpa.hibernate.ddl-auto=validate`: o Hibernate só **confere** se as
@@ -200,7 +264,10 @@ Não são do código:
 
 - **Erros falsos do Lombok no VS Code** ("Can't initialize javac processor...",
   `getX()` não encontrado): o processador do Lombok falha dentro da extensão Java.
-  O Maven compila normalmente; vale o `./mvnw -q compile`.
+  O Maven compila normalmente; vale o `./mvnw -q compile` (em `backend/`).
+  Depois da mudança para o monorepo, se a extensão continuar procurando o
+  `pom.xml` na raiz (ou recriar uma pasta `target/` vazia na raiz), use
+  **Ctrl+Shift+P → "Java: Clean Java Language Server Workspace"**.
 - **Sem acesso ao Maven Central e ao GitHub por HTTPS** (erro de certificado
   PKIX/SSL, provável proxy da rede): só o cache local do Maven funciona (plugins
   novos não baixam) e o `git push` pode falhar. Tentar outra rede ou

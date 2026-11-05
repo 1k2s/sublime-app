@@ -1,0 +1,21 @@
+:root {
+  --color-bg: #faf7f0;
+  --color-surface: #ffffff;
+  --color-primary: #5f7a58;
+  --color-primary-soft: #dfe8dc;
+  --color-accent: #3f6fb5;
+  --color-danger: #b42318;
+  --color-border: #e5e0d5;
+  --color-text: #374151;
+  --color-muted: #6b7280;
+  --radius: 12px;
+}
+
+* { box-sizing: border-box; }
+
+body {
+  margin: 0;
+  background: #faf7f0;
+  color: #374151;
+  font-family: system-ui, sans-serif;
+}

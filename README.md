@@ -14,6 +14,28 @@ entidades de base (pacientes, prestadores, catálogo de preços) para depois
 avançar para a camada de negócio mais sensível: o lançamento de atendimentos e
 o cálculo financeiro que ele dispara.
 
+## Estrutura do repositório
+
+Monorepo: backend e frontend no mesmo repositório.
+
+```
+backend/              API em Java + Spring Boot (Maven)
+frontend/             interface em React + Vite (npm)
+docs/                 documentação do produto: regras, decisões (ADRs), roadmap
+docker-compose.yml    MySQL de desenvolvimento
+```
+
+## Rodando localmente
+
+```bash
+docker compose up -d                       # banco (na raiz)
+cd backend && ./mvnw spring-boot:run       # API em http://localhost:8080
+cd frontend && npm ci && npm run dev       # interface em http://localhost:5173
+```
+
+Detalhes (banco, migrations, dados de teste, problemas conhecidos):
+[`docs/development.md`](docs/development.md).
+
 ## Stack
 
 | Camada | Tecnologia |
@@ -24,7 +46,7 @@ o cálculo financeiro que ele dispara.
 | Migrations | Flyway |
 | Segurança | Spring Security (OAuth2) |
 | Documentação de API | Swagger / OpenAPI |
-| Frontend (planejado) | ReactJS |
+| Frontend | React + Vite (JavaScript), CSS Modules, React Router, TanStack Query |
 
 ## Arquitetura
 
@@ -68,6 +90,6 @@ infraestrutura, não uma reescrita do domínio.
 
 O projeto está na primeira fase. O backend dos cadastros (pacientes,
 prestadores, catálogo de preços), dos contratos e do lançamento de atendimentos,
-com o cálculo do repasse e do saldo de sessões, está implementado. Os próximos
-passos são a interface gráfica, os testes por ela e as migrations do banco.
+com o cálculo do repasse e do saldo de sessões, está implementado, com o schema do
+banco versionado por migrations. A interface gráfica está em desenvolvimento.
 

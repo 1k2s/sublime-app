@@ -1,0 +1,12 @@
+.layout {
+  display: flex;
+  height: 100vh;
+}
+
+/* Só o conteúdo rola; o menu lateral fica fixo */
+.content {
+  flex: 1;
+  min-width: 0;
+  padding: 24px 32px;
+  overflow-y: auto;
+}

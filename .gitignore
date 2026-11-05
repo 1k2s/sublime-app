@@ -1,33 +1,9 @@
-HELP.md
-target/
-.mvn/wrapper/maven-wrapper.jar
-!**/src/main/**/target/
-!**/src/test/**/target/
-
-### STS ###
-.apt_generated
-.classpath
-.factorypath
-.project
-.settings
-.springBeans
-.sts4-cache
-
-### IntelliJ IDEA ###
-.idea
-*.iws
-*.iml
-*.ipr
-
-### NetBeans ###
-/nbproject/private/
-/nbbuild/
-/dist/
-/nbdist/
-/.nb-gradle/
-build/
-!**/src/main/**/build/
-!**/src/test/**/build/
-
-### VS Code ###
+### Editores ###
 .vscode/
+.idea/
+
+### Build ###
+# Proteção: o build do Maven fica em backend/target/ (ignorado pelo backend/.gitignore),
+# mas a extensão Java do VS Code pode recriar um target/ na raiz depois da mudança para
+# o monorepo (ver "Problemas conhecidos" no docs/development.md)
+target/

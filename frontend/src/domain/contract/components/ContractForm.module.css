@@ -1,0 +1,60 @@
+/* Alturas fixas, calculadas pelo conteúdo: padding 48 + cabeçalho 44 + gap 20 + campos (88 cada, gap 12) */
+.form {
+  --block-width: 460px;
+  display: grid;
+  grid-template-columns: repeat(2, var(--block-width));
+  gap: 24px;
+}
+
+.form-patient,
+.form-validity {
+  height: 300px;
+}
+
+.form-plan {
+  grid-column: 1 / -1;
+  height: 200px;
+}
+
+.form-summary {
+  grid-column: 1 / -1;
+  height: 208px;
+}
+
+.form-footer {
+  display: flex;
+  grid-column: 1 / -1;
+  justify-content: flex-end;
+  gap: 12px;
+}
+
+.form-stack {
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+}
+
+.form-row {
+  display: grid;
+  grid-template-columns: repeat(4, minmax(0, 1fr));
+  gap: 16px;
+}
+
+@media (max-width: 1259px) {
+  .form {
+    grid-template-columns: minmax(0, var(--block-width));
+  }
+
+  .form-row {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+    row-gap: 12px;
+  }
+
+  .form-plan {
+    height: 300px;
+  }
+
+  .form-summary {
+    height: 320px;
+  }
+}

@@ -1,0 +1,22 @@
+.field {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+}
+
+.label {
+  font-size: 13px;
+  font-weight: 600;
+}
+
+.error {
+  font-size: 12px;
+  line-height: 15px;
+  color: #b42318;
+}
+
+/* Espaço de uma linha de erro, ocupado mesmo sem erro */
+.errorSlot {
+  display: block;
+  min-height: 15px;
+}

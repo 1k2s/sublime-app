@@ -1,0 +1,30 @@
+.page-wrapper {
+  display: flex;
+  flex-direction: column;
+  gap: 24px;
+  width: fit-content;
+  max-width: 100%;
+  margin-inline: auto;
+  --block-width: 460px;
+  --block-height: 620px;
+}
+
+.page-grid {
+  display: grid;
+  grid-template-columns: repeat(2, var(--block-width));
+  gap: 24px;
+}
+
+.page-block {
+  height: var(--block-height);
+}
+
+.page-total {
+  grid-column: 1 / -1;
+}
+
+@media (max-width: 1259px) {
+  .page-grid {
+    grid-template-columns: minmax(0, var(--block-width));
+  }
+}

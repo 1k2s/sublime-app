@@ -1,0 +1,74 @@
+.brand {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  padding: 32px 16px 28px;
+}
+
+.brandName {
+  font-family: Georgia, "Times New Roman", serif;
+  font-size: 32px;
+  line-height: 1.1;
+  color: #5f7a58;
+}
+
+.brandTagline {
+  font-size: 10px;
+  color: #6b7280;
+}
+
+.user {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  margin: auto 12px 0;
+  padding: 16px 4px;
+  border-top: 1px solid #e5e0d5;
+}
+
+.avatar {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  flex-shrink: 0;
+  width: 36px;
+  height: 36px;
+  border-radius: 50%;
+  background: #5f7a58;
+  color: #ffffff;
+}
+
+.userInfo {
+  display: flex;
+  flex-direction: column;
+  flex: 1;
+  min-width: 0;
+}
+
+.userName {
+  font-size: 13px;
+  font-weight: 600;
+}
+
+.userRole {
+  font-size: 11px;
+  color: #6b7280;
+}
+
+.logout {
+  display: flex;
+  padding: 6px;
+  border: none;
+  border-radius: 8px;
+  background: none;
+  color: #374151;
+  cursor: pointer;
+}
+
+.logout:hover:not(:disabled) {
+  background: #dfe8dc;
+}
+
+.logout:disabled {
+  cursor: default;
+}
