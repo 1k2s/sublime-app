@@ -1,7 +1,7 @@
 import { useEffect, useId, useState } from "react";
 import { Search } from "lucide-react";
 import { Input } from "@/shared/ui/Input";
-import { useTechniques } from "../api/useTechniques";
+import { useTechniques } from "../api/usePricing";
 import styles from "./TechniqueSearchInput.module.css";
 
 function normalize(value) {

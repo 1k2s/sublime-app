@@ -180,6 +180,14 @@ Checklist da Fase 1 no front (herdado do guia original):
   vinculados), `providerId`, `techniqueId`, `durationMinutes`, `occurredAt` e `status`
   (ver `Consultation` no [`domain-model.md`](domain-model.md)). Redesenhar a tela sobre o
   contrato real, com spec.
+- **Tela de contratos no modelo antigo do contrato.** `ContractForm.jsx` e o mock de
+  `contractApi.js` usam um preço único no cabeçalho (`groupPlanPriceId` /
+  `groupPlanFrequencyPriceId`, campos que não existem na API). O `POST /api/contracts`
+  espera `items`: um por grupo de preço, cada um com `techniqueId`,
+  `sessionDurationPriceId` **ou** `sessionFrequencyPriceId` e, nos por duração,
+  `frequency` (ver `Contract e ContractItem` no [`domain-model.md`](domain-model.md) e o
+  [ADR 0008](adr/0008-contrato-com-itens.md)). Refazer o envio sobre o contrato real,
+  com spec.
 - **Papéis divergentes:** `domain/auth/roles.js` usa `"admin"` e `"provider"`; o enum
   `Role` do backend é `ADMIN` e `PROVIDER`. Resolvido pela spec de autenticação.
 - **Mensagem de erro da API não aparece:** a `ConsultationPage` mostra `error.message`

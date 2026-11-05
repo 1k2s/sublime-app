@@ -379,6 +379,13 @@ Regras:
 - Pages e components usam só os hooks, nunca o `httpClient` direto.
 - Sem JSX e sem regra de negócio em `api/`.
 - `queryKey` padronizada por módulo (`["patients", ...]`, `["consultations", ...]`).
+- **`staleTime: Infinity`** no `QueryClient` (`app/providers.jsx`): os dados só são
+  buscados de novo no F5 ou quando uma escrita invalida a chave. Por isso **toda
+  mutation chama `invalidateQueries`** com a chave do módulo no `onSuccess`; sem isso, a
+  tela não atualiza.
+- **Listas pequenas vêm inteiras** numa requisição, e a busca e os filtros da tela rodam
+  em memória, no `select` do `useQuery` (ex: contratos). Filtro no backend só quando a
+  lista precisar de paginação.
 - Erro da API: a page mostra com `showError` (`shared/utils/alert.js`) no `onError` do
   `mutate`. Components não chamam o alerta. Erros por campo (`errors` do `ProblemDetail`,
   ver "Formato dos erros" acima) aparecem no `FormField`.

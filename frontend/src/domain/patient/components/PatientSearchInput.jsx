@@ -21,7 +21,7 @@ export function PatientSearchInput({ id, onSelect, invalid = false, autoFocus = 
   }, [text]);
 
   const enabled = search.length >= MIN_SEARCH_LENGTH;
-  const { data: patients = [], isLoading, isError } = usePatients(search, { enabled });
+  const { data: patients = [], isLoading, isError } = usePatients({ search, status: "ACTIVE" }, { enabled });
   const showResults = enabled && patients.length > 0;
   const activeIndex = Math.min(highlighted, patients.length - 1);
 

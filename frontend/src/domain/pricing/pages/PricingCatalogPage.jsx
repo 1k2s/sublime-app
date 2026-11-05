@@ -50,8 +50,9 @@ export function PricingCatalogPage() {
   return (
     <div>
       <PageHeader
+        className={styles.header}
         title="Tabela de Preços"
-        subtitle="Gerencie os valores vigentes de cada grupo de atendimento e plano da clínica."
+        description="Gerencie os valores vigentes de cada grupo de atendimento e plano da clínica."
         action={
           <Button onClick={() => setModalValues({})} disabled={isLoading || !!loadError}>
             <Plus size={16} aria-hidden="true" /> Novo Preço / Reajustar

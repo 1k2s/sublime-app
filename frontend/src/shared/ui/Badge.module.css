@@ -1,19 +1,4 @@
 .badge {
-  display: inline-block;
-  padding: 4px 12px;
-  border-radius: 999px;
-  font-size: 12px;
-  font-weight: 600;
-}
-
-.success {
-  background: var(--color-primary-soft);
-  color: #2e5a2a;
-}
-
-.neutral {
-  background: var(--color-border);
-  color: var(--color-muted);
   display: inline-flex;
   align-items: center;
   justify-content: center;
@@ -37,6 +22,6 @@
 }
 
 .default {
-  background-color: var(--color-primary-soft);
-  color: var(--color-primary);
+  background-color: #dfe8dc;
+  color: #5f7a58;
 }

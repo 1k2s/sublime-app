@@ -114,6 +114,7 @@ export function PatientPage() {
         <>
           {/* Cabeçalho da listagem com botão de novo paciente visível apenas para admin */}
           <PageHeader
+            className={styles.pageHeader}
             title="Pacientes"
             description="Gerencie o cadastro de pacientes da clínica."
             action={
@@ -155,6 +156,7 @@ export function PatientPage() {
         <>
           {/* Cabeçalho com botão de retorno e títulos contextuais */}
           <PageHeader
+            className={styles.pageHeader}
             title={isEditing ? "Editar paciente" : "Novo paciente"}
             description={
               isEditing
