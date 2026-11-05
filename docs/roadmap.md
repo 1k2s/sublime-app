@@ -142,7 +142,7 @@ chamadas batem com a API real ainda não foram conferidos.**
 
 | Módulo | O que existe |
 |---|---|
-| `auth` | tela de login, sessão no `localStorage`, `ProtectedRoute` (só confere sessão), menu filtrado por papel. **Login mockado** (`authApi.js`): o backend ainda não tem autenticação |
+| `auth` | tela de login, sessão no `localStorage`, `ProtectedRoute` (só confere sessão), menu filtrado por papel. **Login mockado** (`authApi.js`): o backend já tem o login (ver [`specs/autenticacao.md`](specs/autenticacao.md)) |
 | `patient` | listagem com filtros e busca, modal de detalhes, cadastro em wizard (dados pessoais, endereço com ViaCEP, confirmação). `patientApi.js` com trechos mockados |
 | `pricing` | catálogo de preços (tabela, busca de técnica, modal de preço) |
 | `consultation` | tela de lançamento (formulário, agenda, carrinho, total). `consultationApi.js` com trechos mockados |

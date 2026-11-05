@@ -20,7 +20,7 @@ import jakarta.validation.Validator;
 // Primeiro admin: com todas as rotas protegidas, ninguém conseguiria criar o primeiro
 // usuário pela API. Ao subir, se não houver nenhum ADMIN ativo, cria um com ADMIN_EMAIL e
 // ADMIN_PASSWORD, pelo UserService (mesmas regras do cadastro: hash, e-mail único). Ver o
-// "Primeiro admin" na spec de autenticação.
+// "Primeiro admin" no domain-model (seção User) e o ADR 0023.
 @Component
 @EnableConfigurationProperties(AdminProperties.class)
 public class AdminInitializer implements ApplicationRunner {
