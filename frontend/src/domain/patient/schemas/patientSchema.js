@@ -1,88 +1,64 @@
-/**
- * ======================================================================================
- * SCHEMAS DE VALIDAÇÃO ZOD: DOMÍNIO PATIENT
- * ======================================================================================
- *
- * Como o projeto utiliza JavaScript puro (sem TypeScript), o Zod é a principal camada
- * que garante a integridade e validação dos dados antes de trafegarem para a API.
- *
- * Os schemas são divididos por etapa do formulário wizard para permitir validações parciais
- * ao avançar de etapa, além de fornecer o schema completo consolidado (`fullPatientSchema`).
- */
-
+// Validação de formato do formulário de paciente, espelhando o PatientRequestDTO.
+// A validação que vale é a da API; aqui é só para dar resposta rápida na tela.
 import { z } from "zod";
+import { isValid, parse } from "date-fns";
 import { onlyDigits, isValidCpf } from "@/shared/utils/masks";
+import { hasAddress } from "../patientForm";
 
-/**
- * Validação da Etapa 1: Dados Pessoais de identificação do paciente.
- */
+function isRealDate(maskedDate) {
+  return isValid(parse(maskedDate, "dd/MM/yyyy", new Date()));
+}
+
+// Etapa 1: dados pessoais. Telefone e e-mail são opcionais na API
 export const personalDataSchema = z.object({
-  // Nome completo com no mínimo 3 caracteres
-  name: z.string().trim().min(3, "Nome completo deve ter pelo menos 3 caracteres"),
-
-  // CPF obrigatório com validação oficial dos dígitos verificadores (evita CPFs falsos)
-  cpf: z
+  name: z
     .string()
-    .min(1, "CPF é obrigatório")
-    .refine(isValidCpf, "CPF inválido ou não existe"),
+    .trim()
+    .min(3, "O nome deve ter pelo menos 3 caracteres")
+    .max(255, "O nome deve ter no máximo 255 caracteres"),
 
-  // Data de nascimento obrigatória com exatamente 8 dígitos numéricos (DD/MM/AAAA)
+  cpf: z.string().min(1, "CPF é obrigatório").refine(isValidCpf, "CPF inválido"),
+
   birthDate: z
     .string()
     .min(1, "Data de nascimento é obrigatória")
-    .refine(
-      (val) => onlyDigits(val).length === 8,
-      "Data de nascimento deve conter 8 dígitos (DD/MM/AAAA)"
-    ),
+    .refine(isRealDate, "Data inválida (DD/MM/AAAA)"),
 
-  // Telefone obrigatório (fixo ou celular, com no mínimo 10 dígitos com DDD)
   phone: z
     .string()
-    .min(1, "Telefone é obrigatório")
-    .refine((val) => onlyDigits(val).length >= 10, "Telefone inválido"),
+    .refine((val) => onlyDigits(val).length === 0 || onlyDigits(val).length >= 10, "Telefone inválido"),
 
-  // E-mail obrigatório com formato de e-mail válido
-  email: z
-    .string()
-    .trim()
-    .min(1, "E-mail é obrigatório")
-    .email("E-mail inválido"),
+  email: z.union([z.literal(""), z.string().trim().email("E-mail inválido")]),
 });
 
-/**
- * Validação da Etapa 2: Endereço de residência do paciente.
- */
+// Etapa 2: endereço. Opcional, mas, se algum campo for preenchido, precisa estar completo
+// (só o complemento é livre), como no AddressDTO
 export const addressSchema = z.object({
-  // CEP obrigatório com exatamente 8 dígitos numéricos
-  cep: z
-    .string()
-    .min(1, "CEP é obrigatório")
-    .refine((val) => onlyDigits(val).length === 8, "CEP deve conter 8 dígitos"),
-
-  // Logradouro (rua, avenida, etc.)
-  street: z.string().trim().min(1, "Logradouro é obrigatório"),
-
-  // Número do imóvel (ou S/N)
-  number: z.string().trim().min(1, "Número é obrigatório"),
-
-  // Complemento (apartamento, bloco, etc. - campo opcional)
-  complement: z.string().optional().or(z.literal("")),
-
-  // Bairro
-  neighborhood: z.string().trim().min(1, "Bairro é obrigatório"),
-
-  // Cidade / Município
-  city: z.string().trim().min(1, "Cidade é obrigatória"),
-
-  // Sigla da Unidade Federativa (UF), exatamente 2 letras
-  state: z.string().trim().min(2, "Estado é obrigatório").max(2, "UF deve ter 2 letras"),
+  cep: z.string(),
+  street: z.string(),
+  numberHouse: z.string(),
+  complement: z.string(),
+  city: z.string(),
 });
 
-/**
- * Schema consolidado de todas as etapas.
- * Utilizado para validação integral na submissão final do formulário.
- */
-export const fullPatientSchema = personalDataSchema.merge(addressSchema).extend({
-  // Status inicial do cadastro: ativo por padrão
-  status: z.enum(["ACTIVE", "INACTIVE"]).default("ACTIVE"),
-});
+function requireCompleteAddress(values, ctx) {
+  if (!hasAddress(values)) return;
+
+  if (onlyDigits(values.cep).length !== 8) {
+    ctx.addIssue({ code: "custom", path: ["cep"], message: "CEP deve conter 8 dígitos" });
+  }
+  if (!values.street.trim()) {
+    ctx.addIssue({ code: "custom", path: ["street"], message: "Logradouro é obrigatório" });
+  }
+  if (!values.numberHouse.trim()) {
+    ctx.addIssue({ code: "custom", path: ["numberHouse"], message: "Número é obrigatório" });
+  }
+  if (!values.city.trim()) {
+    ctx.addIssue({ code: "custom", path: ["city"], message: "Cidade é obrigatória" });
+  }
+}
+
+// Formulário inteiro (as duas etapas)
+export const fullPatientSchema = personalDataSchema
+  .extend(addressSchema.shape)
+  .superRefine(requireCompleteAddress);

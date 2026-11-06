@@ -5,8 +5,9 @@
  *
  * Modal aberto ao clicar na ação da tabela de pacientes ("Ver / Editar" ou "Ver"):
  * - Apresenta todos os dados do paciente divididos em duas seções claras:
- *   1. Dados Pessoais (CPF, Nascimento, Telefone, E-mail)
- *   2. Endereço Completo (CEP, Logradouro, Número, Complemento, Bairro, Cidade/UF)
+ *   1. Dados Pessoais (CPF, Nascimento, Telefone, E-mail, Origem)
+ *   2. Endereço (CEP, Logradouro, Número, Complemento, Cidade), ou "Não informado"
+ * - Os dados chegam no formato da API (só dígitos, data ISO); as máscaras são da exibição.
  * - Exibe a tag de status (Ativo / Inativo).
  * - Efeito visual de blur no backdrop escurecido (`backdrop-filter: blur(5px)`).
  * - Fechamento via clique no backdrop escuro, no botão de "X" ou no botão "Fechar".
@@ -29,9 +30,12 @@ import {
   AlertTriangle,
   UserX,
   UserCheck,
+  Handshake,
 } from "lucide-react";
 import { Badge } from "@/shared/ui/Badge";
 import { Button } from "@/shared/ui/Button";
+import { formatDate } from "@/shared/utils/date";
+import { maskCep, maskCpf, maskPhone } from "@/shared/utils/masks";
 import styles from "./PatientDetailsModal.module.css";
 
 /**
@@ -40,7 +44,7 @@ import styles from "./PatientDetailsModal.module.css";
  * @param {boolean} [props.isAdmin=false] - Indica se o usuário atual é administrador
  * @param {function(): void} props.onClose - Callback para fechar o modal
  * @param {function(Object): void} [props.onEdit] - Callback disparado ao clicar em "Editar cadastro"
- * @param {function(Object, string): void} [props.onToggleStatus] - Callback para alternar o status do paciente
+ * @param {function(Object): void} [props.onToggleStatus] - Callback para inativar (se ativo) ou reativar (se inativo)
  */
 export function PatientDetailsModal({
   patient,
@@ -54,11 +58,11 @@ export function PatientDetailsModal({
   // Se nenhum paciente estiver selecionado, não renderiza nada
   if (!patient) return null;
 
-  const isAtivo = patient.status === "ACTIVE";
+  const isAtivo = patient.active;
+  const address = patient.address;
 
   const handleConfirmToggle = () => {
-    const nextStatus = isAtivo ? "INACTIVE" : "ACTIVE";
-    onToggleStatus?.(patient, nextStatus);
+    onToggleStatus?.(patient);
     setShowConfirm(false);
   };
 
@@ -104,25 +108,33 @@ export function PatientDetailsModal({
                 <span className={styles.fieldLabel}>
                   <CreditCard size={14} /> CPF
                 </span>
-                <span className={styles.fieldValue}>{patient.cpf || "--"}</span>
+                <span className={styles.fieldValue}>{maskCpf(patient.cpf) || "--"}</span>
               </div>
               <div className={styles.field}>
                 <span className={styles.fieldLabel}>
                   <Calendar size={14} /> Data de Nascimento
                 </span>
-                <span className={styles.fieldValue}>{patient.birthDate || "--"}</span>
+                <span className={styles.fieldValue}>{formatDate(patient.birthDate) || "--"}</span>
               </div>
               <div className={styles.field}>
                 <span className={styles.fieldLabel}>
                   <Phone size={14} /> Telefone
                 </span>
-                <span className={styles.fieldValue}>{patient.phone || "--"}</span>
+                <span className={styles.fieldValue}>{patient.phone ? maskPhone(patient.phone) : "Não informado"}</span>
               </div>
               <div className={styles.field}>
                 <span className={styles.fieldLabel}>
                   <Mail size={14} /> E-mail
                 </span>
-                <span className={styles.fieldValue}>{patient.email || "--"}</span>
+                <span className={styles.fieldValue}>{patient.email || "Não informado"}</span>
+              </div>
+              <div className={styles.field}>
+                <span className={styles.fieldLabel}>
+                  <Handshake size={14} /> Origem
+                </span>
+                <span className={styles.fieldValue}>
+                  {patient.referringProviderName || "Paciente da clínica"}
+                </span>
               </div>
             </div>
           </div>
@@ -130,32 +142,32 @@ export function PatientDetailsModal({
           {/* Seção 2: Endereço */}
           <div className={styles.section}>
             <h4 className={styles.sectionTitle}>Endereço</h4>
-            <div className={styles.grid}>
-              <div className={styles.field}>
-                <span className={styles.fieldLabel}>
-                  <MapPin size={14} /> CEP
-                </span>
-                <span className={styles.fieldValue}>{patient.cep || "--"}</span>
+            {address ? (
+              <div className={styles.grid}>
+                <div className={styles.field}>
+                  <span className={styles.fieldLabel}>
+                    <MapPin size={14} /> CEP
+                  </span>
+                  <span className={styles.fieldValue}>{maskCep(address.cep) || "--"}</span>
+                </div>
+                <div className={styles.field}>
+                  <span className={styles.fieldLabel}>Logradouro</span>
+                  <span className={styles.fieldValue}>
+                    {address.street}, {address.numberHouse}
+                  </span>
+                </div>
+                <div className={styles.field}>
+                  <span className={styles.fieldLabel}>Complemento</span>
+                  <span className={styles.fieldValue}>{address.complement || "--"}</span>
+                </div>
+                <div className={styles.field}>
+                  <span className={styles.fieldLabel}>Cidade</span>
+                  <span className={styles.fieldValue}>{address.city || "--"}</span>
+                </div>
               </div>
-              <div className={styles.field}>
-                <span className={styles.fieldLabel}>Logradouro</span>
-                <span className={styles.fieldValue}>
-                  {patient.street ? `${patient.street}, ${patient.number || "S/N"}` : "--"}
-                </span>
-              </div>
-              <div className={styles.field}>
-                <span className={styles.fieldLabel}>Complemento / Bairro</span>
-                <span className={styles.fieldValue}>
-                  {[patient.complement, patient.neighborhood].filter(Boolean).join(" - ") || "--"}
-                </span>
-              </div>
-              <div className={styles.field}>
-                <span className={styles.fieldLabel}>Cidade / UF</span>
-                <span className={styles.fieldValue}>
-                  {[patient.city, patient.state].filter(Boolean).join(" / ") || "--"}
-                </span>
-              </div>
-            </div>
+            ) : (
+              <span className={styles.fieldValue}>Não informado</span>
+            )}
           </div>
 
           {/* Caixa de Confirmação de Desativação com Alerta de Pendências */}

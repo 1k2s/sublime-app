@@ -149,7 +149,7 @@ chamadas batem com a API real ainda não foram conferidos.**
 | Módulo | O que existe |
 |---|---|
 | `auth` | **concluído e testado pela tela** (2026-11-06): login real, sessão no `localStorage` que expira pela `expiresAt` e cai num 401, cache limpo ao sair, tela inicial por perfil (`HomeRedirect`), `ProtectedRoute` (só confere sessão), menu filtrado por papel, mensagem da API no `error.message` (interceptor do `apiClient`). Ver "Rotas e sessão" no [`architecture.md`](architecture.md) |
-| `patient` | listagem com filtros e busca, modal de detalhes, cadastro em wizard (dados pessoais, endereço com ViaCEP, confirmação). `patientApi.js` com trechos mockados |
+| `patient` | listagem com filtros e busca, modal de detalhes, cadastro em wizard (dados pessoais, endereço com ViaCEP, confirmação), inativar e reativar. **Integrado à API real** (2026-11-06, ainda não testado pela tela): `patientApi.js` chama os 6 endpoints de `/api/patients` no formato do `PatientRequestDTO`/`PatientResponseDTO`. Conversão API ↔ formulário em `patient/patientForm.js`. Falta: escolher a origem (`referringProviderId`) no formulário, que depende da tela de prestadores (hoje a edição só reenvia a origem atual) |
 | `pricing` | catálogo de preços (tabela, busca de técnica, modal de preço) |
 | `consultation` | tela de lançamento (formulário, agenda, carrinho, total). `consultationApi.js` com trechos mockados |
 | `contract` | tela de contratos (filtros, tabela, formulário com seleção de paciente e preço, resumo), com fallback mockado no `contractApi.js`. **Envio no modelo antigo do contrato** (ver "Pendências") |
@@ -170,8 +170,8 @@ chamadas batem com a API real ainda não foram conferidos.**
    [Próximos passos](#próximos-passos) do projeto): menu e rotas por papel.
 2. **Inventário:** o que cada tela faz e se as chamadas batem com o contrato real da API
    (Swagger). Atualizar esta seção com o resultado.
-3. **Trocar os mocks pelas chamadas reais** onde o backend já tem o endpoint (`patient`,
-   `pricing`, `contract`, `consultation`).
+3. **Trocar os mocks pelas chamadas reais** onde o backend já tem o endpoint (`pricing`,
+   `contract`, `consultation`; `patient` feito em 2026-11-06).
 4. **Telas que faltam**, na ordem de cadastro (cada uma depende dos dados da anterior):
    prestadores e usuários → ajuste dos contratos ao contrato real → lançamento ligado à
    API real. Cada tela começa com uma spec em [`specs/`](specs/README.md).

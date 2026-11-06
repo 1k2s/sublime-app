@@ -6,6 +6,7 @@
  * Tabela de apresentação dos pacientes cadastrados (conforme Imagem 1):
  * - Envolvida em container Card com bordas sutis e cantos arredondados.
  * - Colunas: NOME (com avatar circular contendo as iniciais), CPF, TELEFONE, CIDADE, STATUS e AÇÕES.
+ * - CPF e telefone chegam da API só com dígitos; a máscara é aplicada na exibição.
  * - Suporta estados de carregamento (loading), lista vazia (empty) e dados preenchidos.
  * - Controle de perfil (RBAC):
  *   - Administrador (`isAdmin = true`): exibe a ação "Ver / Editar".
@@ -14,6 +15,7 @@
 
 import { Card } from "@/shared/ui/Card";
 import { Badge } from "@/shared/ui/Badge";
+import { maskCpf, maskPhone } from "@/shared/utils/masks";
 import styles from "./PatientTable.module.css";
 
 /**
@@ -79,8 +81,7 @@ export function PatientTable({
         </thead>
         <tbody>
           {patients.map((patient) => {
-            const isAtivo = patient.status === "ACTIVE";
-            const location = [patient.city, patient.state].filter(Boolean).join(", ");
+            const isAtivo = patient.active;
 
             return (
               <tr key={patient.id} className={styles.row}>
@@ -95,13 +96,13 @@ export function PatientTable({
                 </td>
 
                 {/* CPF formatado */}
-                <td className={styles.tdData}>{patient.cpf}</td>
+                <td className={styles.tdData}>{maskCpf(patient.cpf)}</td>
 
                 {/* Telefone formatado */}
-                <td className={styles.tdData}>{patient.phone}</td>
+                <td className={styles.tdData}>{patient.phone ? maskPhone(patient.phone) : "--"}</td>
 
-                {/* Cidade e UF */}
-                <td className={styles.tdData}>{location || "--"}</td>
+                {/* Cidade do endereço (opcional) */}
+                <td className={styles.tdData}>{patient.address?.city || "--"}</td>
 
                 {/* Tag indicadora de status: Ativo (verde) ou Inativo (cinza) */}
                 <td>
