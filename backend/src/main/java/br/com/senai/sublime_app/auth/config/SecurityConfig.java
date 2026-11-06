@@ -21,7 +21,8 @@ import br.com.senai.sublime_app.auth.service.TokenService;
 
 // Regras de acesso da API: login e Swagger públicos, todo o resto exige o token JWT
 // (validado pelo resource server do Spring a cada requisição). Sem sessão no servidor:
-// cada requisição se identifica pelo token. Ver docs/specs/autenticacao.md.
+// cada requisição se identifica pelo token. Ver a seção "Segurança" do docs/architecture.md
+// e o ADR 0023.
 @Configuration
 public class SecurityConfig {
 

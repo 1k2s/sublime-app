@@ -313,7 +313,7 @@ não as decide. Como rodar: [`development.md`](development.md). Estado e pendên
 | Dados do servidor | TanStack Query (cache, carregamento, erro, invalidação) |
 | Rotas | React Router (data router, rotas `lazy`) |
 | Formulários | React Hook Form + Zod (`@hookform/resolvers`) |
-| HTTP | Axios, num cliente único (`shared/http/httpClient.js`) |
+| HTTP | Axios, num cliente único (`shared/http/apiClient.js`) |
 
 Lista de dependências: [`development.md`](development.md).
 
@@ -324,11 +324,12 @@ frontend/src/
 ├── main.jsx                 # monta AppProviders e RouterProvider
 ├── index.css                # estilo global e paleta (variáveis CSS)
 ├── app/                     # casca da aplicação
-│   ├── providers.jsx        # AppProviders: QueryClientProvider, AuthProvider
+│   ├── AppProviders.jsx     # QueryClientProvider, AuthProvider (providers do React, não o prestador)
 │   ├── router.jsx           # rotas, rotas lazy, ProtectedRoute
+│   ├── NotFoundPage.jsx     # página de rota inexistente (*)
 │   └── layout/              # AppLayout, AppSidebar, navigationItems.js
 ├── shared/                  # genérico, sem regra de negócio
-│   ├── http/httpClient.js   # axios: baseURL, token, 401
+│   ├── http/apiClient.js    # axios: baseURL, token, 401
 │   ├── utils/               # money, date, masks, alert (SweetAlert2), viacep
 │   └── ui/                  # Button, Card, Input, Select, FormField, Modal,
 │                            # Stepper, Badge, PageHeader, PageLoader, RouteError...
@@ -393,14 +394,14 @@ api (xxxApi.js)  →  hook (useXxx.js)  →  components / pages
 
 | Camada | O que faz | O que não sabe |
 |---|---|---|
-| `xxxApi.js` | uma função por endpoint, chama o `httpClient` e devolve os dados | que existe React |
+| `xxxApi.js` | uma função por endpoint, chama o `apiClient` e devolve os dados | que existe React |
 | `useXxx.js` | transforma a chamada em estado de tela: `useQuery` para leitura (com cache), `useMutation` para ação (com invalidação) | como a tela é desenhada |
 | components / pages | mostram os dados e disparam as ações | de onde os dados vêm |
 
 ```js
 // domain/patient/api/patientApi.js — uma função por endpoint
 export async function listPatients() {
-  const { data } = await httpClient.get("/patients");
+  const { data } = await apiClient.get("/patients");
   return data;
 }
 
@@ -419,18 +420,24 @@ export function useCreatePatient() {
 ```
 
 Regras:
-- Pages e components usam só os hooks, nunca o `httpClient` direto.
+- Pages e components usam só os hooks, nunca o `apiClient` direto.
 - Sem JSX e sem regra de negócio em `api/`.
 - `queryKey` padronizada por módulo (`["patients", ...]`, `["consultations", ...]`).
-- **`staleTime: Infinity`** no `QueryClient` (`app/providers.jsx`): os dados só são
-  buscados de novo no F5 ou quando uma escrita invalida a chave. Por isso **toda
-  mutation chama `invalidateQueries`** com a chave do módulo no `onSuccess`; sem isso, a
-  tela não atualiza.
+- **`QueryClient` com o padrão da biblioteca** (`staleTime: 0`, em `app/AppProviders.jsx`):
+  a tela mostra o que está no cache na hora e busca a versão nova por baixo quando é
+  montada, quando a janela volta a ter foco e quando a internet reconecta. Assim, o que
+  outro usuário mudou aparece ao abrir a tela ou voltar à aba, sem F5.
+- **Toda mutation chama `invalidateQueries`** com a chave do módulo no `onSuccess`. Depois
+  de salvar, a lista já está montada e a janela já tem foco, então nenhum dos gatilhos
+  acima acontece: sem a invalidação, a tela não atualiza.
 - **Listas pequenas vêm inteiras** numa requisição, e a busca e os filtros da tela rodam
   em memória, no `select` do `useQuery` (ex: contratos). Filtro no backend só quando a
   lista precisar de paginação.
-- Erro da API: a page mostra com `showError` (`shared/utils/alert.js`) no `onError` do
-  `mutate`. Components não chamam o alerta. Erros por campo (`errors` do `ProblemDetail`,
+- Erro da API: a page mostra `showError(error.message)` (`shared/utils/alert.js`) no
+  `onError` do `mutate`. Components não chamam o alerta. O `error.message` já chega com a
+  mensagem da API: o interceptor de resposta do `apiClient` troca o texto técnico do Axios
+  pelo `detail` do `ProblemDetail` ou, quando não houve resposta ou ela veio sem `detail`,
+  por uma mensagem de reserva. Erros por campo (`errors` do `ProblemDetail`,
   ver "Formato dos erros" acima) aparecem no `FormField`.
 
 ### Estado
@@ -438,7 +445,7 @@ Regras:
 | Tipo de dado | Exemplo | Onde fica |
 |---|---|---|
 | Vem da API | pacientes, contratos, preços, lançamentos | TanStack Query (hooks em `api/`) |
-| Global, que não vem de listagem | sessão do usuário | contexto, com o provider em `app/providers.jsx` |
+| Global, que não vem de listagem | sessão do usuário | contexto, com o provider em `app/AppProviders.jsx` |
 | De uma tela ou fluxo | itens do lançamento em montagem | `useState` ou hook local (`hooks/`) |
 
 - Dado do servidor nunca vai para contexto: o cache do TanStack Query já compartilha a mesma
@@ -471,10 +478,23 @@ Regras:
   ficam dentro do `ProtectedRoute` + `AppLayout` (`/patients`, `/pricing`, `/providers`,
   `/contracts`, `/consultations`); `*` é a página de não encontrado.
 - `ProtectedRoute` só confere se há sessão (não bloqueia por papel; ver o princípio 3).
-- `httpClient` envia o token salvo no `localStorage` (`sublime.authToken`) e, num 401, apaga
-  o token e encerra a sessão (`setUnauthorizedHandler`, registrado pelo `AuthProvider`).
-- Os papéis ficam em `domain/auth/roles.js`; o valor de cada um precisa ser idêntico ao que
-  o backend devolve.
+- **Sessão no `localStorage`** ([ADR 0024](adr/0024-sessao-frontend-localstorage.md)): o
+  `signIn` do `AuthProvider` guarda a resposta do `POST /api/auth/login` em
+  `sublime.authToken`, `sublime.authUser` e `sublime.authExpiresAt`.
+- `apiClient` envia o token salvo em cada requisição e, num 401, apaga o token e encerra a
+  sessão (`setUnauthorizedHandler`, registrado pelo `AuthProvider`).
+- **A sessão termina** no logout, ao abrir o app com a sessão vencida (pela
+  `sublime.authExpiresAt`) ou incompleta, e num 401 da API (garantia final: token vencido
+  durante o uso, usuário inativado ou com o perfil alterado).
+- **Ao sair, o cache do TanStack Query é limpo** (`queryClient.clear()` no `signOut`), para
+  o próximo usuário do mesmo navegador não ver os dados do anterior.
+- **Tela inicial por perfil:** a rota `/` (`HomeRedirect`) leva o `ADMIN` a `/patients` e o
+  `PROVIDER` a `/consultations` (`homePath` de cada papel, lido pelo `getHomePath`).
+- Os papéis ficam em `domain/auth/roles.js` (`ADMIN` e `PROVIDER`); o valor de cada um
+  precisa ser idêntico ao enum `Role` do backend.
+- A tela de login tem só e-mail e senha: não há "criar conta". Usuários são criados por
+  quem já está logado, pelo `POST /api/users`.
+- O menu mostra o e-mail do usuário: a resposta do login não traz nome.
 
 ### Convenções de nomes
 

@@ -63,7 +63,7 @@ export function AppSidebar() {
           <User size={18} />
         </span>
         <div className={styles.userInfo}>
-          <span className={styles.userName}>{user.name}</span>
+          <span className={styles.userName}>{user.email}</span>
           <span className={styles.userRole}>{getRole(user.role)?.label}</span>
         </div>
         <button type="button" className={styles.logout} aria-label="Sair" title="Sair" onClick={signOut}>

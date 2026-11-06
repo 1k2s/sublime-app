@@ -1,6 +1,7 @@
 export const ROLES = {
-  ADMIN: { value: "admin", label: "Administrador", homePath: "/patients" },
-  PROVIDER: { value: "provider", label: "Prestador", homePath: "/consultations" },
+  // "value" idêntico ao enum Role do backend (vem no login, em user.role)
+  ADMIN: { value: "ADMIN", label: "Administrador", homePath: "/patients" },
+  PROVIDER: { value: "PROVIDER", label: "Prestador", homePath: "/consultations" },
 };
 
 export function getRole(value) {

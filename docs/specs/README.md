@@ -3,11 +3,8 @@
 Uma spec por feature em andamento: `docs/specs/<feature>.md`. Ela é o "contrato" da
 feature enquanto ela não está pronta.
 
-**Em andamento:**
-
-| Spec | Feature |
-|---|---|
-| [`autenticacao.md`](autenticacao.md) | login com JWT, rotas da API protegidas e tela de login ligada à API. Backend concluído; falta o frontend |
+**Em andamento:** nenhuma. A próxima é a autorização por perfil (ver o
+[`roadmap.md`](../roadmap.md)).
 
 ## O que uma spec tem
 
