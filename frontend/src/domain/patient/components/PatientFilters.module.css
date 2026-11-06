@@ -38,8 +38,8 @@
 }
 
 .pillActive {
-  background: #eef4ee;
+  background: var(--color-primary-soft);
   border-color: transparent;
-  color: #3b6e3f;
+  color: var(--color-primary);
   font-weight: 600;
 }

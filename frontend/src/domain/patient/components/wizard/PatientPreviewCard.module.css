@@ -1,6 +1,6 @@
 .card {
   padding: 24px;
-  background: #fbfcfc;
+  background: var(--color-surface);
   display: flex;
   flex-direction: column;
   gap: 24px;
@@ -22,8 +22,8 @@
   width: 40px;
   height: 40px;
   border-radius: 50%;
-  background: #eef2f6;
-  color: #4b5563;
+  background: var(--color-bg);
+  color: var(--color-muted);
   flex-shrink: 0;
 }
 
@@ -31,7 +31,7 @@
   margin: 0;
   font-size: 16px;
   font-weight: 600;
-  color: #1f2937;
+  color: var(--color-text);
 }
 
 .subtitle {
@@ -59,13 +59,14 @@
   width: 36px;
   height: 36px;
   border-radius: 50%;
-  background: #f3f4f6;
-  color: #6b7280;
+  background: var(--color-bg);
+  color: var(--color-muted);
   flex-shrink: 0;
 }
 
 .itemContent {
   display: flex;
+  align-items: column;
   flex-direction: column;
   gap: 2px;
   flex: 1;
@@ -86,13 +87,13 @@
 .itemName {
   font-size: 14px;
   font-weight: 600;
-  color: #1f2937;
+  color: var(--color-text);
 }
 
 .itemValue {
   font-size: 14px;
   font-weight: 500;
-  color: #374151;
+  color: var(--color-text);
 }
 
 .infoBanner {
@@ -101,19 +102,19 @@
   gap: 10px;
   padding: 12px 14px;
   border-radius: var(--radius);
-  background: #f0f7ff;
-  border: 1px solid #e0eeff;
+  background: var(--color-primary-soft);
+  border: 1px solid var(--color-border);
   margin-top: 8px;
 }
 
 .infoIcon {
-  color: var(--color-accent);
+  color: var(--color-primary);
   flex-shrink: 0;
   margin-top: 1px;
 }
 
 .infoText {
   font-size: 12px;
-  color: #3f6fb5;
+  color: var(--color-text);
   line-height: 1.4;
 }

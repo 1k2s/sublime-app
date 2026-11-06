@@ -1,67 +1,40 @@
-/**
- * ======================================================================================
- * COMPONENTE: PersonalDataStep (Etapa 1 do Wizard)
- * ======================================================================================
- *
- * Apresenta o formulário de identificação do paciente (conforme Imagem 2):
- * - Nome completo (com ícone de usuário `User`).
- * - CPF (com máscara em tempo real `000.000.000-00`).
- * - Data de nascimento (com ícone `Calendar`, máscara automática `DD/MM/AAAA` e validação).
- * - Telefone (com ícone `Phone` e máscara `(00) 00000-0000`).
- * - E-mail (com ícone `Mail`, obrigatório).
- * - Botões: "Cancelar" (volta para a listagem) e "Próximo →" (valida e avança para o endereço).
- */
-
-import { User, Calendar, Phone, Mail, ArrowRight } from "lucide-react";
+// Etapa 1 do cadastro de paciente: dados pessoais, contato (opcional) e origem do paciente
+import { useWatch } from "react-hook-form";
+import { ArrowRight, Calendar, Mail, Phone, User } from "lucide-react";
+import { Button } from "@/shared/ui/Button";
 import { FormField } from "@/shared/ui/FormField";
 import { Input } from "@/shared/ui/Input";
-import { Button } from "@/shared/ui/Button";
-import { maskCpf, maskPhone, maskDate } from "@/shared/utils/masks";
-import styles from "./PatientWizard.module.css";
+import { Select } from "@/shared/ui/Select";
+import { maskCpf, maskDate, maskPhone } from "@/shared/utils/masks";
+import styles from "@/domain/patient/components/wizard/PatientWizard.module.css";
 
-/**
- * @param {Object} props
- * @param {import("react-hook-form").UseFormRegister} props.register - Função register do React Hook Form
- * @param {Object} props.errors - Objeto de erros de validação da etapa
- * @param {import("react-hook-form").UseFormSetValue} props.setValue - Função para alterar valores programaticamente
- * @param {import("react-hook-form").UseFormWatch} props.watch - Função para observar valores em tempo real
- * @param {function(): void} props.onCancel - Callback ao cancelar o fluxo
- * @param {function(): void} props.onNext - Callback para avançar para a próxima etapa (endereço)
- */
 export function PersonalDataStep({
   register,
+  control,
   errors,
   setValue,
-  watch,
+  providers = [],
   onCancel,
   onNext,
 }) {
-  // Observa os campos que possuem máscara para controle em tempo real
-  const cpfValue = watch("cpf");
-  const phoneValue = watch("phone");
-  const birthDateValue = watch("birthDate");
+  const cpfValue = useWatch({ control, name: "cpf" });
+  const phoneValue = useWatch({ control, name: "phone" });
+  const birthDateValue = useWatch({ control, name: "birthDate" });
 
-  // Aplica máscara de CPF durante a digitação e dispara validação
-  const handleCpfChange = (e) => {
-    const masked = maskCpf(e.target.value);
-    setValue("cpf", masked, { shouldValidate: true });
-  };
+  function handleCpfChange(e) {
+    setValue("cpf", maskCpf(e.target.value), { shouldValidate: true });
+  }
 
-  // Aplica máscara de Telefone celular ou fixo durante a digitação
-  const handlePhoneChange = (e) => {
-    const masked = maskPhone(e.target.value);
-    setValue("phone", masked, { shouldValidate: true });
-  };
+  function handlePhoneChange(e) {
+    setValue("phone", maskPhone(e.target.value), { shouldValidate: true });
+  }
 
-  // Aplica formatação automática de barras para Data de Nascimento (DD/MM/AAAA)
-  const handleBirthDateChange = (e) => {
-    const masked = maskDate(e.target.value);
-    setValue("birthDate", masked, { shouldValidate: true });
-  };
+  function handleBirthDateChange(e) {
+    setValue("birthDate", maskDate(e.target.value), { shouldValidate: true });
+  }
 
   return (
     <div className={styles.stepContainer}>
-      {/* Cabeçalho do Card com ícone em círculo verde suave */}
       <div className={styles.cardHeader}>
         <div className={styles.headerIconCircle}>
           <User size={22} />
@@ -69,14 +42,12 @@ export function PersonalDataStep({
         <div>
           <h2 className={styles.cardTitle}>Dados pessoais</h2>
           <p className={styles.cardSubtitle}>
-            Informe os dados de identificação do paciente.
+            Informe os dados de identificação, contato e origem do paciente.
           </p>
         </div>
       </div>
 
-      {/* Campos do formulário */}
       <div className={styles.formFields}>
-        {/* Campo: Nome Completo */}
         <FormField
           label={
             <>
@@ -95,7 +66,6 @@ export function PersonalDataStep({
           />
         </FormField>
 
-        {/* Linha com 2 colunas: CPF e Data de Nascimento */}
         <div className={styles.row}>
           <FormField
             label={
@@ -135,14 +105,9 @@ export function PersonalDataStep({
           </FormField>
         </div>
 
-        {/* Linha com 2 colunas: Telefone e E-mail */}
         <div className={styles.row}>
           <FormField
-            label={
-              <>
-                Telefone <span className={styles.required}>*</span>
-              </>
-            }
+            label="Telefone"
             htmlFor="phone"
             error={errors.phone?.message}
           >
@@ -157,11 +122,7 @@ export function PersonalDataStep({
           </FormField>
 
           <FormField
-            label={
-              <>
-                E-mail <span className={styles.required}>*</span>
-              </>
-            }
+            label="E-mail"
             htmlFor="email"
             error={errors.email?.message}
           >
@@ -175,9 +136,28 @@ export function PersonalDataStep({
             />
           </FormField>
         </div>
+
+        <FormField
+          label="Origem do paciente (prestador que trouxe)"
+          htmlFor="referringProviderId"
+          error={errors.referringProviderId?.message}
+        >
+          <Select
+            id="referringProviderId"
+            invalid={Boolean(errors.referringProviderId)}
+            {...register("referringProviderId")}
+          >
+            <option value="">Clínica (sem prestador)</option>
+            {providers.map((provider) => (
+              <option key={provider.id} value={String(provider.id)}>
+                {provider.name}
+                {!provider.active ? " (Inativo)" : ""}
+              </option>
+            ))}
+          </Select>
+        </FormField>
       </div>
 
-      {/* Rodapé com botões de navegação */}
       <div className={styles.cardFooter}>
         <Button variant="outline" type="button" onClick={onCancel}>
           Cancelar

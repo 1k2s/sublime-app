@@ -49,8 +49,8 @@
   width: 44px;
   height: 44px;
   border-radius: 50%;
-  background: #eef4ee;
-  color: #3b6e3f;
+  background: var(--color-primary-soft);
+  color: var(--color-primary);
   flex-shrink: 0;
 }
 
@@ -58,7 +58,7 @@
   margin: 0;
   font-size: 17px;
   font-weight: 600;
-  color: #1f2937;
+  color: var(--color-text);
 }
 
 .cardSubtitle {
@@ -80,15 +80,8 @@
   gap: 16px;
 }
 
-.rowThree {
-  display: grid;
-  grid-template-columns: 1.2fr 1.2fr 80px;
-  gap: 16px;
-}
-
 @media (max-width: 600px) {
-  .row,
-  .rowThree {
+  .row {
     grid-template-columns: 1fr;
   }
 }
@@ -132,10 +125,9 @@
   justify-content: space-between;
   padding: 18px 24px;
   border-top: 1px solid var(--color-border);
-  background-color: #fdfdfd;
+  background-color: var(--color-surface);
 }
 
-/* Confirmação (Passo 3) */
 .reviewContent {
   padding: 24px;
   display: flex;

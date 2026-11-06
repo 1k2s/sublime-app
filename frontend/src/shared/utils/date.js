@@ -1,5 +1,5 @@
 // Formatação de datas (chegam da API em ISO 8601)
-import { format, isValid, parseISO } from "date-fns";
+import { format, isValid, parse, parseISO } from "date-fns";
 import { ptBR } from "date-fns/locale";
 
 function toDate(value) {
@@ -12,6 +12,19 @@ function toDate(value) {
 export function formatDate(value, pattern = "dd/MM/yyyy") {
   const date = toDate(value);
   return date ? format(date, pattern, { locale: ptBR }) : "";
+}
+
+// "14/03/1990" -> Date válida (ou null se a data não existir no calendário)
+export function parseDisplayDate(value) {
+  if (!value || typeof value !== "string" || value.trim().length !== 10) return null;
+  const parsed = parse(value.trim(), "dd/MM/yyyy", new Date());
+  return isValid(parsed) && format(parsed, "dd/MM/yyyy") === value.trim() ? parsed : null;
+}
+
+// "14/03/1990" -> "1990-03-14" (formato LocalDate da API)
+export function displayDateToIso(value) {
+  const date = parseDisplayDate(value);
+  return date ? format(date, "yyyy-MM-dd") : "";
 }
 
 // "2026-10-06T14:30:00" -> "06/10/2026 14:30"
