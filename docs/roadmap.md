@@ -153,7 +153,7 @@ chamadas batem com a API real ainda não foram conferidos.**
 | `pricing` | catálogo de preços (tabela, busca de técnica, modal de preço) |
 | `consultation` | tela de lançamento (formulário, agenda, carrinho, total). `consultationApi.js` com trechos mockados |
 | `contract` | tela de contratos (filtros, tabela, formulário com seleção de paciente e preço, resumo), com fallback mockado no `contractApi.js`. **Envio no modelo antigo do contrato** (ver "Pendências") |
-| `provider` | só a página placeholder |
+| `provider` | tela pronta **sem API** (2026-11-06): listagem com busca e status, modal de cadastro/edição (usuário só no cadastro, entre os ativos sem prestador; percentuais opcionais no cadastro), modal de detalhes com inativar/reativar, item no menu para `ADMIN`. Falta a camada `api/` (`/api/providers` e `listUsers` de `/api/users`) |
 | `user` | nada |
 | `app/`, `shared/` | layout com menu lateral, router com rotas `lazy`, `apiClient`, utilitários (`money`, `date`, `masks`, `alert`, `viacep`) e componentes de `shared/ui/` |
 

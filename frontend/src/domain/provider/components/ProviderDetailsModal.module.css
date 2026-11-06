@@ -1,0 +1,93 @@
+.content {
+  display: flex;
+  flex-direction: column;
+  gap: 20px;
+}
+
+.status {
+  align-self: flex-start;
+}
+
+.grid {
+  display: grid;
+  grid-template-columns: repeat(2, 1fr);
+  gap: 16px;
+  margin: 0;
+}
+
+.field {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+}
+
+.label {
+  font-size: 12px;
+  color: var(--color-muted);
+}
+
+.value {
+  margin: 0;
+  font-size: 14px;
+  font-weight: 500;
+  color: var(--color-text);
+}
+
+.confirmBox {
+  display: flex;
+  flex-direction: column;
+  gap: 16px;
+  padding: 16px;
+  border: 1px solid var(--color-border);
+  border-radius: var(--radius);
+  background: var(--color-bg);
+}
+
+.confirmText {
+  margin: 0;
+  font-size: 14px;
+}
+
+.footer {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+}
+
+.actions {
+  display: flex;
+  justify-content: flex-end;
+  gap: 12px;
+}
+
+.dangerButton,
+.reactivateButton {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  height: 44px;
+  padding: 0 16px;
+  border-radius: var(--radius);
+  background: var(--color-surface);
+  font: inherit;
+  font-size: 14px;
+  font-weight: 600;
+  cursor: pointer;
+}
+
+.dangerButton {
+  border: 1px solid var(--color-danger);
+  color: var(--color-danger);
+}
+
+.reactivateButton {
+  border: 1px solid var(--color-primary);
+  color: var(--color-primary);
+}
+
+.dangerButton:disabled,
+.reactivateButton:disabled {
+  opacity: 0.6;
+  cursor: not-allowed;
+}

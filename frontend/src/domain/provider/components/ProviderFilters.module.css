@@ -1,0 +1,45 @@
+.container {
+  display: flex;
+  align-items: center;
+  gap: 16px;
+  margin-bottom: 24px;
+}
+
+.searchWrapper {
+  width: 320px;
+}
+
+.pillsGroup {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+
+.pill {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  height: 40px;
+  padding: 0 16px;
+  border-radius: 9999px;
+  border: 1px solid var(--color-border);
+  background: var(--color-surface);
+  color: var(--color-muted);
+  font: inherit;
+  font-size: 13px;
+  font-weight: 500;
+  cursor: pointer;
+  transition: all 0.2s ease;
+}
+
+.pill:hover:not(.pillActive) {
+  border-color: var(--color-muted);
+  color: var(--color-text);
+}
+
+.pillActive {
+  background: #eef4ee;
+  border-color: transparent;
+  color: #3b6e3f;
+  font-weight: 600;
+}
