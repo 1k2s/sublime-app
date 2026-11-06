@@ -39,7 +39,7 @@
 			<artifactId>spring-boot-starter-flyway</artifactId>
 		</dependency>
 		<!-- Segurança: o próprio sistema emite o JWT e o valida como resource server
-		     (ver docs/specs/autenticacao.md). Versões do BOM do Spring Boot. -->
+		     (ver docs/adr/0023-autenticacao-jwt-resource-server.md). Versões do BOM do Spring Boot. -->
 		<dependency>
 			<groupId>org.springframework.boot</groupId>
 			<artifactId>spring-boot-starter-security</artifactId>

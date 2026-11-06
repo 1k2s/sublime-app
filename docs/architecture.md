@@ -478,10 +478,23 @@ Regras:
   ficam dentro do `ProtectedRoute` + `AppLayout` (`/patients`, `/pricing`, `/providers`,
   `/contracts`, `/consultations`); `*` é a página de não encontrado.
 - `ProtectedRoute` só confere se há sessão (não bloqueia por papel; ver o princípio 3).
-- `apiClient` envia o token salvo no `localStorage` (`sublime.authToken`) e, num 401, apaga
-  o token e encerra a sessão (`setUnauthorizedHandler`, registrado pelo `AuthProvider`).
-- Os papéis ficam em `domain/auth/roles.js`; o valor de cada um precisa ser idêntico ao que
-  o backend devolve.
+- **Sessão no `localStorage`** ([ADR 0024](adr/0024-sessao-frontend-localstorage.md)): o
+  `signIn` do `AuthProvider` guarda a resposta do `POST /api/auth/login` em
+  `sublime.authToken`, `sublime.authUser` e `sublime.authExpiresAt`.
+- `apiClient` envia o token salvo em cada requisição e, num 401, apaga o token e encerra a
+  sessão (`setUnauthorizedHandler`, registrado pelo `AuthProvider`).
+- **A sessão termina** no logout, ao abrir o app com a sessão vencida (pela
+  `sublime.authExpiresAt`) ou incompleta, e num 401 da API (garantia final: token vencido
+  durante o uso, usuário inativado ou com o perfil alterado).
+- **Ao sair, o cache do TanStack Query é limpo** (`queryClient.clear()` no `signOut`), para
+  o próximo usuário do mesmo navegador não ver os dados do anterior.
+- **Tela inicial por perfil:** a rota `/` (`HomeRedirect`) leva o `ADMIN` a `/patients` e o
+  `PROVIDER` a `/consultations` (`homePath` de cada papel, lido pelo `getHomePath`).
+- Os papéis ficam em `domain/auth/roles.js` (`ADMIN` e `PROVIDER`); o valor de cada um
+  precisa ser idêntico ao enum `Role` do backend.
+- A tela de login tem só e-mail e senha: não há "criar conta". Usuários são criados por
+  quem já está logado, pelo `POST /api/users`.
+- O menu mostra o e-mail do usuário: a resposta do login não traz nome.
 
 ### Convenções de nomes
 

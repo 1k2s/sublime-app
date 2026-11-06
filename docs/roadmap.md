@@ -8,13 +8,13 @@ feature em andamento fica na spec dela, em [`specs/`](specs/).
 ## Índice <!-- omit from toc -->
 
 - [Fases](#fases)
-- [Estado atual (Fase 1 — atualizado em 2026-11-05)](#estado-atual-fase-1--atualizado-em-2026-11-05)
+- [Estado atual (Fase 1 — atualizado em 2026-11-06)](#estado-atual-fase-1--atualizado-em-2026-11-06)
 - [Próximos passos](#próximos-passos)
 - [Pendências técnicas](#pendências-técnicas)
 - [Melhorias futuras (anotadas, sem prioridade)](#melhorias-futuras-anotadas-sem-prioridade)
 - [Não modelado ainda](#não-modelado-ainda)
 - [Frontend](#frontend)
-  - [Estado atual (a revisar no inventário; atualizado em 2026-11-05)](#estado-atual-a-revisar-no-inventário-atualizado-em-2026-11-05)
+  - [Estado atual (a revisar no inventário; atualizado em 2026-11-06)](#estado-atual-a-revisar-no-inventário-atualizado-em-2026-11-06)
   - [Próximos passos](#próximos-passos-1)
   - [Pendências](#pendências)
   - [Melhorias (sem prioridade)](#melhorias-sem-prioridade)
@@ -26,13 +26,13 @@ feature em andamento fica na spec dela, em [`specs/`](specs/).
 - **Fase 2:** `Payment` e saldo financeiro do paciente (visão da clínica).
 - **Fase 3:** app de consulta de saldo para o paciente.
 
-## Estado atual (Fase 1 — atualizado em 2026-11-05)
+## Estado atual (Fase 1 — atualizado em 2026-11-06)
 
 | Módulo | Situação |
 |---|---|
 | `patient` | implementado: incl. origem do paciente (`referringProvider`), soft delete e reativação com 409 |
 | `user` | implementado: soft delete, e-mail único (409), senha com hash BCrypt (mínimo 8), senha opcional na alteração |
-| `auth` | **backend implementado** (2026-11-05): login com JWT, todas as rotas protegidas (exceto login e Swagger), corte imediato do acesso ao inativar ou mudar o perfil, primeiro admin, Swagger com "Authorize". **Falta o front** ([`specs/autenticacao.md`](specs/autenticacao.md)) |
+| `auth` | implementado no backend e no front (2026-11-06): login com JWT, todas as rotas protegidas (exceto login e Swagger), corte imediato do acesso ao inativar ou mudar o perfil, primeiro admin, Swagger com "Authorize"; no front, login real, sessão que expira, tela inicial por perfil ([ADR 0023](adr/0023-autenticacao-jwt-resource-server.md), [ADR 0024](adr/0024-sessao-frontend-localstorage.md)). Sem autorização por perfil: qualquer usuário logado acessa todos os endpoints |
 | `provider` | implementado: dois percentuais (padrão 40/45), usuário ativo obrigatório na criação, reativação |
 | `pricing` | implementado: grupos, técnicas (com reativação), planos (`PlanType`, `termWeeks`, de-para), preços com reajuste historizado |
 | `contract` | implementado: cabeçalho + `ContractItem`, vigência calculada (`SessionFrequency`), aditivos, opções do plano do Grupo, endpoints de apoio, beneficiário de no máximo um contrato vigente |
@@ -51,6 +51,9 @@ feature em andamento fica na spec dela, em [`specs/`](specs/).
 - **Teste manual da autenticação pela API** (2026-11-05): login, tokens inválidos e
   vencidos, senha com e sem troca, corte imediato do acesso, primeiro admin, Swagger e CORS
   funcionaram como esperado.
+- **Teste manual da autenticação pela interface** (2026-11-06): login de cada perfil, senha
+  errada, sessão vencida, logout seguido de outro login e usuário inativado durante o uso
+  funcionaram como esperado.
 - **Variáveis locais:** a aplicação precisa do `backend/.env` (ver "Variáveis de ambiente"
   no [`development.md`](development.md)); sem `JWT_SECRET`, não sobe.
 - **Testes:** decidido testar pela **interface gráfica** (não por Swagger nem por
@@ -58,20 +61,19 @@ feature em andamento fica na spec dela, em [`specs/`](specs/).
 
 ## Próximos passos
 
-1. **Autenticação: o frontend** (tela de login ligada à API, sessão que expira, papéis
-   `ADMIN`/`PROVIDER`, tela inicial por perfil, mensagens de erro da API). O backend está
-   pronto. Spec: [`specs/autenticacao.md`](specs/autenticacao.md).
-2. **Interface gráfica** (React + Vite, em `frontend/`) e testes por ela: ver a seção
-   [Frontend](#frontend).
-3. **Autorização por perfil** (`ADMIN`/`PROVIDER`), depois da autenticação e com spec
-   própria:
+1. **Autorização por perfil** (`ADMIN`/`PROVIDER`), no backend e no front, com spec
+   própria. Vem antes das telas que faltam: hoje um `PROVIDER` logado acessa todos os
+   endpoints (inclusive o cadastro de usuários), e as telas dependem do que cada perfil vê.
    - quais endpoints e dados cada perfil acessa: restringir ao `ADMIN` as operações de
      cadastro da clínica, como a listagem completa de técnicas
      (`GET /api/techniques/all`) e as reativações; definir o que o prestador vê;
    - o `launchedByUserId` no `Consultation` (quem lançou) e a regra de permissão do
      lançamento, com o prestador vindo do login;
    - a reativação do `User` e a decisão de exigir usuário ativo para reativar o
-     prestador (hoje não exige).
+     prestador (hoje não exige);
+   - no front: menu e rotas por papel (ver "Pendências" da seção [Frontend](#frontend)).
+2. **Interface gráfica** (React + Vite, em `frontend/`) e testes por ela: ver a seção
+   [Frontend](#frontend).
 
 ## Pendências técnicas
 
@@ -139,14 +141,14 @@ Frontend: ver a seção [Frontend](#frontend).
 
 Convenções na seção "Frontend" do [`architecture.md`](architecture.md).
 
-### Estado atual (a revisar no inventário; atualizado em 2026-11-05)
+### Estado atual (a revisar no inventário; atualizado em 2026-11-06)
 
 Levantado pelos arquivos de `frontend/src/`; **o comportamento de cada tela e se as
 chamadas batem com a API real ainda não foram conferidos.**
 
 | Módulo | O que existe |
 |---|---|
-| `auth` | tela de login, sessão no `localStorage`, `ProtectedRoute` (só confere sessão), menu filtrado por papel. **Login mockado** (`authApi.js`): o backend já tem o login (ver [`specs/autenticacao.md`](specs/autenticacao.md)) |
+| `auth` | **concluído e testado pela tela** (2026-11-06): login real, sessão no `localStorage` que expira pela `expiresAt` e cai num 401, cache limpo ao sair, tela inicial por perfil (`HomeRedirect`), `ProtectedRoute` (só confere sessão), menu filtrado por papel, mensagem da API no `error.message` (interceptor do `apiClient`). Ver "Rotas e sessão" no [`architecture.md`](architecture.md) |
 | `patient` | listagem com filtros e busca, modal de detalhes, cadastro em wizard (dados pessoais, endereço com ViaCEP, confirmação). `patientApi.js` com trechos mockados |
 | `pricing` | catálogo de preços (tabela, busca de técnica, modal de preço) |
 | `consultation` | tela de lançamento (formulário, agenda, carrinho, total). `consultationApi.js` com trechos mockados |
@@ -164,10 +166,8 @@ chamadas batem com a API real ainda não foram conferidos.**
 
 ### Próximos passos
 
-1. **Login real** ([`specs/autenticacao.md`](specs/autenticacao.md); o backend já está
-   pronto): trocar o mock do `authApi.js`, alinhar os papéis, tela inicial por perfil,
-   sessão que expira e mensagens de erro da API. **Até lá, o front não consegue chamar a
-   API:** todas as rotas exigem o token, e o login mockado não gera um token válido.
+1. **Autorização por perfil**, junto com o backend (item 1 dos
+   [Próximos passos](#próximos-passos) do projeto): menu e rotas por papel.
 2. **Inventário:** o que cada tela faz e se as chamadas batem com o contrato real da API
    (Swagger). Atualizar esta seção com o resultado.
 3. **Trocar os mocks pelas chamadas reais** onde o backend já tem o endpoint (`patient`,
@@ -177,7 +177,7 @@ chamadas batem com a API real ainda não foram conferidos.**
    API real. Cada tela começa com uma spec em [`specs/`](specs/README.md).
 
 Checklist da Fase 1 no front (herdado do guia original):
-- [ ] Login funcionando e rotas protegidas.
+- [x] Login funcionando e rotas protegidas.
 - [ ] CRUD de `Patient` com endereço e ViaCEP.
 - [ ] Catálogo de `pricing` consultável.
 - [ ] Cadastro de `provider` e `contract`.
@@ -204,22 +204,18 @@ Checklist da Fase 1 no front (herdado do guia original):
   `frequency` (ver `Contract e ContractItem` no [`domain-model.md`](domain-model.md) e o
   [ADR 0008](adr/0008-contrato-com-itens.md)). Refazer o envio sobre o contrato real,
   com spec.
-- **Papéis divergentes:** `domain/auth/roles.js` usa `"admin"` e `"provider"`; o enum
-  `Role` do backend é `ADMIN` e `PROVIDER`. Resolvido pela spec de autenticação.
 - **Mensagem de erro da API no `PriceFormModal`:** ele lê `error.response.data.message`,
   campo que o `ProblemDetail` não tem, e sempre cai na mensagem própria. Trocar por
   `error.message`, que o interceptor do `apiClient` já preenche com o `detail` da API.
 - **Origem do paciente:** conferir se o cadastro de paciente envia o
   `referringProviderId` (prestador que trouxe o paciente), que define a comissão.
-- **Menu e rotas por papel:** o admin cai em `/consultations` depois do login, que não
-  está no menu dele; `/providers` existe, mas não está no menu do design; Dashboard
-  (Fase 2) e Configurações (sem tela definida) ficam no menu, desabilitados. O destino
-  de cada papel após o login já foi decidido na spec de autenticação (`ADMIN` →
-  `/patients`, `PROVIDER` → `/consultations`, pelo `getHomePath`); falta decidir os
-  itens do menu.
+- **Menu e rotas por papel** (com a autorização por perfil): `/providers` existe, mas não
+  está no menu do design; Dashboard (Fase 2) e Configurações (sem tela definida) ficam no
+  menu, desabilitados; o `ProtectedRoute` não bloqueia rota por papel. Falta decidir os
+  itens do menu de cada papel. A tela inicial de cada um já está resolvida (`HomeRedirect`).
 - **Fora das convenções** da seção "Frontend" do [`architecture.md`](architecture.md):
-  `PageLoader` e `RouteError` com estilo inline; `AuthContext` chamando o HTTP fora da camada `api/`;
-  `PatientWizard` com imports relativos (`../../`) em vez de `@/`.
+  `PageLoader` e `RouteError` com estilo inline; `PatientWizard` com imports relativos
+  (`../../`) em vez de `@/`.
 - **`frontend/.env` versionado:** hoje só tem `VITE_API_URL` (sem segredo). Avaliar trocar
   por um `.env.example` versionado e o `.env` no `.gitignore`, antes que entre algum valor
   sensível.
