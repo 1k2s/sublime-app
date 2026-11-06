@@ -11,8 +11,8 @@
  *
  * 🚀 PASSO A PASSO PARA CONECTAR AO BACKEND REAL:
  *
- * 1. Descomente a importação do `httpClient`:
- *      import { httpClient } from "@/shared/http/httpClient";
+ * 1. Descomente a importação do `apiClient`:
+ *      import { apiClient } from "@/shared/http/apiClient";
  *
  * 2. Apague ou comente a constante `STORAGE_KEY`, o array `INITIAL_PATIENTS` e as funções
  *    auxiliares `getStoredPatients()` e `saveStoredPatients()`.
@@ -24,25 +24,25 @@
  *      const params = {};
  *      if (search) params.search = search;
  *      if (status && status !== "ALL") params.status = status;
- *      const { data } = await httpClient.get("/patients", { params });
+ *      const { data } = await apiClient.get("/patients", { params });
  *      return data;
  *    }
  *
  *    // Buscar paciente por ID:
  *    export async function getPatientById(id) {
- *      const { data } = await httpClient.get(`/patients/${id}`);
+ *      const { data } = await apiClient.get(`/patients/${id}`);
  *      return data;
  *    }
  *
  *    // Cadastrar novo paciente:
  *    export async function createPatient(payload) {
- *      const { data } = await httpClient.post("/patients", payload);
+ *      const { data } = await apiClient.post("/patients", payload);
  *      return data;
  *    }
  *
  *    // Atualizar paciente existente:
  *    export async function updatePatient(id, payload) {
- *      const { data } = await httpClient.put(`/patients/${id}`, payload);
+ *      const { data } = await apiClient.put(`/patients/${id}`, payload);
  *      return data;
  *    }
  *
@@ -53,7 +53,7 @@
  */
 
 import { onlyDigits } from "@/shared/utils/masks";
-// import { httpClient } from "@/shared/http/httpClient"; // <- Descomente quando integrar com a API real
+// import { apiClient } from "@/shared/http/apiClient"; // <- Descomente quando integrar com a API real
 
 /**
  * Chave de armazenamento no localStorage para simular a base de dados em ambiente local.

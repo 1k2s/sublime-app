@@ -69,7 +69,7 @@ time e entram no mesmo PR):
 - **Contrato da API antes da tela:** confira o endpoint e o DTO no Swagger/backend antes
   de escrever ou alterar uma chamada. Campos com os mesmos nomes da API.
 - **Chamadas só pela camada `api/`** (`xxxApi.js` + hooks do TanStack Query); pages e
-  components nunca usam o `httpClient` direto.
+  components nunca usam o `apiClient` direto.
 - **Respeite o mapa de módulos** da seção "Frontend" do `architecture.md` (o mesmo do backend) e
   importe com o alias `@/`.
 - **Confira depois das mudanças:** `npm run build` e `npm run lint` (em `frontend/`).

@@ -80,14 +80,14 @@ usuário foi inativado / teve o perfil alterado. O `role` vem como `ADMIN` ou `P
 
 | Arquivo | Mudança |
 |---|---|
-| `shared/http/apiError.js` (novo) | `getApiErrorMessage(error, fallback)`: devolve o `detail` do `ProblemDetail` ou o `fallback` |
-| `domain/auth/api/authApi.js` | troca o mock por `httpClient.post("/auth/login", { email, password })`; devolve `{ token, expiresAt, user }` |
+| `shared/http/apiClient.js` | o interceptor de resposta troca o `error.message` (texto técnico do Axios) pelo `detail` do `ProblemDetail`, ou por uma mensagem de reserva quando não houve resposta ou ela veio sem `detail`. As pages continuam com `showError(error.message)` |
+| `domain/auth/api/authApi.js` | troca o mock por `apiClient.post("/auth/login", { email, password })`; devolve `{ token, expiresAt, user }` |
 | `domain/auth/context/AuthContext.jsx` | `signIn` guarda também a `expiresAt`; `readStoredUser` descarta a sessão vencida; `signOut` limpa o cache (`queryClient.clear()`) |
 | `domain/auth/roles.js` | valores `ADMIN` e `PROVIDER` |
-| `domain/auth/pages/LoginPage.jsx` | erro pela `getApiErrorMessage` |
 | `app/router.jsx` | a rota `/` leva à tela inicial do perfil (`getHomePath`), no lugar do `/consultations` fixo |
 
-O `httpClient` não muda: já envia o token e trata o 401.
+O `apiClient` já envia o token e trata o 401; muda só a mensagem do erro. A `LoginPage` não
+muda: já mostra o `error.message`.
 
 ## 6. Tarefas
 
@@ -97,10 +97,12 @@ admin, Swagger com "Authorize", `backend/.env` local e teste manual de todos os 
 **Frontend** (`npm run build` e `npm run lint` ao fim):
 - [x] Corrigir o build (resolvido pelo PR #13 do repositório antigo, trazido para o
       monorepo em 2026-11-05).
-- [ ] `getApiErrorMessage`.
-- [ ] `authApi.js` real.
-- [ ] `AuthContext`: `expiresAt` e limpeza do cache.
-- [ ] `roles.js` e tela inicial por perfil.
+- [x] Mensagem da API no `error.message` (interceptor do `apiClient`).
+- [x] `authApi.js` real.
+- [x] `AuthContext`: `expiresAt` e limpeza do cache.
+- [x] `roles.js` com `ADMIN` / `PROVIDER` (e o e-mail no menu, no lugar do nome que a API não
+      devolve).
+- [x] Tela inicial por perfil (`HomeRedirect` na rota `/`).
 - [ ] Teste pela tela: login de cada perfil, senha errada, sessão vencida, logout seguido
       de outro login, usuário inativado durante o uso.
 
@@ -108,7 +110,7 @@ admin, Swagger com "Authorize", `backend/.env` local e teste manual de todos os 
 
 - [`architecture.md`](../architecture.md), seção "Frontend" → "Rotas e sessão": expiração
   pela `expiresAt`, limpeza do cache ao sair, tela inicial por perfil, papéis `ADMIN` /
-  `PROVIDER`; `getApiErrorMessage` na "Camada `api/`".
+  `PROVIDER`.
 - [`roadmap.md`](../roadmap.md): autenticação concluída; próximo passo, a autorização por
   perfil; tirar das pendências do front os papéis divergentes e as mensagens de erro da API.
 - ADR da seção seguinte e remoção desta spec.
@@ -117,4 +119,4 @@ admin, Swagger com "Authorize", `backend/.env` local e teste manual de todos os 
 
 - **Sessão no frontend: token no `localStorage`, 8 horas, sem refresh token.**
   *Alternativas descartadas:* cookie `httpOnly` (protege o token de XSS, mas exige
-  configuração de CSRF e `SameSite` e muda o `httpClient`); refresh token.
+  configuração de CSRF e `SameSite` e muda o `apiClient`); refresh token.

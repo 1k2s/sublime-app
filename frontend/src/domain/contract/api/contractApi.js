@@ -1,5 +1,5 @@
-// Mock no localStorage até o backend expor /contracts. Para integrar, trocar cada função por uma chamada ao httpClient
-// import { httpClient } from "@/shared/http/httpClient";
+// Mock no localStorage até o backend expor /contracts. Para integrar, trocar cada função por uma chamada ao apiClient
+// import { apiClient } from "@/shared/http/apiClient";
 
 const STORAGE_KEY = "sublime.contracts";
 

@@ -10,11 +10,13 @@ export function setUnauthorizedHandler(handler) {
   unauthorizedHandler = handler;
 }
 
-export const httpClient = axios.create({
+//Criando uma instância do Axios: um objeto que já vem com todos os verbos http
+export const apiClient = axios.create({
   baseURL: import.meta.env.VITE_API_URL,
 });
 
-httpClient.interceptors.request.use((config) => {
+//Incluindo o TOKEN a cada requisição
+apiClient.interceptors.request.use((config) => {
   const token = localStorage.getItem(AUTH_TOKEN_KEY);
   if (token) {
     config.headers.Authorization = `Bearer ${token}`;
@@ -22,13 +24,23 @@ httpClient.interceptors.request.use((config) => {
   return config;
 });
 
-httpClient.interceptors.response.use(
+//Tratando o erro 401 e trocando a mensagem técnica do Axios pela mensagem da API
+apiClient.interceptors.response.use(
   (response) => response,
   (error) => {
     if (error.response?.status === 401) {
       localStorage.removeItem(AUTH_TOKEN_KEY);
       unauthorizedHandler?.();
     }
+    error.message = describeApiError(error);
     return Promise.reject(error);
   }
 );
+
+//A mensagem é da API (o "detail" do ProblemDetail); as de reserva cobrem quando ela não mandou nenhuma
+function describeApiError(error) {
+  if (!error.response) {
+    return "Não foi possível conectar ao servidor. Tente novamente.";
+  }
+  return error.response.data?.detail ?? "Ocorreu um erro inesperado. Tente novamente.";
+}

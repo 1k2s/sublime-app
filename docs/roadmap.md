@@ -91,6 +91,10 @@ Frontend: ver a seção [Frontend](#frontend).
   bloquear alguma combinação abaixo do teto de 52 semanas.
 - Código de erro nas respostas (ex: `PATIENT_HAS_CURRENT_CONTRACT`).
 - Value object `Cpf` (com dígitos verificadores).
+- **Nome do usuário no login:** o `user` da resposta do `POST /api/auth/login` traz só
+  `id`, `email` e `role`, e o menu do front mostra o e-mail. Para mostrar um nome, a
+  resposta precisa trazê-lo. O `User` não tem nome hoje: decidir entre um campo `name` no
+  `User` e o nome do `Provider` vinculado (que não cobre o admin sem prestador).
 - Carga inicial do catálogo da clínica pronta ao subir. Hoje ele é cadastrado pela
   API; como migration, os `INSERT`s pulariam as regras do domínio (ADR 0021).
 - Testes automatizados.
@@ -149,7 +153,7 @@ chamadas batem com a API real ainda não foram conferidos.**
 | `contract` | tela de contratos (filtros, tabela, formulário com seleção de paciente e preço, resumo), com fallback mockado no `contractApi.js`. **Envio no modelo antigo do contrato** (ver "Pendências") |
 | `provider` | só a página placeholder |
 | `user` | nada |
-| `app/`, `shared/` | layout com menu lateral, router com rotas `lazy`, `httpClient`, utilitários (`money`, `date`, `masks`, `alert`, `viacep`) e componentes de `shared/ui/` |
+| `app/`, `shared/` | layout com menu lateral, router com rotas `lazy`, `apiClient`, utilitários (`money`, `date`, `masks`, `alert`, `viacep`) e componentes de `shared/ui/` |
 
 - **`npm run build` funciona** desde a atualização de 2026-11-05 (as correções do PR #13
   do repositório antigo resolveram os arquivos cortados). `npm run lint`: sem erros, 1
@@ -202,10 +206,9 @@ Checklist da Fase 1 no front (herdado do guia original):
   com spec.
 - **Papéis divergentes:** `domain/auth/roles.js` usa `"admin"` e `"provider"`; o enum
   `Role` do backend é `ADMIN` e `PROVIDER`. Resolvido pela spec de autenticação.
-- **Mensagem de erro da API não aparece:** a `ConsultationPage` mostra `error.message`
-  (a mensagem técnica do Axios) e o `PriceFormModal` lê `data.message`, campo que o
-  `ProblemDetail` não tem (o texto está no `detail`). Corrigir com o
-  `getApiErrorMessage` que a spec de autenticação cria em `shared/http/`.
+- **Mensagem de erro da API no `PriceFormModal`:** ele lê `error.response.data.message`,
+  campo que o `ProblemDetail` não tem, e sempre cai na mensagem própria. Trocar por
+  `error.message`, que o interceptor do `apiClient` já preenche com o `detail` da API.
 - **Origem do paciente:** conferir se o cadastro de paciente envia o
   `referringProviderId` (prestador que trouxe o paciente), que define a comissão.
 - **Menu e rotas por papel:** o admin cai em `/consultations` depois do login, que não
@@ -215,8 +218,7 @@ Checklist da Fase 1 no front (herdado do guia original):
   `/patients`, `PROVIDER` → `/consultations`, pelo `getHomePath`); falta decidir os
   itens do menu.
 - **Fora das convenções** da seção "Frontend" do [`architecture.md`](architecture.md):
-  `src/pages/NotFoundPage.jsx` fora da estrutura (mover para `app/`); `PageLoader` e
-  `RouteError` com estilo inline; `AuthContext` chamando o HTTP fora da camada `api/`;
+  `PageLoader` e `RouteError` com estilo inline; `AuthContext` chamando o HTTP fora da camada `api/`;
   `PatientWizard` com imports relativos (`../../`) em vez de `@/`.
 - **`frontend/.env` versionado:** hoje só tem `VITE_API_URL` (sem segredo). Avaliar trocar
   por um `.env.example` versionado e o `.env` no `.gitignore`, antes que entre algum valor

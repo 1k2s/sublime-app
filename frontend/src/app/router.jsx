@@ -1,4 +1,5 @@
-import { createBrowserRouter, Navigate } from 'react-router-dom';
+import { createBrowserRouter } from 'react-router-dom';
+import { HomeRedirect } from '@/domain/auth/components/HomeRedirect';
 import { ProtectedRoute } from '@/domain/auth/components/ProtectedRoute';
 import { RouteError } from '@/shared/ui/RouteError';
 import { PageLoader } from '@/shared/ui/PageLoader';
@@ -26,7 +27,7 @@ export const router = createBrowserRouter([
         children: [
           {
             index: true,
-            element: <Navigate to="/consultations" replace />
+            element: <HomeRedirect />
           },
           {
             path: 'patients',
@@ -70,7 +71,7 @@ export const router = createBrowserRouter([
   {
     path: '*',
     lazy: async () => {
-      const { NotFoundPage } = await import('@/pages/NotFoundPage');
+      const { NotFoundPage } = await import('@/app/NotFoundPage');
       return { Component: NotFoundPage };
     }
   }

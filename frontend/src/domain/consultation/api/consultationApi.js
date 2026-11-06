@@ -14,7 +14,7 @@ function delay(ms) {
   return new Promise((resolve) => setTimeout(resolve, ms));
 }
 
-// Depois: httpClient.post("/consultations/preview", { patientId, techniqueId, arrivalTime })
+// Depois: apiClient.post("/consultations/preview", { patientId, techniqueId, arrivalTime })
 export async function previewConsultation({ patientId, arrivalTime }) {
   await delay(300);
 
@@ -28,7 +28,7 @@ export async function previewConsultation({ patientId, arrivalTime }) {
 }
 
 // Grava todos os itens do carrinho de uma vez
-// Depois: httpClient.post("/consultations/batch", payloads) (endpoint a combinar com o backend)
+// Depois: apiClient.post("/consultations/batch", payloads) (endpoint a combinar com o backend)
 export async function createConsultations(payloads) {
   await delay(500);
 
@@ -42,7 +42,7 @@ export async function createConsultations(payloads) {
 }
 
 // Lançamentos do prestador logado em uma data ("2026-10-16")
-// Depois: httpClient.get("/consultations", { params: { date } })
+// Depois: apiClient.get("/consultations", { params: { date } })
 export async function listConsultations({ date }) {
   await delay(300);
   return mockConsultations.filter((consultation) => consultation.arrivalTime.startsWith(date));
