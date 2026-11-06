@@ -3,8 +3,11 @@
 Uma spec por feature em andamento: `docs/specs/<feature>.md`. Ela é o "contrato" da
 feature enquanto ela não está pronta.
 
-**Em andamento:** nenhuma. A próxima é a autorização por perfil (ver o
-[`roadmap.md`](../roadmap.md)).
+**Em andamento:**
+
+| Spec | Feature |
+|---|---|
+| [`autorizacao.md`](autorizacao.md) | o que cada perfil (`ADMIN`, `PROVIDER`) acessa na API e no front, prestador do lançamento vindo do login, admin padrão protegido, configurações do próprio usuário |
 
 ## O que uma spec tem
 

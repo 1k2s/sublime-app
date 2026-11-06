@@ -61,19 +61,17 @@ feature em andamento fica na spec dela, em [`specs/`](specs/).
 
 ## Próximos passos
 
-1. **Autorização por perfil** (`ADMIN`/`PROVIDER`), no backend e no front, com spec
-   própria. Vem antes das telas que faltam: hoje um `PROVIDER` logado acessa todos os
-   endpoints (inclusive o cadastro de usuários), e as telas dependem do que cada perfil vê.
-   - quais endpoints e dados cada perfil acessa: restringir ao `ADMIN` as operações de
-     cadastro da clínica, como a listagem completa de técnicas
-     (`GET /api/techniques/all`) e as reativações; definir o que o prestador vê;
-   - o `launchedByUserId` no `Consultation` (quem lançou) e a regra de permissão do
-     lançamento, com o prestador vindo do login;
-   - a reativação do `User` e a decisão de exigir usuário ativo para reativar o
-     prestador (hoje não exige);
-   - no front: menu e rotas por papel (ver "Pendências" da seção [Frontend](#frontend)).
+1. **Autorização por perfil** (`ADMIN`/`PROVIDER`), no backend e no front: **regras e
+   desenho decididos** em [`specs/autorizacao.md`](specs/autorizacao.md) (2026-11-06).
+   Vem antes das telas que faltam: hoje um `PROVIDER` logado acessa todos os endpoints
+   (inclusive o cadastro de usuários), e as telas dependem do que cada perfil vê.
 2. **Interface gráfica** (React + Vite, em `frontend/`) e testes por ela: ver a seção
    [Frontend](#frontend).
+3. **Dashboard do prestador**, com spec própria, depois da autorização por perfil: os
+   rendimentos do próprio prestador (soma dos repasses dos atendimentos dele) no dia, na
+   semana e no mês. Decidido em 2026-11-06 que o `PROVIDER` vê só os próprios rendimentos.
+   Em aberto para a spec: o que conta como rendimento (quais status, por qual data) e se o
+   `ADMIN` terá um dashboard da clínica.
 
 ## Pendências técnicas
 
