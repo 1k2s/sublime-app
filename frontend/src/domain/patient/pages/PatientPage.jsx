@@ -1,28 +1,18 @@
-/**
- * ======================================================================================
- * PÁGINA PRINCIPAL: PatientPage
- * ======================================================================================
- *
- * Ponto de entrada do módulo de pacientes acessível pela rota `/patients`:
- * - Gerencia o estado de visualização através de uma máquina de estados simples:
- *   - "list": exibe cabeçalho, filtros de busca/status, tabela de pacientes e modal de detalhes.
- *   - "create": exibe o fluxo de cadastro em 3 etapas (apenas para Admin).
- *   - "edit": exibe o fluxo de edição com campos pré-carregados (apenas para Admin).
- *
- * 🛡️ CONTROLE DE ACESSO POR PERFIL (RBAC):
- * - `admin`: Acesso total (visualização, busca, criação e edição).
- * - `provider`: Acesso restrito somente leitura à listagem e detalhes do paciente.
- *   O botão "+ Novo paciente" fica oculto e qualquer tentativa direta de abrir o formulário
- *   é redirecionada para a listagem.
- */
-
 import { useState, useTransition } from "react";
 import { Plus } from "lucide-react";
 import { useAuth } from "@/domain/auth/context/useAuth";
 import { ROLES } from "@/domain/auth/roles";
 import { PageHeader } from "@/shared/ui/PageHeader";
 import { Button } from "@/shared/ui/Button";
-import { usePatients, useUpdatePatient } from "../api/usePatients";
+import { showError } from "@/shared/utils/alert";
+import {
+  usePatients,
+  useCreatePatient,
+  useUpdatePatient,
+  useDeactivatePatient,
+  useActivatePatient,
+} from "../api/usePatients";
+import { toPatientRequest } from "../patientForm";
 import { PatientFilters } from "../components/PatientFilters";
 import { PatientTable } from "../components/PatientTable";
 import { PatientDetailsModal } from "../components/PatientDetailsModal";
@@ -30,89 +20,76 @@ import { PatientWizard } from "../components/wizard/PatientWizard";
 import styles from "./PatientPage.module.css";
 
 export function PatientPage() {
-  // Obtém o usuário autenticado na sessão atual
   const { user } = useAuth();
   const isAdmin = user?.role === ROLES.ADMIN.value;
 
-  // Estados locais da página
-  const [view, setView] = useState("list"); // Modos: "list" | "create" | "edit"
-  const [search, setSearch] = useState(""); // Termo de busca digitado
-  const [status, setStatus] = useState("ACTIVE"); // Filtro de status inicial ("ACTIVE" conforme design)
-  const [selectedPatient, setSelectedPatient] = useState(null); // Paciente selecionado para o modal de detalhes
-  const [editingPatient, setEditingPatient] = useState(null); // Paciente selecionado para edição no wizard
+  const [view, setView] = useState("list"); // "list" | "create" | "edit"
+  const [search, setSearch] = useState("");
+  const [status, setStatus] = useState("ACTIVE");
+  const [selectedPatient, setSelectedPatient] = useState(null);
+  const [editingPatient, setEditingPatient] = useState(null);
   const [, startTransition] = useTransition();
 
-  // Consulta reativa de pacientes via TanStack Query
   const { data: patients = [], isLoading } = usePatients({ search, status });
+  const createPatientMutation = useCreatePatient();
   const updatePatientMutation = useUpdatePatient();
+  const deactivatePatientMutation = useDeactivatePatient();
+  const activatePatientMutation = useActivatePatient();
 
-  // Regra de segurança: apenas admin pode estar no modo de formulário (criação ou edição)
   const isFormMode = (view === "create" || view === "edit") && isAdmin;
   const isEditing = view === "edit";
+  const isSubmitting = createPatientMutation.isPending || updatePatientMutation.isPending;
 
-  /**
-   * Alterna o status do paciente entre Ativo e Inativo
-   */
-  const handleToggleStatus = async (patient, nextStatus) => {
-    try {
-      await updatePatientMutation.mutateAsync({
-        id: patient.id,
-        data: { ...patient, status: nextStatus },
-      });
-      // Atualiza o estado local do modal se estiver aberto
-      setSelectedPatient((prev) => (prev ? { ...prev, status: nextStatus } : null));
-    } catch (err) {
-      console.error("Erro ao alterar status do paciente:", err);
-    }
-  };
-
-  /**
-   * Atualiza o termo de busca utilizando useTransition para manter a digitação fluida
-   */
-  const handleSearchChange = (val) => {
-    startTransition(() => {
-      setSearch(val);
+  // Inativar = DELETE; reativar = PATCH /activate. A API não devolve o paciente (204),
+  // então o modal aberto é atualizado aqui; a lista volta pela invalidação
+  const handleToggleStatus = (patient) => {
+    const mutation = patient.active ? deactivatePatientMutation : activatePatientMutation;
+    mutation.mutate(patient.id, {
+      onSuccess: () =>
+        setSelectedPatient((prev) => (prev ? { ...prev, active: !patient.active } : null)),
+      onError: (error) => showError(error.message),
     });
   };
 
-  /**
-   * Atualiza a aba de status selecionada (Todos, Ativos, Inativos)
-   */
-  const handleStatusChange = (val) => {
-    setStatus(val);
+  const handleSearchChange = (value) => {
+    startTransition(() => setSearch(value));
   };
 
-  /**
-   * Inicia o fluxo de cadastro de um novo paciente
-   */
   const handleStartCreate = () => {
     setEditingPatient(null);
     setView("create");
   };
 
-  /**
-   * Inicia o fluxo de edição de um paciente selecionado no modal
-   */
   const handleStartEdit = (patient) => {
     setSelectedPatient(null);
     setEditingPatient(patient);
     setView("edit");
   };
 
-  /**
-   * Retorna para a listagem resetando o paciente em edição
-   */
   const handleBackToList = () => {
     setEditingPatient(null);
     setView("list");
   };
 
+  // Na edição, reenvia a origem atual: nula no PUT tornaria o paciente "da clínica"
+  const handleSave = (formValues) => {
+    const callbacks = {
+      onSuccess: handleBackToList,
+      onError: (error) => showError(error.message),
+    };
+
+    if (isEditing) {
+      const data = toPatientRequest(formValues, editingPatient.referringProviderId);
+      updatePatientMutation.mutate({ id: editingPatient.id, data }, callbacks);
+    } else {
+      createPatientMutation.mutate(toPatientRequest(formValues), callbacks);
+    }
+  };
+
   return (
     <div className={styles.pageContainer}>
       {!isFormMode ? (
-        /* MODO 1: TELA DE LISTAGEM (Imagem 1) */
         <>
-          {/* Cabeçalho da listagem com botão de novo paciente visível apenas para admin */}
           <PageHeader
             className={styles.pageHeader}
             title="Pacientes"
@@ -126,23 +103,20 @@ export function PatientPage() {
             }
           />
 
-          {/* Barra de filtros de busca e pills de status */}
           <PatientFilters
             search={search}
             onSearchChange={handleSearchChange}
             status={status}
-            onStatusChange={handleStatusChange}
+            onStatusChange={setStatus}
           />
 
-          {/* Tabela de pacientes com badge e botão de ação */}
           <PatientTable
             patients={patients}
             isLoading={isLoading}
             isAdmin={isAdmin}
-            onViewDetails={(patient) => setSelectedPatient(patient)}
+            onViewDetails={setSelectedPatient}
           />
 
-          {/* Modal de detalhes aberto ao clicar em "Ver / Editar" ou "Ver" */}
           <PatientDetailsModal
             patient={selectedPatient}
             isAdmin={isAdmin}
@@ -152,9 +126,7 @@ export function PatientPage() {
           />
         </>
       ) : (
-        /* MODO 2: WIZARD DE CRIAÇÃO OU EDIÇÃO (Imagem 2) */
         <>
-          {/* Cabeçalho com botão de retorno e títulos contextuais */}
           <PageHeader
             className={styles.pageHeader}
             title={isEditing ? "Editar paciente" : "Novo paciente"}
@@ -166,11 +138,11 @@ export function PatientPage() {
             onBack={handleBackToList}
           />
 
-          {/* Orquestrador do formulário em 3 etapas com prévia lateral */}
           <PatientWizard
             initialData={editingPatient}
+            isSubmitting={isSubmitting}
+            onSubmit={handleSave}
             onCancel={handleBackToList}
-            onSuccess={handleBackToList}
           />
         </>
       )}
