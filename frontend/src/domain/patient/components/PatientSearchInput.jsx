@@ -1,10 +1,10 @@
 // Busca de paciente por nome ou CPF. Setas navegam pelos resultados e Enter entrega o destacado em onSelect
 import { useEffect, useId, useState } from "react";
 import { Search } from "lucide-react";
+import { usePatients } from "@/domain/patient/api/usePatients";
 import { Input } from "@/shared/ui/Input";
 import { maskCpf } from "@/shared/utils/masks";
-import { usePatients } from "../api/usePatients";
-import styles from "./PatientSearchInput.module.css";
+import styles from "@/domain/patient/components/PatientSearchInput.module.css";
 
 const MIN_SEARCH_LENGTH = 2;
 const DEBOUNCE_MS = 300;

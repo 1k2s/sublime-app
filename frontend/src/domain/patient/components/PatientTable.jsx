@@ -1,28 +1,9 @@
-/**
- * ======================================================================================
- * COMPONENTE: PatientTable
- * ======================================================================================
- *
- * Tabela de apresentação dos pacientes cadastrados (conforme Imagem 1):
- * - Envolvida em container Card com bordas sutis e cantos arredondados.
- * - Colunas: NOME (com avatar circular contendo as iniciais), CPF, TELEFONE, CIDADE, STATUS e AÇÕES.
- * - Suporta estados de carregamento (loading), lista vazia (empty) e dados preenchidos.
- * - Controle de perfil (RBAC):
- *   - Administrador (`isAdmin = true`): exibe a ação "Ver / Editar".
- *   - Prestador (`isAdmin = false`): exibe apenas "Ver".
- */
-
-import { Card } from "@/shared/ui/Card";
+import { Pencil } from "lucide-react";
 import { Badge } from "@/shared/ui/Badge";
-import styles from "./PatientTable.module.css";
+import { Card } from "@/shared/ui/Card";
+import { maskCpf, maskPhone } from "@/shared/utils/masks";
+import styles from "@/domain/patient/components/PatientTable.module.css";
 
-/**
- * Extrai as duas primeiras iniciais de um nome completo para exibir dentro do avatar.
- * Exemplo: "Maria Eduarda Santos" -> "ME"
- *
- * @param {string} name - Nome completo do paciente
- * @returns {string} Iniciais em maiúsculas (máximo 2 caracteres)
- */
 function getInitials(name = "") {
   const parts = name.trim().split(/\s+/).filter(Boolean);
   if (parts.length === 0) return "--";
@@ -30,20 +11,12 @@ function getInitials(name = "") {
   return (parts[0][0] + parts[1][0]).toUpperCase();
 }
 
-/**
- * @param {Object} props
- * @param {Array<Object>} props.patients - Lista de pacientes a renderizar
- * @param {boolean} [props.isLoading=false] - Indica se os dados estão sendo carregados da API
- * @param {boolean} [props.isAdmin=false] - Indica se o usuário atual é administrador
- * @param {function(Object): void} [props.onViewDetails] - Callback disparado ao clicar no botão de ação da linha
- */
 export function PatientTable({
   patients = [],
   isLoading = false,
   isAdmin = false,
   onViewDetails,
 }) {
-  // Estado de carregamento: exibe feedback visual enquanto o TanStack Query busca os dados
   if (isLoading) {
     return (
       <Card className={styles.loadingCard}>
@@ -52,7 +25,6 @@ export function PatientTable({
     );
   }
 
-  // Estado vazio: nenhum paciente cadastrado ou nenhum registro corresponde aos filtros atuais
   if (patients.length === 0) {
     return (
       <Card className={styles.emptyCard}>
@@ -68,61 +40,58 @@ export function PatientTable({
     <Card className={styles.tableCard}>
       <table className={styles.table}>
         <thead>
-          <tr>
-            <th className={styles.thName}>NOME</th>
-            <th>CPF</th>
-            <th>TELEFONE</th>
-            <th>CIDADE</th>
-            <th>STATUS</th>
-            <th className={styles.thAction}>AÇÕES</th>
+          <tr className={styles.headRow}>
+            <th className={`${styles.th} ${styles.thName}`}>NOME</th>
+            <th className={styles.th}>CPF</th>
+            <th className={styles.th}>TELEFONE</th>
+            <th className={styles.th}>CIDADE</th>
+            <th className={styles.th}>STATUS</th>
+            <th className={`${styles.th} ${styles.thAction}`}>AÇÕES</th>
           </tr>
         </thead>
         <tbody>
-          {patients.map((patient) => {
-            const isAtivo = patient.status === "ACTIVE";
-            const location = [patient.city, patient.state].filter(Boolean).join(", ");
-
-            return (
-              <tr key={patient.id} className={styles.row}>
-                {/* Nome do paciente acompanhado do avatar com as iniciais */}
-                <td className={styles.tdName}>
-                  <div className={styles.nameCell}>
-                    <div className={styles.avatar}>
-                      {getInitials(patient.name)}
-                    </div>
-                    <span className={styles.nameText}>{patient.name}</span>
+          {patients.map((patient) => (
+            <tr key={patient.id} className={styles.row}>
+              <td className={`${styles.td} ${styles.tdName}`}>
+                <div className={styles.nameCell}>
+                  <div className={styles.avatar}>
+                    {getInitials(patient.name)}
                   </div>
-                </td>
+                  <span className={styles.nameText}>{patient.name}</span>
+                </div>
+              </td>
 
-                {/* CPF formatado */}
-                <td className={styles.tdData}>{patient.cpf}</td>
+              <td className={`${styles.td} ${styles.tdData}`}>
+                {patient.cpf ? maskCpf(patient.cpf) : "--"}
+              </td>
 
-                {/* Telefone formatado */}
-                <td className={styles.tdData}>{patient.phone}</td>
+              <td className={`${styles.td} ${styles.tdData}`}>
+                {patient.phone ? maskPhone(patient.phone) : "--"}
+              </td>
 
-                {/* Cidade e UF */}
-                <td className={styles.tdData}>{location || "--"}</td>
+              <td className={`${styles.td} ${styles.tdData}`}>
+                {patient.address?.city || "--"}
+              </td>
 
-                {/* Tag indicadora de status: Ativo (verde) ou Inativo (cinza) */}
-                <td>
-                  <Badge variant={isAtivo ? "active" : "inactive"}>
-                    {isAtivo ? "Ativo" : "Inativo"}
-                  </Badge>
-                </td>
+              <td className={styles.td}>
+                <Badge variant={patient.active ? "active" : "inactive"}>
+                  {patient.active ? "Ativo" : "Inativo"}
+                </Badge>
+              </td>
 
-                {/* Ação contextual baseada no papel do usuário logado */}
-                <td className={styles.thAction}>
-                  <button
-                    type="button"
-                    className={styles.actionButton}
-                    onClick={() => onViewDetails?.(patient)}
-                  >
-                    {isAdmin ? "Ver / Editar" : "Ver"}
-                  </button>
-                </td>
-              </tr>
-            );
-          })}
+              <td className={`${styles.td} ${styles.thAction}`}>
+                <button
+                  type="button"
+                  className={styles.actionButton}
+                  onClick={() => onViewDetails?.(patient)}
+                  aria-label={isAdmin ? `Ver ou editar ${patient.name}` : `Ver ${patient.name}`}
+                  title={isAdmin ? "Ver / Editar" : "Ver"}
+                >
+                  <Pencil size={16} />
+                </button>
+              </td>
+            </tr>
+          ))}
         </tbody>
       </table>
     </Card>
