@@ -38,13 +38,22 @@ public class GlobalExceptionHandler {
         return ProblemDetail.forStatusAndDetail(HttpStatus.CONFLICT, ex.getMessage());
     }
 
-    // Login recusado (POST /api/auth/login): e-mail inexistente, senha errada e usuário
-    // inativo dão a MESMA mensagem, para não revelar quais e-mails existem nem quem está
-    // inativo. Os 401/403 das rotas protegidas não passam aqui: saem pelo entry point e
-    // pelo access denied handler do módulo auth.
+    // Login recusado (POST /api/auth/login e POST /api/auth/first-access): e-mail
+    // inexistente, senha errada e usuário inativo dão a MESMA mensagem, para não revelar
+    // quais e-mails existem nem quem está inativo. Os 401/403 das rotas protegidas não
+    // passam aqui: saem pelo entry point e pelo access denied handler do módulo auth.
     @ExceptionHandler(AuthenticationException.class)
     public ProblemDetail handleAuthentication(AuthenticationException ex) {
         return ProblemDetail.forStatusAndDetail(HttpStatus.UNAUTHORIZED, "E-mail ou senha inválidos.");
+    }
+
+    // Primeiro acesso pendente (POST /api/auth/login): a senha provisória está correta, mas
+    // o usuário precisa definir sua própria senha pessoal antes de receber o token JWT (ADR 0025).
+    @ExceptionHandler(FirstAccessRequiredException.class)
+    public ProblemDetail handleFirstAccessRequired(FirstAccessRequiredException ex) {
+        ProblemDetail problem = ProblemDetail.forStatusAndDetail(HttpStatus.FORBIDDEN, ex.getMessage());
+        problem.setProperty("firstAccessRequired", true);
+        return problem;
     }
 
     // Última barreira: constraint do banco violada (unique, FK) que escapou das

@@ -846,18 +846,26 @@ fica preservado ([ADR 0011](adr/0011-contrato-versionado-por-aditivos.md)). Regr
 - Não há cadastro público: usuários são criados pelo `POST /api/users`.
 
 **Senha:**
-- **Mínimo de 8 caracteres**, sem exigir maiúscula ou símbolo (o que protege é o tamanho,
-  NIST SP 800-63B).
+- **Mínimo de 8 caracteres**, sem exigir maiúscula ou símbolo (o que protege é o tamanho, NIST SP 800-63B).
+- **Senha provisória e troca obrigatória no primeiro acesso**
+  ([ADR 0025](adr/0025-primeiro-acesso-com-senha-provisoria.md)): quando o administrador
+  cria um usuário (`POST /api/users`) ou redefine a senha dele (`PUT /api/users/{id}` com
+  senha preenchida), o hash BCrypt é gravado no campo `password` com o prefixo
+  `FIRST_ACCESS:` (sem novos atributos na entidade). No login (`POST /api/auth/login`), se
+  a senha provisória estiver correta, o sistema não emite token e responde `403`
+  (`firstAccessRequired: true`), levando o usuário direto ao formulário de definição da
+  própria senha (`POST /api/auth/first-access`), que exige uma senha diferente da provisória, grava o hash BCrypt definitivo (sem prefixo) e já autentica o usuário.
+
 - **Na alteração (`PUT`), a senha é opcional:** vazia ou ausente mantém a atual; preenchida,
-  troca (mínimo de 8). Com hash, a senha atual não volta para o formulário, e exigir uma
+  troca por uma nova senha provisória (mínimo de 8, exigindo redefinição no próximo login). Com hash, a senha atual não volta para o formulário, e exigir uma
   nova obrigaria o admin a inventar uma só para corrigir um e-mail. Por isso a alteração
   usa um DTO próprio (`UserUpdateRequestDTO`).
 - A entidade recebe sempre o hash (`UserEntity(email, encodedPassword, role)`,
-  `changePassword(encodedPassword)`); o tamanho mínimo só existe na senha digitada e fica
+  `changePassword(encodedPassword)`, `changeToProvisionalPassword(encodedPassword)`); o tamanho mínimo só existe na senha digitada e fica
   nos DTOs. Quem faz o hash é o `UserService` (pela interface `PasswordEncoder`).
 
 **Primeiro admin:** ao subir, se não houver nenhum `ADMIN` ativo, a aplicação cria um com
-`ADMIN_EMAIL` e `ADMIN_PASSWORD` (variáveis de ambiente), pelo `UserService`, com as mesmas
+`ADMIN_EMAIL` e `ADMIN_PASSWORD` (variáveis de ambiente), pelo `UserService`, já com senha definitiva (sem o prefixo `FIRST_ACCESS:`) e com as mesmas
 regras do cadastro. Valores inválidos impedem a aplicação de subir; sem as variáveis, ela
 sobe com um aviso no log e ninguém consegue logar. Com um `ADMIN` ativo, as variáveis são
 ignoradas.

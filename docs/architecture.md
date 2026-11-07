@@ -231,7 +231,8 @@ português:
 | `ResourceNotFoundException` | 404 | `detail` |
 | `ConflictException` (duplicidade, estado inválido) | 409 | `detail` |
 | `DataIntegrityViolationException` (constraint que escapou das checagens) | 409 | `detail` genérico |
-| Login recusado (`AuthenticationException` no `POST /api/auth/login`) | 401 | `detail`: "E-mail ou senha inválidos." (o mesmo para e-mail inexistente, senha errada e usuário inativo) |
+| Login recusado (`AuthenticationException` no `POST /api/auth/login` ou `POST /api/auth/first-access`) | 401 | `detail`: "E-mail ou senha inválidos." (o mesmo para e-mail inexistente, senha errada e usuário inativo) |
+| Primeiro acesso pendente (`FirstAccessRequiredException` no `POST /api/auth/login` quando a senha provisória está correta) | 403 | `detail`: "Primeiro acesso pendente. Defina sua nova senha para continuar." + propriedade `firstAccessRequired: true` |
 | Rota protegida sem token, com token inválido ou vencido, ou de usuário inativado / com perfil alterado | 401 | `detail`: "Sessão inválida ou expirada. Faça login novamente." + header `WWW-Authenticate: Bearer` |
 | Sem permissão para o recurso (com a autorização por perfil, ainda não usada) | 403 | `detail`: "Você não tem permissão para acessar este recurso." |
 
@@ -254,6 +255,13 @@ módulo `auth`.
 - **Login:** `POST /api/auth/login` (e-mail e senha) → `{ token, expiresAt, user }`. O
   `AuthenticationManager` (`DaoAuthenticationProvider` + `DatabaseUserDetailsService`)
   confere se o usuário existe e está ativo, e a senha contra o hash BCrypt.
+- **Primeiro acesso ([ADR 0025](adr/0025-primeiro-acesso-com-senha-provisoria.md)):** se o
+  usuário autenticado no login estiver com senha provisória (`FIRST_ACCESS:` no campo
+  `password`), o `AuthService` não emite o token e lança `FirstAccessRequiredException`
+  (`403` com `firstAccessRequired: true`). A troca é concluída no endpoint público
+  `POST /api/auth/first-access` (`{ email, provisionalPassword, newPassword }`), que exige
+  nova senha diferente da provisória, grava o hash BCrypt definitivo e devolve
+  `{ token, expiresAt, user }`.
 - **Token:** HMAC SHA-256 (`JwtConfig`, chave do `JWT_SECRET`), válido por 8 horas
   (`jwt.expiration`), sem refresh token. Claims: `iss` = `sublime-app`, `sub` = e-mail,
   `userId`, `roles` (lista, ex: `["ADMIN"]`), `iat`, `exp`. Gerado pelo `TokenService`.
@@ -263,7 +271,7 @@ módulo `auth`.
 - **Perfis:** a claim `roles` vira as autoridades `ROLE_ADMIN` / `ROLE_PROVIDER`, prontas
   para o `hasRole(...)` da autorização por perfil (ainda não aplicada: hoje qualquer
   usuário logado acessa todos os endpoints).
-- **Rotas públicas** (`SecurityConfig`, em `auth/config`): `POST /api/auth/login`, o
+- **Rotas públicas** (`SecurityConfig`, em `auth/config`): `POST /api/auth/login`, `POST /api/auth/first-access`, o
   Swagger (`/swagger-ui.html`, `/swagger-ui/**`, `/api-docs/**`) e o `/error` interno.
   Todo o resto exige `Authorization: Bearer <token>`.
 - **Sem sessão no servidor** (`STATELESS`) e **sem CSRF** (o token vai no header, não em
@@ -273,7 +281,7 @@ módulo `auth`.
   `backend/.env` local ou das variáveis de ambiente (ver
   [`development.md`](development.md)). Sem `JWT_SECRET` válido (32 bytes ou mais), a
   aplicação não sobe.
-- **Swagger:** esquema `bearer` em todas as rotas (botão "Authorize"); o login é marcado
+- **Swagger:** esquema `bearer` em todas as rotas (botão "Authorize"); o login e o primeiro acesso são marcados
   sem exigência de token (`@SecurityRequirements` vazio).
 
 ## Frontend
@@ -492,8 +500,10 @@ Regras:
   `PROVIDER` a `/consultations` (`homePath` de cada papel, lido pelo `getHomePath`).
 - Os papéis ficam em `domain/auth/roles.js` (`ADMIN` e `PROVIDER`); o valor de cada um
   precisa ser idêntico ao enum `Role` do backend.
-- A tela de login tem só e-mail e senha: não há "criar conta". Usuários são criados por
-  quem já está logado, pelo `POST /api/users`.
+- A tela de login tem só e-mail e senha: não há "criar conta" nem botão manual de primeiro acesso. Usuários são criados por
+  quem já está logado, pelo `POST /api/users`, com senha provisória; ao logar pela primeira vez com a senha provisória, a tela de login transiciona automaticamente para o formulário de definição de senha pessoal (`POST /api/auth/first-access`, [ADR 0025](adr/0025-primeiro-acesso-com-senha-provisoria.md)).
+- A tela de prestadores (`/providers`) aparece no menu lateral e permite acesso somente ao perfil `ADMIN`.
+
 - O menu mostra o e-mail do usuário: a resposta do login não traz nome.
 
 ### Convenções de nomes
