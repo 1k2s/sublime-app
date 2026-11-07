@@ -8,6 +8,7 @@ import org.springframework.transaction.annotation.Transactional;
 
 import br.com.senai.sublime_app.consultation.domain.ConsultationEntity;
 import br.com.senai.sublime_app.consultation.domain.PricingSource;
+import br.com.senai.sublime_app.consultation.dto.ConsultationPatientResponseDTO;
 import br.com.senai.sublime_app.consultation.dto.ConsultationRequestDTO;
 import br.com.senai.sublime_app.consultation.dto.ConsultationResponseDTO;
 import br.com.senai.sublime_app.consultation.dto.ContractSessionBalanceResponseDTO;
@@ -31,7 +32,11 @@ import br.com.senai.sublime_app.pricing.repository.TechniqueRepository;
 import br.com.senai.sublime_app.provider.domain.ProviderEntity;
 import br.com.senai.sublime_app.provider.repository.ProviderRepository;
 import br.com.senai.sublime_app.shared.exception.BusinessRuleException;
+import br.com.senai.sublime_app.shared.exception.ForbiddenException;
 import br.com.senai.sublime_app.shared.exception.ResourceNotFoundException;
+import br.com.senai.sublime_app.user.domain.CurrentUser;
+import br.com.senai.sublime_app.user.domain.UserEntity;
+import br.com.senai.sublime_app.user.repository.UserRepository;
 
 @Service
 public class ConsultationService {
@@ -46,6 +51,7 @@ public class ConsultationService {
     private final TechniqueRepository techniqueRepository;
     private final SessionDurationPriceRepository sessionDurationPriceRepository;
     private final SessionFrequencyPriceRepository sessionFrequencyPriceRepository;
+    private final UserRepository userRepository;
 
     public ConsultationService(ConsultationRepository consultationRepository,
             ContractRepository contractRepository,
@@ -53,7 +59,8 @@ public class ConsultationService {
             ProviderRepository providerRepository,
             TechniqueRepository techniqueRepository,
             SessionDurationPriceRepository sessionDurationPriceRepository,
-            SessionFrequencyPriceRepository sessionFrequencyPriceRepository) {
+            SessionFrequencyPriceRepository sessionFrequencyPriceRepository,
+            UserRepository userRepository) {
         this.consultationRepository = consultationRepository;
         this.contractRepository = contractRepository;
         this.patientRepository = patientRepository;
@@ -61,6 +68,7 @@ public class ConsultationService {
         this.techniqueRepository = techniqueRepository;
         this.sessionDurationPriceRepository = sessionDurationPriceRepository;
         this.sessionFrequencyPriceRepository = sessionFrequencyPriceRepository;
+        this.userRepository = userRepository;
     }
 
     /**
@@ -70,37 +78,51 @@ public class ConsultationService {
      * o caso do preço, o valor, a comissão e o repasse.
      */
     @Transactional
-    public ConsultationResponseDTO create(ConsultationRequestDTO dto) {
+    public ConsultationResponseDTO create(ConsultationRequestDTO dto, CurrentUser currentUser) {
         PatientEntity patient = getPatientOrThrow(dto.patientId());
-        ProviderEntity provider = getProviderOrThrow(dto.providerId());
+        ProviderEntity provider = resolveProvider(dto.providerId(), currentUser);
         TechniqueEntity technique = getTechniqueOrThrow(dto.techniqueId());
+        // Referência sem consulta: o token já garantiu que o usuário existe e está ativo
+        UserEntity launchedBy = userRepository.getReferenceById(currentUser.userId());
 
         ContractEntity contract = resolveContract(dto.contractId(), patient, dto.occurredAt());
         PriceLine price = resolvePrice(contract, technique, dto.durationMinutes());
 
-        ConsultationEntity consultation = new ConsultationEntity(patient, contract, provider, technique,
+        ConsultationEntity consultation = new ConsultationEntity(patient, contract, provider, launchedBy, technique,
                 dto.durationMinutes(), dto.occurredAt(), dto.status(), price.durationPrice(), price.frequencyPrice());
         consultationRepository.save(consultation);
         return ConsultationResponseDTO.fromEntity(consultation, remainingSessionsAfter(consultation));
     }
 
+    // PROVIDER: o filtro de prestador é sempre o dele, qualquer que seja o da URL
     @Transactional(readOnly = true)
-    public List<ConsultationResponseDTO> search(Long providerId, Long patientId, LocalDate from, LocalDate to) {
-        return consultationRepository.search(providerId, patientId, from, to).stream()
+    public List<ConsultationResponseDTO> search(Long providerId, Long patientId, LocalDate from, LocalDate to,
+            CurrentUser currentUser) {
+        Long effectiveProviderId = currentUser.isAdmin() ? providerId : getOwnProviderOrThrow(currentUser).getId();
+        return consultationRepository.search(effectiveProviderId, patientId, from, to).stream()
                 .map(ConsultationResponseDTO::fromEntity)
                 .toList();
     }
 
     @Transactional(readOnly = true)
-    public ConsultationResponseDTO findById(Long id) {
-        return ConsultationResponseDTO.fromEntity(getConsultationOrThrow(id));
+    public ConsultationResponseDTO findById(Long id, CurrentUser currentUser) {
+        return ConsultationResponseDTO.fromEntity(getConsultationVisibleToOrThrow(id, currentUser));
     }
 
     // Soft delete: o lançamento nunca é editado; para corrigir, inativa e lança de
     // novo. Inativo não conta no saldo nem no repasse. Gravado pelo dirty checking.
     @Transactional
-    public void deactivate(Long id) {
-        getConsultationOrThrow(id).deactivate();
+    public void deactivate(Long id, CurrentUser currentUser) {
+        getConsultationVisibleToOrThrow(id, currentUser).deactivate();
+    }
+
+    // Pacientes ativos para a tela de lançamento, sem dados sensíveis: os dois perfis usam
+    // (o GET /api/patients, com os dados completos, é só do ADMIN)
+    @Transactional(readOnly = true)
+    public List<ConsultationPatientResponseDTO> findPatients() {
+        return patientRepository.findByActiveTrueOrderByNameAsc().stream()
+                .map(ConsultationPatientResponseDTO::fromEntity)
+                .toList();
     }
 
     /**
@@ -131,6 +153,44 @@ public class ConsultationService {
                 .map(item -> ContractSessionBalanceResponseDTO.fromItem(item,
                         contract.getPlan().getSessionCount(), usedSessionsOf(contract, item.getPricingGroup())))
                 .toList();
+    }
+
+    // ---------------------------------------------------------------------------
+    // Quem atendeu (ver specs/autorizacao.md, "Lançamento")
+    // ---------------------------------------------------------------------------
+
+    // ADMIN lança para qualquer prestador (providerId obrigatório). PROVIDER só lança para
+    // ele mesmo: o prestador vem do vínculo do usuário logado; providerId é opcional e,
+    // informado, precisa ser o dele.
+    private ProviderEntity resolveProvider(Long providerId, CurrentUser currentUser) {
+        if (currentUser.isAdmin()) {
+            return getProviderOrThrow(requireProviderId(providerId));
+        }
+        ProviderEntity own = getOwnProviderOrThrow(currentUser);
+        requireOwnProvider(providerId, own);
+        return own;
+    }
+
+    // Sem o @NotNull no DTO (o PROVIDER não precisa enviar): a obrigatoriedade do ADMIN
+    // é conferida aqui, com a mesma mensagem
+    private static Long requireProviderId(Long providerId) {
+        if (providerId == null) {
+            throw new BusinessRuleException("O prestador é obrigatório.");
+        }
+        return providerId;
+    }
+
+    // Usuário PROVIDER criado antes do prestador ainda não tem vínculo
+    private ProviderEntity getOwnProviderOrThrow(CurrentUser currentUser) {
+        return providerRepository.findByUserId(currentUser.userId())
+                .orElseThrow(() -> new ForbiddenException(
+                        "Seu usuário não está vinculado a um prestador. Procure o administrador."));
+    }
+
+    private static void requireOwnProvider(Long providerId, ProviderEntity own) {
+        if (providerId != null && !providerId.equals(own.getId())) {
+            throw new ForbiddenException("Você só pode lançar atendimentos em seu próprio nome.");
+        }
     }
 
     // ---------------------------------------------------------------------------
@@ -294,9 +354,32 @@ public class ConsultationService {
     // Buscas (404 se o id não existir)
     // ---------------------------------------------------------------------------
 
+    // PROVIDER só enxerga os lançamentos dele: o de outro prestador dá o MESMO 404 de um
+    // id inexistente, para não revelar que ele existe. O vínculo é conferido antes da
+    // busca: sem prestador, 403 para qualquer id (existente ou não).
+    private ConsultationEntity getConsultationVisibleToOrThrow(Long id, CurrentUser currentUser) {
+        if (currentUser.isAdmin()) {
+            return getConsultationOrThrow(id);
+        }
+        ProviderEntity own = getOwnProviderOrThrow(currentUser);
+        ConsultationEntity consultation = getConsultationOrThrow(id);
+        if (!isFromProvider(consultation, own)) {
+            throw consultationNotFound(id);
+        }
+        return consultation;
+    }
+
+    // Compara ids: o prestador do lançamento é LAZY e pode vir como proxy (getId não o carrega)
+    private static boolean isFromProvider(ConsultationEntity consultation, ProviderEntity provider) {
+        return consultation.getProvider().getId().equals(provider.getId());
+    }
+
     private ConsultationEntity getConsultationOrThrow(Long id) {
-        return consultationRepository.findById(id)
-                .orElseThrow(() -> new ResourceNotFoundException("Atendimento não encontrado com id: " + id));
+        return consultationRepository.findById(id).orElseThrow(() -> consultationNotFound(id));
+    }
+
+    private static ResourceNotFoundException consultationNotFound(Long id) {
+        return new ResourceNotFoundException("Atendimento não encontrado com id: " + id);
     }
 
     private PatientEntity getPatientOrThrow(Long id) {

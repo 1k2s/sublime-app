@@ -9,7 +9,9 @@ public record UserResponseDTO(
         Long id,
         String email,
         Role role,
-        boolean active
+        boolean active,
+        // Admin padrão: não pode ser inativado nem mudar de perfil (a tela esconde essas ações)
+        boolean defaultAdmin
 
 ) {
     public static UserResponseDTO fromEntity(UserEntity entity) {
@@ -17,6 +19,7 @@ public record UserResponseDTO(
                 entity.getId(),
                 entity.getEmail(),
                 entity.getRole(),
-                entity.isActive());
+                entity.isActive(),
+                entity.isDefaultAdmin());
     }
 }

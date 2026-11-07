@@ -38,6 +38,13 @@ public class GlobalExceptionHandler {
         return ProblemDetail.forStatusAndDetail(HttpStatus.CONFLICT, ex.getMessage());
     }
 
+    // 403 de regra que depende dos dados (conferida no service). O 403 por perfil, de
+    // endpoint não permitido, sai pelo access denied handler do auth.
+    @ExceptionHandler(ForbiddenException.class)
+    public ProblemDetail handleForbidden(ForbiddenException ex) {
+        return ProblemDetail.forStatusAndDetail(HttpStatus.FORBIDDEN, ex.getMessage());
+    }
+
     // Login recusado (POST /api/auth/login): e-mail inexistente, senha errada e usuário
     // inativo dão a MESMA mensagem, para não revelar quais e-mails existem nem quem está
     // inativo. Os 401/403 das rotas protegidas não passam aqui: saem pelo entry point e

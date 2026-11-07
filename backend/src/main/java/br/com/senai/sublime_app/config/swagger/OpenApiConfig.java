@@ -8,8 +8,11 @@ import io.swagger.v3.oas.models.info.License;
 import io.swagger.v3.oas.models.security.SecurityRequirement;
 import io.swagger.v3.oas.models.security.SecurityScheme;
 import io.swagger.v3.oas.models.servers.Server;
+import org.springdoc.core.utils.SpringDocUtils;
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
+
+import br.com.senai.sublime_app.user.domain.CurrentUser;
 
 import java.util.List;
 
@@ -17,6 +20,12 @@ import java.util.List;
 public class OpenApiConfig {
 
     private static final String BEARER_SCHEME = "bearer-jwt";
+
+    // O CurrentUser vem do token (CurrentUserArgumentResolver), não do request: sem isto, o
+    // Swagger o mostraria como parâmetros de query (userId, role)
+    static {
+        SpringDocUtils.getConfig().addRequestWrapperToIgnore(CurrentUser.class);
+    }
 
     @Bean
     public OpenAPI sublimeOpenAPI() {
@@ -31,6 +40,12 @@ public class OpenApiConfig {
                                 Todas as rotas, exceto o login, exigem o token JWT. Faça o login em
                                 **Autenticação → POST /api/auth/login**, copie o `token` da resposta, clique em
                                 **Authorize** (cadeado, no topo) e cole o token. Ele vale 8 horas.
+
+                                ## Perfis
+                                - **ADMIN:** acesso a todos os endpoints.
+                                - **PROVIDER:** só os endpoints marcados com **"Perfis: ADMIN e PROVIDER"**
+                                  (lançamentos, técnicas ativas e `/api/users/me`), e só com os próprios dados.
+                                - Endpoint sem essa marca é só do ADMIN: o PROVIDER recebe **403**.
 
                                 ## Módulos disponíveis
                                 - **Autenticação** — login (e-mail e senha) e token JWT

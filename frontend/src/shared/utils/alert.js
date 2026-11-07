@@ -9,3 +9,14 @@ export function showError(message) {
     confirmButtonColor: "#5f7a58",
   });
 }
+
+// Confirmação de que a ação deu certo, para telas que não fecham nem navegam depois de salvar
+export function showSuccess(message) {
+  return Swal.fire({
+    icon: "success",
+    title: "Tudo certo",
+    text: message,
+    confirmButtonText: "Ok",
+    confirmButtonColor: "#5f7a58",
+  });
+}

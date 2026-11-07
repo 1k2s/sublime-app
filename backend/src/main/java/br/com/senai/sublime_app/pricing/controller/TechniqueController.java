@@ -63,6 +63,8 @@ public class TechniqueController {
             Retorna as técnicas ativas com o grupo de preço e o `pricingModel` de cada uma.
             O `pricingModel` indica se a tabela de preço da técnica é por duração
             (`DURATION_BASED`) ou por frequência semanal (`FREQUENCY_BASED`).
+
+            **Perfis:** ADMIN e PROVIDER.
             """)
     @ApiResponses({
             @ApiResponse(responseCode = "200", description = "Lista retornada com sucesso", content = @Content(schema = @Schema(implementation = TechniqueResponseDTO.class)))
@@ -77,8 +79,6 @@ public class TechniqueController {
             `active`. É a listagem da tela de cadastro, onde a clínica encontra uma técnica
             inativa e a reativa (`PATCH /api/techniques/{id}/activate`). Telas de contrato e de
             lançamento usam `GET /api/techniques`, que traz só as ativas.
-
-            Restrita ao perfil administrador quando a autenticação for implementada.
             """)
     @ApiResponses({
             @ApiResponse(responseCode = "200", description = "Lista retornada com sucesso", content = @Content(schema = @Schema(implementation = TechniqueResponseDTO.class)))

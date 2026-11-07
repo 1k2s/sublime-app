@@ -17,10 +17,12 @@ import br.com.senai.sublime_app.user.service.UserService;
 import jakarta.validation.ConstraintViolation;
 import jakarta.validation.Validator;
 
-// Primeiro admin: com todas as rotas protegidas, ninguém conseguiria criar o primeiro
-// usuário pela API. Ao subir, se não houver nenhum ADMIN ativo, cria um com ADMIN_EMAIL e
-// ADMIN_PASSWORD, pelo UserService (mesmas regras do cadastro: hash, e-mail único). Ver o
-// "Primeiro admin" no domain-model (seção User) e o ADR 0023.
+// Admin padrão: com todas as rotas protegidas, ninguém conseguiria criar o primeiro
+// usuário pela API. Na primeira subida (ainda sem admin padrão no banco), cria um com
+// ADMIN_EMAIL e ADMIN_PASSWORD, pelo UserService (mesmas regras do cadastro: hash, e-mail
+// único), marcado como admin padrão: não pode ser inativado nem mudar de perfil. Depois
+// disso as variáveis são ignoradas (o banco é a fonte da verdade). Ver o "Primeiro admin"
+// no domain-model (seção User) e o ADR 0023.
 @Component
 @EnableConfigurationProperties(AdminProperties.class)
 public class AdminInitializer implements ApplicationRunner {
@@ -39,11 +41,11 @@ public class AdminInitializer implements ApplicationRunner {
 
     @Override
     public void run(ApplicationArguments args) {
-        if (userService.existsActiveUserWithRole(Role.ADMIN)) {
+        if (userService.existsDefaultAdmin()) {
             return;
         }
         if (!properties.hasCredentials()) {
-            log.warn("Nenhum usuário ADMIN ativo e ADMIN_EMAIL/ADMIN_PASSWORD não definidos: nenhum admin "
+            log.warn("Nenhum admin padrão e ADMIN_EMAIL/ADMIN_PASSWORD não definidos: nenhum admin "
                     + "foi criado, e ninguém conseguirá fazer login. Defina as variáveis e reinicie a aplicação.");
             return;
         }
@@ -53,11 +55,11 @@ public class AdminInitializer implements ApplicationRunner {
     private void createAdmin(UserRequestDTO admin) {
         validateCredentials(admin);
         try {
-            userService.create(admin);
-            log.info("Primeiro admin criado: {}", admin.email());
+            userService.createDefaultAdmin(admin.email(), admin.password());
+            log.info("Admin padrão criado: {}", admin.email());
         } catch (ConflictException e) {
-            log.warn("Nenhum ADMIN ativo, mas o e-mail {} já pertence a outro usuário (inativo ou com outro "
-                    + "perfil): nenhum admin foi criado. Use outro ADMIN_EMAIL.", admin.email());
+            log.warn("Nenhum admin padrão, mas o e-mail {} já pertence a outro usuário: nenhum admin foi "
+                    + "criado. Use outro ADMIN_EMAIL.", admin.email());
         }
     }
 

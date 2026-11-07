@@ -54,12 +54,22 @@ export function AuthProvider({ children }) {
     setUser(null);
   }, [queryClient]);
 
+  // Atualiza o usuário da sessão depois de uma alteração dos próprios dados (Configurações),
+  // para o menu mostrar o e-mail novo. Mantém a forma da sessão do login ({ id, email, role })
+  const updateUser = useCallback(({ email }) => {
+    setUser((current) => {
+      const updated = { ...current, email };
+      localStorage.setItem(AUTH_USER_KEY, JSON.stringify(updated));
+      return updated;
+    });
+  }, []);
+
   useEffect(() => {
     setUnauthorizedHandler(signOut);
     return () => setUnauthorizedHandler(null);
   }, [signOut]);
 
-  const value = useMemo(() => ({ user, signIn, signOut }), [user, signIn, signOut]);
+  const value = useMemo(() => ({ user, signIn, signOut, updateUser }), [user, signIn, signOut, updateUser]);
 
   return <AuthContext.Provider value={value}>{children}</AuthContext.Provider>;
 }

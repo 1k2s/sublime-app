@@ -127,10 +127,12 @@ public class ProviderController {
     @Operation(summary = "Reativar prestador", description = """
             Desfaz a inativação: o prestador volta a poder receber lançamentos de atendimento
             (ex: prestador que volta a atender). Os percentuais e o usuário vinculado não mudam.
-            Não exige usuário ativo: o lançamento informa o prestador explicitamente.
+            Exige o **usuário vinculado ativo** (o prestador lança pelo próprio login): se ele
+            estiver inativo, reative o usuário antes.
             """)
     @ApiResponses({
             @ApiResponse(responseCode = "204", description = "Prestador reativado com sucesso"),
+            @ApiResponse(responseCode = "400", description = "O usuário vinculado ao prestador está inativo", content = @Content),
             @ApiResponse(responseCode = "404", description = "Prestador não encontrado", content = @Content),
             @ApiResponse(responseCode = "409", description = "O prestador já está ativo", content = @Content)
     })
