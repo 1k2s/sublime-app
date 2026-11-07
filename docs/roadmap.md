@@ -154,7 +154,7 @@ chamadas batem com a API real ainda não foram conferidos.**
 | `consultation` | tela de lançamento (formulário, agenda, carrinho, total). `consultationApi.js` com trechos mockados |
 | `contract` | tela de contratos (filtros, tabela, formulário com seleção de paciente e preço, resumo), com fallback mockado no `contractApi.js`. **Envio no modelo antigo do contrato** (ver "Pendências") |
 | `provider` | só a página placeholder |
-| `user` | nada |
+| `user` | tela pronta **sem API** (2026-11-06), rota `/users` e item no menu para `ADMIN`: listagem com busca por e-mail, perfil e status; modal de cadastro/edição (senha opcional na edição); modal de detalhes com inativar (sem reativar: a API não tem). Falta a camada `api/` (`/api/users`) |
 | `app/`, `shared/` | layout com menu lateral, router com rotas `lazy`, `apiClient`, utilitários (`money`, `date`, `masks`, `alert`, `viacep`) e componentes de `shared/ui/` |
 
 - **`npm run build` funciona** desde a atualização de 2026-11-05 (as correções do PR #13
