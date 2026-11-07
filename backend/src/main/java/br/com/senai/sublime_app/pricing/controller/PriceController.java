@@ -22,9 +22,8 @@ import jakarta.validation.Valid;
 @RestController
 @RequestMapping("/api/prices")
 @Tag(name = "Cadastro de preços", description = """
-        Cadastro de valor nas tabelas de preço — fluxo único para preço novo e reajuste.
-        Se a combinação já tem linha vigente, ela é fechada (`validTo` = hoje) e a nova
-        abre com `validFrom` = hoje. O histórico nunca é alterado.
+        Preço novo e reajuste no mesmo fluxo (a linha vigente é fechada e uma nova abre).
+        Regras: "SessionDurationPrice" e "SessionFrequencyPrice" no `docs/domain-model.md`.
         """)
 public class PriceController {
 
@@ -35,9 +34,7 @@ public class PriceController {
     }
 
     @Operation(summary = "Cadastrar valor por duração", description = """
-            Cria uma linha em `SessionDurationPrice` para a combinação (grupo, plano, duração).
-            O grupo precisa ser `DURATION_BASED` e o plano precisa estar ativo e ser avulso
-            (`SINGLE_SESSION`) ou de pacote (`PACKAGE`).
+            Grupo `DURATION_BASED`; plano avulso ou de pacote.
             """)
     @ApiResponses({
             @ApiResponse(responseCode = "201", description = "Valor cadastrado", content = @Content(schema = @Schema(implementation = SessionPriceResponseDTO.class))),
@@ -50,9 +47,7 @@ public class PriceController {
     }
 
     @Operation(summary = "Cadastrar valor por frequência", description = """
-            Cria uma linha em `SessionFrequencyPrice` para a combinação (grupo, plano, frequência semanal).
-            O grupo precisa ser `FREQUENCY_BASED` e o plano precisa estar ativo e ser de
-            mensalidade (`MONTHLY_FEE`).
+            Grupo `FREQUENCY_BASED`; plano de mensalidade.
             """)
     @ApiResponses({
             @ApiResponse(responseCode = "201", description = "Valor cadastrado", content = @Content(schema = @Schema(implementation = SessionPriceResponseDTO.class))),

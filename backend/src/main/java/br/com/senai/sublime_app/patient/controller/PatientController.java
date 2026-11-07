@@ -29,8 +29,7 @@ import jakarta.validation.Valid;
 @RestController
 @RequestMapping("/api/patients")
 @Tag(name = "Pacientes", description = """
-        Cadastro de pacientes da clínica. O CPF identifica o paciente e não pode se repetir.
-        Pacientes nunca são removidos do banco: a exclusão é um soft delete (inativação).
+        Cadastro de pacientes. Regras: "Patient" no `docs/domain-model.md`.
         """)
 public class PatientController {
 
@@ -41,12 +40,8 @@ public class PatientController {
     }
 
     @Operation(summary = "Cadastrar paciente", description = """
-            Cria um paciente ativo. O CPF deve ter exatamente 11 dígitos, sem pontuação.
-            O endereço é opcional.
-
-            **Origem** (`referringProviderId`, opcional): o prestador que trouxe o paciente —
-            define o percentual de repasse dos atendimentos. Vazio = paciente da clínica. O
-            prestador informado precisa estar ativo.
+            CPF com 11 dígitos, sem pontuação; endereço opcional. `referringProviderId`
+            (opcional) é o prestador que trouxe o paciente; vazio = paciente da clínica.
             """)
     @ApiResponses({
             @ApiResponse(responseCode = "201", description = "Paciente criado", content = @Content(schema = @Schema(implementation = PatientResponseDTO.class))),
@@ -80,13 +75,8 @@ public class PatientController {
     }
 
     @Operation(summary = "Atualizar paciente", description = """
-            Atualiza dados pessoais, de contato e a origem do paciente.
-            O endereço só é substituído quando enviado; se vier nulo, o endereço atual é mantido.
-
-            **Origem:** segue a regra geral — `referringProviderId` vazio torna o paciente **da
-            clínica**; reenvie a origem atual para mantê-la. Prestador novo precisa estar ativo;
-            manter o mesmo é permitido mesmo que ele tenha sido inativado. Os atendimentos já
-            lançados não mudam (o percentual aplicado é snapshot).
+            Envie o estado completo: `address` nulo mantém o atual; `referringProviderId` vazio
+            torna o paciente da clínica (reenvie a origem atual para mantê-la).
             """)
     @ApiResponses({
             @ApiResponse(responseCode = "200", description = "Paciente atualizado", content = @Content(schema = @Schema(implementation = PatientResponseDTO.class))),
@@ -102,8 +92,7 @@ public class PatientController {
     }
 
     @Operation(summary = "Inativar paciente", description = """
-            Realiza o **soft delete** do paciente: ele é marcado como inativo e não pode entrar
-            em contratos novos, mas contratos e atendimentos antigos continuam apontando para ele.
+            Soft delete: o paciente não entra em contratos e atendimentos novos.
             """)
     @ApiResponses({
             @ApiResponse(responseCode = "204", description = "Paciente inativado com sucesso"),
@@ -118,8 +107,7 @@ public class PatientController {
     }
 
     @Operation(summary = "Reativar paciente", description = """
-            Desfaz a inativação: o paciente volta a poder entrar em contratos e atendimentos
-            novos (ex: paciente que volta à clínica). Os dados do cadastro não mudam.
+            Desfaz a inativação; os dados do cadastro não mudam.
             """)
     @ApiResponses({
             @ApiResponse(responseCode = "204", description = "Paciente reativado com sucesso"),

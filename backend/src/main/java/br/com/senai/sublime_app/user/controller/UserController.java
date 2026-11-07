@@ -32,9 +32,7 @@ import jakarta.validation.Valid;
 @RestController
 @RequestMapping("/api/users")
 @Tag(name = "Usuários", description = """
-        Cadastro dos usuários de acesso ao sistema (perfil `ADMIN` ou `PROVIDER`).
-        O e-mail não pode se repetir. Usuários nunca são removidos do banco: a exclusão
-        é um soft delete (inativação).
+        Usuários de acesso (`ADMIN` ou `PROVIDER`). Regras: "User" no `docs/domain-model.md`.
         """)
 public class UserController {
 
@@ -45,9 +43,8 @@ public class UserController {
     }
 
     @Operation(summary = "Cadastrar usuário", description = """
-            Cria um usuário ativo. A senha precisa ter no mínimo 8 caracteres, é gravada com
-            hash e nunca é devolvida nas respostas. É **provisória**: no primeiro login, o
-            usuário define a própria senha (`POST /api/auth/first-access`).
+            Senha com 8 caracteres ou mais, **provisória**: no primeiro login, o usuário define
+            a própria (`POST /api/auth/first-access`).
             """)
     @ApiResponses({
             @ApiResponse(responseCode = "201", description = "Usuário criado", content = @Content(schema = @Schema(implementation = UserResponseDTO.class))),
@@ -82,10 +79,7 @@ public class UserController {
     }
 
     @Operation(summary = "Alterar meus dados (Configurações)", description = """
-            O usuário logado troca o próprio e-mail e, se informar `newPassword`, a senha
-            (mínimo de 8 caracteres; vazia ou ausente mantém a atual). Sempre exige a **senha
-            atual** (`currentPassword`). O perfil não muda por aqui. Trocar o e-mail não encerra
-            a sessão: o token continua valendo.
+            Troca o próprio e-mail e, com `newPassword`, a senha. Exige a `currentPassword`.
 
             **Perfis:** ADMIN e PROVIDER.
             """)
@@ -112,16 +106,14 @@ public class UserController {
     }
 
     @Operation(summary = "Atualizar usuário", description = """
-            Atualiza e-mail e perfil (obrigatórios). A **senha é opcional**: vazia ou ausente
-            mantém a atual; preenchida, vira uma nova senha **provisória** (mínimo de 8
-            caracteres): a sessão aberta do usuário cai, e no próximo login ele define a
-            própria senha.
+            E-mail e perfil obrigatórios. `password` opcional: preenchida, vira uma nova senha
+            **provisória** (a sessão do usuário cai).
             """)
     @ApiResponses({
             @ApiResponse(responseCode = "200", description = "Usuário atualizado", content = @Content(schema = @Schema(implementation = UserResponseDTO.class))),
             @ApiResponse(responseCode = "400", description = "Dados inválidos", content = @Content),
             @ApiResponse(responseCode = "404", description = "Usuário não encontrado", content = @Content),
-            @ApiResponse(responseCode = "409", description = "Já existe outro usuário com esse e-mail, ou tentativa de mudar o perfil do administrador padrão", content = @Content)
+            @ApiResponse(responseCode = "409", description = "E-mail já usado, ou mudança de perfil do admin padrão", content = @Content)
     })
     @PutMapping("/{id}")
     public ResponseEntity<UserResponseDTO> update(
@@ -131,13 +123,12 @@ public class UserController {
     }
 
     @Operation(summary = "Inativar usuário", description = """
-            Realiza o **soft delete** do usuário: ele é marcado como inativo e preservado no
-            banco, junto com o prestador vinculado a ele (se houver).
+            Soft delete: o usuário não faz mais login (a sessão cai na hora).
             """)
     @ApiResponses({
             @ApiResponse(responseCode = "204", description = "Usuário inativado com sucesso"),
             @ApiResponse(responseCode = "404", description = "Usuário não encontrado", content = @Content),
-            @ApiResponse(responseCode = "409", description = "O usuário já está inativo, ou é o administrador padrão (não pode ser inativado)", content = @Content)
+            @ApiResponse(responseCode = "409", description = "Já inativo, ou é o admin padrão", content = @Content)
     })
     @DeleteMapping("/{id}")
     public ResponseEntity<Void> deactivate(
@@ -147,8 +138,7 @@ public class UserController {
     }
 
     @Operation(summary = "Reativar usuário", description = """
-            Desfaz a inativação: o usuário volta a poder fazer login. Os dados do cadastro não
-            mudam.
+            Desfaz a inativação: o usuário volta a fazer login.
             """)
     @ApiResponses({
             @ApiResponse(responseCode = "204", description = "Usuário reativado com sucesso"),

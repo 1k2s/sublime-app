@@ -801,6 +801,9 @@ fica preservado ([ADR 0011](adr/0011-contrato-versionado-por-aditivos.md)). Regr
 - O request traz o **estado completo** da nova versão (o frontend abre o
   formulário preenchido com a versão atual). Nova versão passa pelas mesmas
   regras da criação, exceto o fim (ver "O fim no aditivo").
+- **Só a versão ativa recebe aditivo** (versão inativa → 409). Dois aditivos
+  simultâneos sobre a mesma versão: o segundo é recusado (409), pela `UNIQUE` de
+  `previous_contract_id` (uma versão tem no máximo uma sucessora).
 - O **titular nunca muda** (é copiado): trocar o titular é um contrato novo.
 - O **início nunca muda** (é copiado): o `startDate` é do acordo, não da versão.
 - O **plano nunca muda** (é copiado): trocar o plano é encerrar o contrato e fazer
@@ -849,6 +852,13 @@ fica preservado ([ADR 0011](adr/0011-contrato-versionado-por-aditivos.md)). Regr
   inexistente, senha errada ou inativo), para não revelar quais e-mails existem.
 - **Inativar o usuário ou mudar o perfil dele corta o acesso na hora:** o token que ele
   já tinha deixa de valer na próxima requisição, e ele faz login de novo.
+- **Perfis** ([ADR 0026](adr/0026-acesso-por-perfil-centralizado.md)): o `ADMIN` acessa
+  tudo. O `PROVIDER` usa só as telas Dashboard, Lançamentos e Configurações, e na API acessa
+  só `POST`, `GET` e `DELETE` de `/api/consultations` (só os próprios lançamentos; ver
+  "Quem lança" e "Leituras" em `Consultation`), os apoios do lançamento
+  (`eligible-contracts`, `session-balance`, `patients`), `GET /api/techniques` (ativas) e
+  `GET`/`PUT /api/users/me`. Nos demais, 403 "Você não tem permissão para acessar este
+  recurso.".
 - Não há cadastro público: usuários são criados pelo `POST /api/users`.
 - **Reativar o usuário** (`PATCH /api/users/{id}/activate`) devolve o acesso. Consequência
   aceita: um token emitido antes da inativação e ainda dentro das 8 horas volta a valer

@@ -51,7 +51,7 @@ feature em andamento fica na spec dela, em [`specs/`](specs/).
 - **Teste manual do fluxo completo pela API** (2026-10-29, comandos manuais, sem script): o
   catálogo, os cadastros, o contrato (incluindo o aditivo), os três casos de
   lançamento, o saldo, a reativação e as constraints do banco funcionaram como
-  esperado. Testes automatizados continuam como melhoria futura.
+  esperado.
 - **Teste manual da autenticação pela API** (2026-11-05): login, tokens inválidos e
   vencidos, senha com e sem troca, corte imediato do acesso, primeiro admin, Swagger e CORS
   funcionaram como esperado.
@@ -62,15 +62,30 @@ feature em andamento fica na spec dela, em [`specs/`](specs/).
   zerado): 55 casos pela API (acesso de cada perfil, lançamento com e sem `providerId`,
   restrição de dados, admin padrão, `/me`, reativações, primeiro acesso e redefinição de
   senha) e 20 pela interface (menu e rotas por papel, primeiro acesso, Configurações)
-  funcionaram como esperado.
+  funcionaram como esperado. Também o `AdminInitializer` sem admin padrão: com
+  `ADMIN_PASSWORD` inválida, a aplicação não sobe e diz o motivo; com `ADMIN_EMAIL` já
+  usado por outro usuário, sobe só com um aviso no log, sem criar ninguém.
 - **Variáveis locais:** a aplicação precisa do `backend/.env` (ver "Variáveis de ambiente"
   no [`development.md`](development.md)); sem `JWT_SECRET`, não sobe.
-- **Testes:** decidido testar pela **interface gráfica** (não por Swagger nem por
-  testes automatizados por enquanto).
+- **Testes:** até aqui, manuais (pela API e pela interface). Decidido em 2026-11-07 que os
+  **testes automatizados** são o próximo passo (ver abaixo).
 
 ## Próximos passos
 
-1. **Interface gráfica** (React + Vite, em `frontend/`) e testes por ela: ver a seção
+1. **Testes automatizados no backend** (decidido em 2026-11-07, antes das telas): cada
+   feature hoje exige dezenas de casos manuais, refeitos a cada merge da `dev`, e as regras
+   mais arriscadas são financeiras (resolução de preço, comissão, repasse, saldo).
+   - Começar pelos **testes de unidade das entidades** (JUnit + AssertJ, já no
+     `spring-boot-starter-test`; sem banco nem servidor).
+   - Depois, **testes de integração** da API (autorização e lançamento primeiro), com o
+     MySQL do **Testcontainers** (as migrations usam recursos do MySQL, então o H2 não
+     serve). Os 55 casos manuais da autorização são a base.
+   - Antes do código, os conceitos explicados em partes; os primeiros testes escritos
+     juntos, comentados, como padrão para os seguintes.
+2. **CI no GitHub Actions**, logo depois dos primeiros testes: a cada PR, compilar e testar
+   o backend, build e lint do front e `node scripts/check-docs.mjs`, com o resultado no PR.
+   CD (deploy automático) fica para quando houver a versão 1 no ar.
+3. **Interface gráfica** (React + Vite, em `frontend/`) e testes por ela: ver a seção
    [Frontend](#frontend). As próximas telas já têm decisões tomadas:
    - **Usuários e Prestadores em telas separadas** (decidido em 2026-11-07): o admin cria
      o usuário na tela de **Usuários** e depois, na de **Prestadores**, cria o prestador
@@ -82,7 +97,7 @@ feature em andamento fica na spec dela, em [`specs/`](specs/).
    - **Redesenho do lançamento:** usa o `GET /api/consultations/patients` para escolher o
      paciente, esconde o prestador para o `PROVIDER` (vem do login) e mostra o valor só
      depois de lançar (sem prévia de preço).
-2. **Dashboard do prestador**, com spec própria: os
+4. **Dashboard do prestador**, com spec própria: os
    rendimentos do próprio prestador (soma dos repasses dos atendimentos dele) no dia, na
    semana e no mês. Decidido em 2026-11-06 que o `PROVIDER` vê só os próprios rendimentos.
    Em aberto para a spec: o que conta como rendimento (quais status, por qual data) e se o
@@ -90,9 +105,6 @@ feature em andamento fica na spec dela, em [`specs/`](specs/).
 
 ## Pendências técnicas
 
-- **Admin padrão, dois casos sem teste em execução:** `ADMIN_PASSWORD` ou `ADMIN_EMAIL`
-  inválidos (a aplicação não deve subir) e `ADMIN_EMAIL` já usado por outro usuário (só
-  aviso no log). A lógica está no `AdminInitializer`.
 - **Antes da versão 1 no ar:** revisar e consolidar as migrations e voltar a regra de
   nunca editá-las ([ADR 0028](adr/0028-migrations-editaveis-ate-versao-estavel.md)); zerar
   o banco de produção.
@@ -115,7 +127,6 @@ Frontend: ver a seção [Frontend](#frontend).
   `User` e o nome do `Provider` vinculado (que não cobre o admin sem prestador).
 - **Expiração da senha provisória** (ex: 7 dias, como no AWS Cognito): hoje ela vale até o
   primeiro acesso.
-- Testes automatizados.
 
 ## Não modelado ainda
 

@@ -37,12 +37,9 @@ public class PlanController {
     }
 
     @Operation(summary = "Cadastrar plano", description = """
-            Cria um plano ativo. O `type` não muda depois e define quais campos o plano tem:
-            - `SINGLE_SESSION` (Avulso): `sessionCount` = 1, sem `termWeeks`. Nunca entra em contrato.
-            - `PACKAGE` (Essencial, Evolução...): `sessionCount` obrigatório, sem `termWeeks`.
-            - `MONTHLY_FEE` (Mensal, Trimestral... do Pilates em Grupo): `termWeeks` obrigatório, sem `sessionCount`.
-
-            O equivalente do de-para é definido depois, em `PUT /api/plans/{id}/equivalent`.
+            O `type` define os campos: `SINGLE_SESSION` (`sessionCount` = 1), `PACKAGE`
+            (`sessionCount`) ou `MONTHLY_FEE` (`termWeeks`). Regras: "Plan" no
+            `docs/domain-model.md`.
             """)
     @ApiResponses({
             @ApiResponse(responseCode = "201", description = "Plano criado", content = @Content(schema = @Schema(implementation = PlanResponseDTO.class))),
@@ -64,13 +61,7 @@ public class PlanController {
     }
 
     @Operation(summary = "Definir equivalente (de-para)", description = """
-            Define ou troca o plano equivalente na outra família: pacote ⇄ mensalidade do
-            Pilates em Grupo (ex: Essencial → Mensal). Só este plano é alterado — o outro lado
-            é definido no próprio plano, e os dois podem diferir (ex: Evolução Familiar →
-            Trimestral, mas Trimestral → Evolução).
-
-            **Restrições:** o equivalente precisa ser da outra família, estar ativo e não pode
-            ser o próprio plano. O avulso (`SINGLE_SESSION`) não tem equivalente.
+            Define o equivalente na outra família (pacote ⇄ mensalidade), só deste plano.
             """)
     @ApiResponses({
             @ApiResponse(responseCode = "200", description = "Equivalente definido", content = @Content(schema = @Schema(implementation = PlanResponseDTO.class))),

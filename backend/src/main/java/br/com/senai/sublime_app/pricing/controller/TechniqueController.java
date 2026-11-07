@@ -30,8 +30,8 @@ import jakarta.validation.Valid;
 @RestController
 @RequestMapping("/api/techniques")
 @Tag(name = "Técnicas e preços", description = """
-        Cadastro de técnicas e consulta das tabelas de preço vigentes.
-        Fluxo da tela de contrato: listar técnicas → escolher uma → buscar os preços do grupo dela.
+        Técnicas e as tabelas de preço vigentes. Regras: "Technique", "SessionDurationPrice" e
+        "SessionFrequencyPrice" no `docs/domain-model.md`.
         """)
 public class TechniqueController {
 
@@ -44,9 +44,7 @@ public class TechniqueController {
     }
 
     @Operation(summary = "Cadastrar técnica", description = """
-            Cria uma técnica ativa vinculada a um grupo de preço. A técnica passa a usar a
-            tabela de preço do grupo. O grupo **não pode ser alterado depois**: para
-            reclassificar, cadastre uma nova técnica e inative a antiga.
+            Vincula a um grupo de preço, que não muda depois.
             """)
     @ApiResponses({
             @ApiResponse(responseCode = "201", description = "Técnica criada", content = @Content(schema = @Schema(implementation = TechniqueResponseDTO.class))),
@@ -60,9 +58,7 @@ public class TechniqueController {
     }
 
     @Operation(summary = "Listar técnicas ativas", description = """
-            Retorna as técnicas ativas com o grupo de preço e o `pricingModel` de cada uma.
-            O `pricingModel` indica se a tabela de preço da técnica é por duração
-            (`DURATION_BASED`) ou por frequência semanal (`FREQUENCY_BASED`).
+            Técnicas ativas, com o grupo e o `pricingModel` de cada uma.
 
             **Perfis:** ADMIN e PROVIDER.
             """)
@@ -75,10 +71,7 @@ public class TechniqueController {
     }
 
     @Operation(summary = "Listar todas as técnicas (cadastro)", description = """
-            Retorna **todas** as técnicas, ativas e inativas, ordenadas por nome, com o campo
-            `active`. É a listagem da tela de cadastro, onde a clínica encontra uma técnica
-            inativa e a reativa (`PATCH /api/techniques/{id}/activate`). Telas de contrato e de
-            lançamento usam `GET /api/techniques`, que traz só as ativas.
+            Ativas e inativas, por nome, para a tela de cadastro.
             """)
     @ApiResponses({
             @ApiResponse(responseCode = "200", description = "Lista retornada com sucesso", content = @Content(schema = @Schema(implementation = TechniqueResponseDTO.class)))
@@ -89,14 +82,9 @@ public class TechniqueController {
     }
 
     @Operation(summary = "Tabela de preços vigente da técnica", description = """
-            Retorna as linhas de preço vigentes (`validTo` nulo) do grupo da técnica,
-            buscadas na tabela indicada pelo `pricingModel` do grupo.
-
-            Cada linha preenche só um dos eixos:
-            - `durationMinutes` → grupos `DURATION_BASED` (usar o id em `sessionDurationPriceId` no contrato)
-            - `weeklyFrequency` → grupos `FREQUENCY_BASED` (usar o id em `sessionFrequencyPriceId` no contrato)
-
-            Técnicas do mesmo grupo retornam a mesma lista de preços.
+            Linhas vigentes do grupo da técnica. O id de cada linha vai no contrato:
+            `sessionDurationPriceId` (`durationMinutes` preenchido) ou `sessionFrequencyPriceId`
+            (`weeklyFrequency` preenchido).
             """)
     @ApiResponses({
             @ApiResponse(responseCode = "200", description = "Tabela retornada com sucesso", content = @Content(schema = @Schema(implementation = TechniquePriceTableResponseDTO.class))),
@@ -109,9 +97,7 @@ public class TechniqueController {
     }
 
     @Operation(summary = "Inativar técnica", description = """
-            Realiza o **soft delete** da técnica: ela deixa de aparecer na listagem e não pode
-            ser usada em contratos novos, mas contratos e atendimentos antigos continuam
-            apontando para ela.
+            Soft delete: a técnica sai da listagem e não entra em contratos novos.
             """)
     @ApiResponses({
             @ApiResponse(responseCode = "204", description = "Técnica inativada com sucesso"),
@@ -126,8 +112,7 @@ public class TechniqueController {
     }
 
     @Operation(summary = "Reativar técnica", description = """
-            Desfaz a inativação: a técnica volta para a listagem e pode entrar em contratos e
-            atendimentos novos. O grupo de preço continua o mesmo.
+            Desfaz a inativação; o grupo continua o mesmo.
             """)
     @ApiResponses({
             @ApiResponse(responseCode = "204", description = "Técnica reativada com sucesso"),

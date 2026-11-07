@@ -279,12 +279,11 @@ módulo `auth`.
   pelo `hasRole(...)` / `hasAnyRole(...)` do `SecurityConfig`.
 - **Autorização por perfil ([ADR 0026](adr/0026-acesso-por-perfil-centralizado.md)),** em
   duas camadas:
-  - **Endpoint (`SecurityConfig`):** uma tabela única, rota a rota e sem curinga. O
-    `PROVIDER` acessa só o que as telas dele usam: `POST`, `GET` e `DELETE` de
-    `/api/consultations` (com o `{id}` só numérico), os apoios do lançamento
-    (`eligible-contracts`, `session-balance`, `patients`), `GET /api/techniques` e
-    `GET`/`PUT /api/users/me`. No fim, `anyRequest().hasRole("ADMIN")`: **endpoint novo
-    nasce restrito ao ADMIN**, e esquecer de configurar nega o acesso, nunca o abre.
+  - **Endpoint (`SecurityConfig`):** uma tabela única, rota a rota e sem curinga (o
+    `{id}` só numérico), com os endpoints que o `PROVIDER` usa (`hasAnyRole`). No fim,
+    `anyRequest().hasRole("ADMIN")`: **endpoint novo nasce restrito ao ADMIN**, e esquecer
+    de configurar nega o acesso, nunca o abre. Quais endpoints o `PROVIDER` acessa:
+    "Acesso ao sistema", em `User`, no [`domain-model.md`](domain-model.md).
   - **Dados (service):** o que depende do registro (o `PROVIDER` só vê, lança e inativa os
     próprios lançamentos) fica no service, que lança o `ForbiddenException`
     (`shared/exception`), e não o `AccessDeniedException` do Spring, para os módulos de
