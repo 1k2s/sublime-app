@@ -46,7 +46,8 @@ public class UserController {
 
     @Operation(summary = "Cadastrar usuário", description = """
             Cria um usuário ativo. A senha precisa ter no mínimo 8 caracteres, é gravada com
-            hash e nunca é devolvida nas respostas.
+            hash e nunca é devolvida nas respostas. É **provisória**: no primeiro login, o
+            usuário define a própria senha (`POST /api/auth/first-access`).
             """)
     @ApiResponses({
             @ApiResponse(responseCode = "201", description = "Usuário criado", content = @Content(schema = @Schema(implementation = UserResponseDTO.class))),
@@ -112,7 +113,9 @@ public class UserController {
 
     @Operation(summary = "Atualizar usuário", description = """
             Atualiza e-mail e perfil (obrigatórios). A **senha é opcional**: vazia ou ausente
-            mantém a atual; preenchida, troca (mínimo de 8 caracteres).
+            mantém a atual; preenchida, vira uma nova senha **provisória** (mínimo de 8
+            caracteres): a sessão aberta do usuário cai, e no próximo login ele define a
+            própria senha.
             """)
     @ApiResponses({
             @ApiResponse(responseCode = "200", description = "Usuário atualizado", content = @Content(schema = @Schema(implementation = UserResponseDTO.class))),

@@ -1,6 +1,6 @@
 # 0023 — Autenticação por JWT próprio, validado pelo resource server do Spring
 
-- **Status:** aceito
+- **Status:** aceito (em parte substituído por [0027](0027-admin-padrao-protegido.md): o primeiro admin)
 - **Data:** 2026-11-05
 
 ## Contexto

@@ -1,6 +1,6 @@
 # 0025 — Primeiro acesso com senha provisória no próprio hash e troca automática no login
 
-- **Status:** aceito
+- **Status:** aceito (em parte substituído por [0029](0029-senha-provisoria-por-coluna.md): como o estado é guardado)
 - **Data:** 2026-11-06
 
 ## Contexto

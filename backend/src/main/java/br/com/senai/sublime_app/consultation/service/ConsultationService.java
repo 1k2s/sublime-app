@@ -156,7 +156,7 @@ public class ConsultationService {
     }
 
     // ---------------------------------------------------------------------------
-    // Quem atendeu (ver specs/autorizacao.md, "Lançamento")
+    // Quem atendeu (ver "Quem lança" em Consultation, no domain-model)
     // ---------------------------------------------------------------------------
 
     // ADMIN lança para qualquer prestador (providerId obrigatório). PROVIDER só lança para
