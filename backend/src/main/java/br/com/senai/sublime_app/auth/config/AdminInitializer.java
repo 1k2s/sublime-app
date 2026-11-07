@@ -19,8 +19,8 @@ import jakarta.validation.Validator;
 
 // Primeiro admin: com todas as rotas protegidas, ninguém conseguiria criar o primeiro
 // usuário pela API. Ao subir, se não houver nenhum ADMIN ativo, cria um com ADMIN_EMAIL e
-// ADMIN_PASSWORD, pelo UserService (mesmas regras do cadastro: hash, e-mail único). Ver o
-// "Primeiro admin" no domain-model (seção User) e o ADR 0023.
+// ADMIN_PASSWORD, pelo UserService (já com senha definitiva, sem exigir primeiro acesso).
+// Ver o "Primeiro admin" no domain-model (seção User) e os ADRs 0023 e 0025.
 @Component
 @EnableConfigurationProperties(AdminProperties.class)
 public class AdminInitializer implements ApplicationRunner {
@@ -53,7 +53,7 @@ public class AdminInitializer implements ApplicationRunner {
     private void createAdmin(UserRequestDTO admin) {
         validateCredentials(admin);
         try {
-            userService.create(admin);
+            userService.createDefinitiveAdmin(admin);
             log.info("Primeiro admin criado: {}", admin.email());
         } catch (ConflictException e) {
             log.warn("Nenhum ADMIN ativo, mas o e-mail {} já pertence a outro usuário (inativo ou com outro "

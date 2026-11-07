@@ -70,3 +70,4 @@ discussões que estavam no `domain-model.md` e no `architecture.md`.
 | [0022](0022-monorepo.md) | Monorepo: backend e frontend no mesmo repositório | aceito |
 | [0023](0023-autenticacao-jwt-resource-server.md) | Autenticação por JWT próprio, validado pelo resource server do Spring | aceito |
 | [0024](0024-sessao-frontend-localstorage.md) | Sessão do frontend no `localStorage`, encerrada pela `expiresAt` e pelo 401 | aceito |
+| [0025](0025-primeiro-acesso-com-senha-provisoria.md) | Primeiro acesso com senha provisória no próprio hash e troca automática no login | aceito |

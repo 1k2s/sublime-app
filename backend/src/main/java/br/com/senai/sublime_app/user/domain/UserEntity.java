@@ -26,6 +26,10 @@ import lombok.NoArgsConstructor;
 @EqualsAndHashCode(onlyExplicitlyIncluded = true)
 public class UserEntity {
 
+    // Prefixo aplicado ao hash BCrypt quando a senha é provisória e exige troca no
+    // primeiro login, sem adicionar nova coluna/atributo na entidade (ADR 0025)
+    public static final String FIRST_ACCESS_PREFIX = "FIRST_ACCESS:";
+
     @Id
     @GeneratedValue(strategy = GenerationType.IDENTITY)
     @EqualsAndHashCode.Include
@@ -34,7 +38,8 @@ public class UserEntity {
     @Column(nullable = false, unique = true)
     private String email;
 
-    // Sempre o hash (BCrypt), nunca a senha digitada: quem faz o hash é o UserService
+    // Sempre o hash (BCrypt), nunca a senha digitada: quem faz o hash é o UserService.
+    // Quando provisória, começa com FIRST_ACCESS_PREFIX (ADR 0025).
     @Column(nullable = false)
     private String password;
 
@@ -47,8 +52,8 @@ public class UserEntity {
     @Column(nullable = false)
     private boolean active = true;
 
-    // Construtor publico para criar um usuário com os dados obrigatórios. Recebe a senha
-    // já com hash (encodedPassword).
+    // Construtor público para criar um usuário com senha já definitiva (ex: AdminInitializer).
+    // Recebe a senha já com hash (encodedPassword).
     public UserEntity(String email, String encodedPassword, Role role) {
         validateEmailAndRole(email, role);
         validateEncodedPassword(encodedPassword);
@@ -58,6 +63,14 @@ public class UserEntity {
         this.active = true;
     }
 
+    // Fábrica para usuários criados pelo administrador (POST /api/users), que nascem com
+    // senha provisória e precisam definir a própria senha no primeiro acesso (ADR 0025).
+    public static UserEntity withProvisionalPassword(String email, String encodedPassword, Role role) {
+        validateEmailAndRole(email, role);
+        validateEncodedPassword(encodedPassword);
+        return new UserEntity(email, FIRST_ACCESS_PREFIX + encodedPassword, role);
+    }
+
     // Alteração dos dados de acesso, sem a senha (ver changePassword)
     public void update(String email, Role role) {
         validateEmailAndRole(email, role);
@@ -65,10 +78,30 @@ public class UserEntity {
         this.role = role;
     }
 
-    // Troca de senha, separada do update: na alteração a senha é opcional
+    // Troca para uma senha definitiva (conclusão do primeiro acesso pelo próprio usuário)
     public void changePassword(String encodedPassword) {
         validateEncodedPassword(encodedPassword);
         this.password = encodedPassword;
+    }
+
+    // Redefinição de senha pelo administrador (PUT /api/users/{id}): grava como provisória
+    // para que o usuário defina sua própria senha pessoal no próximo login (ADR 0025)
+    public void changeToProvisionalPassword(String encodedPassword) {
+        validateEncodedPassword(encodedPassword);
+        this.password = FIRST_ACCESS_PREFIX + encodedPassword;
+    }
+
+    // Indica se o usuário ainda está com senha provisória pendente de troca
+    public boolean isFirstAccessPending() {
+        return password != null && password.startsWith(FIRST_ACCESS_PREFIX);
+    }
+
+    // Devolve apenas o hash BCrypt puro (sem o prefixo FIRST_ACCESS:), para conferência
+    // pelo PasswordEncoder
+    public String extractPasswordHash() {
+        return isFirstAccessPending()
+                ? password.substring(FIRST_ACCESS_PREFIX.length())
+                : password;
     }
 
     // Soft delete: o usuário pode estar vinculado a um prestador com atendimentos

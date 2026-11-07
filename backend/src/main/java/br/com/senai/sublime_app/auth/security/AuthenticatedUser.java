@@ -12,11 +12,23 @@ import br.com.senai.sublime_app.user.enums.Role;
 
 // O usuário do sistema visto pelo Spring Security, no login. Guarda uma cópia dos dados
 // (não a entidade), para não depender da sessão do Hibernate depois da consulta.
-public record AuthenticatedUser(Long id, String email, String passwordHash, Role role, boolean active)
-        implements UserDetails {
+public record AuthenticatedUser(
+        Long id,
+        String email,
+        String passwordHash,
+        Role role,
+        boolean active,
+        boolean firstAccessPending
+) implements UserDetails {
 
     public static AuthenticatedUser from(UserEntity user) {
-        return new AuthenticatedUser(user.getId(), user.getEmail(), user.getPassword(), user.getRole(), user.isActive());
+        return new AuthenticatedUser(
+                user.getId(),
+                user.getEmail(),
+                user.extractPasswordHash(),
+                user.getRole(),
+                user.isActive(),
+                user.isFirstAccessPending());
     }
 
     // Prefixo ROLE_: é o que o hasRole("ADMIN") da autorização procura

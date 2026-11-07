@@ -14,9 +14,9 @@ import br.com.senai.sublime_app.user.domain.UserEntity;
 import br.com.senai.sublime_app.user.repository.UserRepository;
 
 // Corte imediato do acesso: além da assinatura e da validade, cada requisição confere se
-// o usuário do token continua ativo e com o mesmo perfil. Inativado ou com o perfil
-// alterado, o token é recusado (401) e o usuário faz login de novo. Custo: uma consulta
-// por chave primária por requisição.
+// o usuário do token continua ativo, sem pendência de primeiro acesso e com o mesmo perfil.
+// Inativado, com senha redefinida para provisória ou com o perfil alterado, o token é
+// recusado (401) e o usuário faz login de novo. Custo: uma consulta por chave primária.
 @Component
 public class ActiveUserTokenValidator implements OAuth2TokenValidator<Jwt> {
 
@@ -41,8 +41,11 @@ public class ActiveUserTokenValidator implements OAuth2TokenValidator<Jwt> {
         return valid ? OAuth2TokenValidatorResult.success() : OAuth2TokenValidatorResult.failure(INVALID_USER);
     }
 
-    // O token carrega o perfil da hora do login; se o perfil mudou, ele não vale mais
+    // O token carrega o perfil da hora do login; se o perfil mudou ou a senha voltou a ser provisória, ele não vale mais
     private static boolean isActiveWithSameRole(UserEntity user, List<String> tokenRoles) {
-        return user.isActive() && tokenRoles != null && tokenRoles.equals(List.of(user.getRole().name()));
+        return user.isActive()
+                && !user.isFirstAccessPending()
+                && tokenRoles != null
+                && tokenRoles.equals(List.of(user.getRole().name()));
     }
 }
