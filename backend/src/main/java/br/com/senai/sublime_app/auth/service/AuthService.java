@@ -34,7 +34,7 @@ public class AuthService {
      * Login por e-mail e senha. O AuthenticationManager confere o usuário (existe e está
      * ativo) e a senha contra o hash; qualquer falha lança AuthenticationException, que
      * vira o 401 "E-mail ou senha inválidos." (mensagem única, ver a spec). Se a senha
-     * estiver correta mas for provisória (FIRST_ACCESS:), lança FirstAccessRequiredException
+     * estiver correta mas for provisória (primeiro acesso pendente), lança FirstAccessRequiredException
      * (403 com firstAccessRequired = true) sem emitir token (ADR 0025).
      */
     public LoginResponseDTO login(LoginRequestDTO dto) {

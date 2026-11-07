@@ -12,7 +12,7 @@ export async function getUserById(id) {
   return data;
 }
 
-// POST /api/users — cria usuário com senha provisória (FIRST_ACCESS:)
+// POST /api/users — cria usuário com senha provisória (troca obrigatória no primeiro acesso)
 export async function createUser({ email, password, role }) {
   const { data } = await apiClient.post("/users", { email, password, role });
   return data;

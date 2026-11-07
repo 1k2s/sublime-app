@@ -31,7 +31,7 @@ public class UserService {
     }
 
     // Unicidade do e-mail depende do banco (fica aqui); as regras do usuário ficam
-    // na UserEntity. A senha criada pelo admin nasce como provisória (FIRST_ACCESS: + hash)
+    // na UserEntity. A senha criada pelo admin nasce como provisória
     // para que o próprio titular defina sua senha no primeiro acesso (ADR 0025).
     @Transactional
     public UserResponseDTO create(UserRequestDTO dto) {
@@ -78,7 +78,7 @@ public class UserService {
 
     /**
      * Atualiza e-mail e perfil e, se a requisição trouxer uma senha nova, redefine a senha
-     * como provisória (FIRST_ACCESS: + hash), exigindo que o titular escolha sua própria
+     * como provisória, exigindo que o titular escolha sua própria
      * senha no próximo login. Sem senha, mantém a atual. Gravado pelo dirty checking.
      */
     @Transactional
@@ -102,7 +102,7 @@ public class UserService {
     @Transactional
     public void completeFirstAccess(Long id, String newPassword) {
         UserEntity user = getUserOrThrow(id);
-        if (passwordEncoder.matches(newPassword, user.extractPasswordHash())) {
+        if (passwordEncoder.matches(newPassword, user.getPassword())) {
             throw new BusinessRuleException("A nova senha deve ser diferente da senha provisória.");
         }
         user.changePassword(passwordEncoder.encode(newPassword));

@@ -17,12 +17,13 @@
 -- ---------------------------------------------------------------------------
 
 CREATE TABLE `user` (
-    id            BIGINT       NOT NULL AUTO_INCREMENT,
-    active        BIT(1)       NOT NULL,
-    default_admin BIT(1)       NOT NULL DEFAULT b'0',
-    email         VARCHAR(255) NOT NULL,
-    password      VARCHAR(255) NOT NULL,
-    role          VARCHAR(30)  NOT NULL,
+    id                       BIGINT       NOT NULL AUTO_INCREMENT,
+    active                   BIT(1)       NOT NULL,
+    default_admin            BIT(1)       NOT NULL DEFAULT b'0',
+    email                    VARCHAR(255) NOT NULL,
+    password                 VARCHAR(255) NOT NULL,
+    password_change_required BIT(1)       NOT NULL DEFAULT b'0',
+    role                     VARCHAR(30)  NOT NULL,
     CONSTRAINT pk_user PRIMARY KEY (id),
     CONSTRAINT uk_user_email UNIQUE (email)
 ) ENGINE = InnoDB DEFAULT CHARSET = utf8mb4 COLLATE = utf8mb4_0900_ai_ci;

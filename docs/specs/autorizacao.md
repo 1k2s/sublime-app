@@ -380,8 +380,9 @@ ativo e um inativo.
   (o admin padrão nasce com senha definitiva **e** a marca `defaultAdmin`), `SecurityConfig`,
   `GlobalExceptionHandler`, `UserEntity`, `navigationItems.js`, `userApi.js` e
   `specs/README.md`; no `UserService`, juntar o `createDefaultAdmin` e o
-  `createDefinitiveAdmin` num só. Os ADRs desta feature passam a ser 0026 a 0028 (o 0025 é
-  o do primeiro acesso).
+  `createDefinitiveAdmin` num só. Os ADRs desta feature passam a ser 0026 a 0029 (o 0025 é
+  o do primeiro acesso). **Feito em 2026-11-07** (commit do merge), seguido da troca do
+  prefixo `FIRST_ACCESS:` pela coluna `password_change_required` (seção 10).
 - **Registrar no roadmap depois do merge** (decidido em 2026-11-07; esperando o merge para
   não aumentar o conflito no `roadmap.md`):
   - `npm ci` acusou **7 vulnerabilidades** nas dependências do front (4 moderadas, 3 altas).
@@ -413,6 +414,10 @@ ativo e um inativo.
   migrations e voltar a regra de nunca editá-las; próximos passos (telas de Prestadores e
   Usuários, redesenho do lançamento, dashboard); no front, `auth` com rotas por papel e a
   tela de Configurações; os pontos da seção 8 que você decidir registrar.
+- **Senha provisória pela coluna** (seção 10): trocar a descrição do prefixo
+  `FIRST_ACCESS:` em `domain-model.md` (seção `User`, primeiro acesso e "Primeiro admin";
+  diagrama ER com `USER.passwordChangeRequired`) e em `architecture.md` ("Segurança"). O
+  ADR 0025 não é editado: o ADR novo o substitui nesse ponto.
 - ADRs da seção seguinte e remoção desta spec.
 
 ## 10. ADRs a registrar
@@ -426,3 +431,11 @@ ativo e um inativo.
   aplicada nunca é editada" do [ADR 0021](../adr/0021-schema-versionado-flyway.md)).
   *Descartado:* migration nova a cada mudança antes do MVP. *Consequência:* quem puxar uma
   migration editada zera o banco local.
+- **Senha provisória marcada por uma coluna (`password_change_required`), não por prefixo
+  no hash** (decidido em 2026-11-07; substitui, do
+  [ADR 0025](../adr/0025-primeiro-acesso-com-senha-provisoria.md), só a forma de guardar o
+  estado: o fluxo do primeiro acesso não muda). *Descartado:* o prefixo `FIRST_ACCESS:` no
+  campo `password` (mistura a credencial com um estado do usuário, e todo código que lê a
+  senha precisa lembrar de tirar o prefixo). O motivo do prefixo, "não criar coluna nem
+  migration", deixou de valer com a V1 editável. *Melhoria anotada para o roadmap:*
+  expiração da senha provisória (ex: 7 dias, como no AWS Cognito).
