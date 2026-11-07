@@ -1,175 +1,173 @@
-/**
- * ======================================================================================
- * COMPONENTE: PatientWizard
- * ======================================================================================
- *
- * Orquestrador do fluxo de formulário em 3 etapas com painel lateral de prévia:
- * - Etapas:
- *   1. Dados Pessoais (`PersonalDataStep`)
- *   2. Endereço (`AddressStep`)
- *   3. Confirmação (`ConfirmationStep`)
- * - Suporta tanto o modo de **Criação** (quando `initialData` for nulo) quanto o
- *   modo de **Edição** (quando `initialData` contiver os dados do paciente existente).
- * - Utiliza `react-hook-form` integrado ao schema Zod (`fullPatientSchema`) para gerenciar
- *   o estado de todos os campos unificados.
- * - Valida a Etapa 1 antes de permitir o avanço para a Etapa 2 via `trigger()`.
- * - Valida a Etapa 2 antes de permitir o avanço para a Etapa 3 via `trigger()`.
- * - Ao submeter na Etapa 3:
- *   - Se estiver editando: dispara `useUpdatePatient()`.
- *   - Se estiver criando: dispara `useCreatePatient()`.
- */
-
+// Orquestrador do formulário de paciente em 3 etapas com prévia lateral
 import { useState } from "react";
-import { useForm } from "react-hook-form";
+import { useForm, useWatch } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
-import { Stepper } from "@/shared/ui/Stepper";
+import { AddressStep } from "@/domain/patient/components/wizard/AddressStep";
+import { ConfirmationStep } from "@/domain/patient/components/wizard/ConfirmationStep";
+import { PatientPreviewCard } from "@/domain/patient/components/wizard/PatientPreviewCard";
+import { PersonalDataStep } from "@/domain/patient/components/wizard/PersonalDataStep";
+import { fullPatientSchema, toPatientPayload } from "@/domain/patient/schemas/patientSchema";
+import { useProviders } from "@/domain/provider/api/useProviders";
 import { Card } from "@/shared/ui/Card";
-import { fullPatientSchema } from "../../schemas/patientSchema";
-import { useCreatePatient, useUpdatePatient } from "../../api/usePatients";
-import { PersonalDataStep } from "./PersonalDataStep";
-import { AddressStep } from "./AddressStep";
-import { ConfirmationStep } from "./ConfirmationStep";
-import { PatientPreviewCard } from "./PatientPreviewCard";
-import styles from "./PatientWizard.module.css";
+import { Stepper } from "@/shared/ui/Stepper";
+import { formatDate } from "@/shared/utils/date";
+import { maskCep, maskCpf, maskPhone } from "@/shared/utils/masks";
+import styles from "@/domain/patient/components/wizard/PatientWizard.module.css";
 
-/**
- * Definição estática das 3 etapas exibidas no Stepper superior
- */
 const STEPS = [
   { number: 1, title: "Dados pessoais", description: "Identificação do paciente" },
   { number: 2, title: "Endereço", description: "Onde o paciente mora" },
   { number: 3, title: "Confirmação", description: "Revise e salve" },
 ];
 
-/**
- * @param {Object} props
- * @param {Object|null} [props.initialData=null] - Dados iniciais em caso de edição (ou null para novo cadastro)
- * @param {function(): void} props.onCancel - Callback ao cancelar ou voltar à listagem
- * @param {function(): void} props.onSuccess - Callback após criação ou edição bem-sucedida
- */
-export function PatientWizard({ initialData = null, onCancel, onSuccess }) {
-  // Controle da etapa ativa (1, 2 ou 3)
+const STEP_1_FIELDS = new Set(["name", "cpf", "birthDate", "phone", "email", "referringProviderId"]);
+const STEP_2_FIELDS = new Set(["cep", "street", "numberHouse", "complement", "city"]);
+
+// Mapeia nomes de campos do ProblemDetail (ex: "address.cep") para os campos do formulário
+function normalizeApiFieldName(apiField) {
+  if (apiField.startsWith("address.")) {
+    return apiField.slice("address.".length);
+  }
+  return apiField;
+}
+
+export function PatientWizard({
+  initialData = null,
+  isSubmitting = false,
+  onCancel,
+  onSubmit,
+}) {
   const [currentStep, setCurrentStep] = useState(1);
-
-  // Determina se estamos no modo de edição verificando a presença de um ID existente
   const isEditing = Boolean(initialData?.id);
+  const active = isEditing ? Boolean(initialData.active) : true;
+  const hasExistingAddress = Boolean(initialData?.address);
 
-  // Hooks de mutação do TanStack Query
-  const createPatientMutation = useCreatePatient();
-  const updatePatientMutation = useUpdatePatient();
-  const isSubmitting = createPatientMutation.isPending || updatePatientMutation.isPending;
+  const { data: allProviders = [] } = useProviders();
 
-  // Inicialização do formulário com React Hook Form e validação Zod
+  // Permite atribuir prestador ativo ou manter o prestador atual mesmo que tenha sido inativado
+  const availableProviders = allProviders.filter(
+    (provider) => provider.active || provider.id === initialData?.referringProviderId
+  );
+
   const {
     register,
+    control,
     handleSubmit,
     setValue,
-    watch,
+    setError,
     trigger,
     formState: { errors },
   } = useForm({
     resolver: zodResolver(fullPatientSchema),
     mode: "onBlur",
     defaultValues: {
-      name: initialData?.name || "",
-      cpf: initialData?.cpf || "",
-      birthDate: initialData?.birthDate || "",
-      phone: initialData?.phone || "",
-      email: initialData?.email || "",
-      cep: initialData?.cep || "",
-      street: initialData?.street || "",
-      number: initialData?.number || "",
-      complement: initialData?.complement || "",
-      neighborhood: initialData?.neighborhood || "",
-      city: initialData?.city || "",
-      state: initialData?.state || "",
-      status: initialData?.status || "ACTIVE",
+      name: initialData?.name ?? "",
+      cpf: initialData?.cpf ? maskCpf(initialData.cpf) : "",
+      birthDate: initialData?.birthDate ? formatDate(initialData.birthDate) : "",
+      phone: initialData?.phone ? maskPhone(initialData.phone) : "",
+      email: initialData?.email ?? "",
+      referringProviderId: initialData?.referringProviderId
+        ? String(initialData.referringProviderId)
+        : "",
+      cep: initialData?.address?.cep ? maskCep(initialData.address.cep) : "",
+      street: initialData?.address?.street ?? "",
+      numberHouse: initialData?.address?.numberHouse ?? "",
+      complement: initialData?.address?.complement ?? "",
+      city: initialData?.address?.city ?? "",
+      addressRequired: hasExistingAddress,
     },
   });
 
-  // Observa todos os campos em tempo real para alimentar a prévia lateral (PatientPreviewCard)
-  const formValues = watch();
+  const formValues = useWatch({ control });
 
-  /**
-   * Valida apenas os campos da Etapa 1 antes de avançar para a Etapa 2
-   */
-  const handleNextFromStep1 = async () => {
-    const isValid = await trigger(["name", "cpf", "birthDate", "phone", "email"]);
+  const selectedProvider = availableProviders.find(
+    (p) => String(p.id) === String(formValues.referringProviderId)
+  );
+  const referringProviderName =
+    selectedProvider?.name ??
+    (String(initialData?.referringProviderId ?? "") === String(formValues.referringProviderId ?? "")
+      ? initialData?.referringProviderName
+      : null);
+
+  async function handleNextFromStep1() {
+    const isValid = await trigger([
+      "name",
+      "cpf",
+      "birthDate",
+      "phone",
+      "email",
+      "referringProviderId",
+    ]);
     if (isValid) {
       setCurrentStep(2);
     }
-  };
+  }
 
-  /**
-   * Valida apenas os campos da Etapa 2 antes de avançar para a Etapa 3
-   */
-  const handleNextFromStep2 = async () => {
-    const isValid = await trigger([
-      "cep",
-      "street",
-      "number",
-      "complement",
-      "neighborhood",
-      "city",
-      "state",
-    ]);
+  async function handleNextFromStep2() {
+    const isValid = await trigger(["cep", "street", "numberHouse", "complement", "city"]);
     if (isValid) {
       setCurrentStep(3);
     }
-  };
+  }
 
-  /**
-   * Gravação final: executa criação ou atualização dependendo do modo
-   */
-  const handleSave = handleSubmit(async (data) => {
-    try {
-      if (isEditing) {
-        await updatePatientMutation.mutateAsync({ id: initialData.id, data });
-      } else {
-        await createPatientMutation.mutateAsync(data);
+  function applyApiErrors(apiErrors) {
+    if (!apiErrors || typeof apiErrors !== "object") return;
+
+    let targetStep = null;
+    for (const [rawField, message] of Object.entries(apiErrors)) {
+      const field = normalizeApiFieldName(rawField);
+      setError(field, { type: "server", message });
+      if (STEP_1_FIELDS.has(field)) {
+        targetStep = 1;
+      } else if (STEP_2_FIELDS.has(field) && targetStep !== 1) {
+        targetStep = 2;
       }
-      onSuccess?.();
-    } catch (err) {
-      console.error(isEditing ? "Erro ao atualizar paciente:" : "Erro ao cadastrar paciente:", err);
     }
+
+    if (targetStep) {
+      setCurrentStep(targetStep);
+    }
+  }
+
+  const handleSave = handleSubmit((values) => {
+    const payload = toPatientPayload(values);
+    onSubmit?.(payload, { applyApiErrors });
   });
 
   return (
     <div className={styles.wizardWrapper}>
-      {/* Indicador de progresso no topo */}
       <Stepper steps={STEPS} currentStep={currentStep} className={styles.stepperSpacing} />
 
-      {/* Grid de 2 colunas: formulário da etapa à esquerda e prévia fixa à direita */}
       <div className={styles.twoColumnGrid}>
         <Card className={styles.mainFormCard}>
-          {/* Etapa 1: Dados pessoais */}
           {currentStep === 1 && (
             <PersonalDataStep
               register={register}
+              control={control}
               errors={errors}
               setValue={setValue}
-              watch={watch}
+              providers={availableProviders}
               onCancel={onCancel}
               onNext={handleNextFromStep1}
             />
           )}
 
-          {/* Etapa 2: Endereço residencial */}
           {currentStep === 2 && (
             <AddressStep
               register={register}
+              control={control}
               errors={errors}
               setValue={setValue}
-              watch={watch}
               onBack={() => setCurrentStep(1)}
               onNext={handleNextFromStep2}
             />
           )}
 
-          {/* Etapa 3: Revisão e confirmação final */}
           {currentStep === 3 && (
             <ConfirmationStep
               formData={formValues}
+              active={active}
+              referringProviderName={referringProviderName}
               isEditing={isEditing}
               isSubmitting={isSubmitting}
               onBack={() => setCurrentStep(2)}
@@ -178,9 +176,12 @@ export function PatientWizard({ initialData = null, onCancel, onSuccess }) {
           )}
         </Card>
 
-        {/* Coluna da direita: prévia reativa do cadastro */}
         <div className={styles.previewColumn}>
-          <PatientPreviewCard formData={formValues} />
+          <PatientPreviewCard
+            formData={formValues}
+            active={active}
+            referringProviderName={referringProviderName}
+          />
         </div>
       </div>
     </div>

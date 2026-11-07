@@ -1,42 +1,23 @@
-/**
- * ======================================================================================
- * COMPONENTE: ConfirmationStep (Etapa 3 do Wizard)
- * ======================================================================================
- *
- * Apresenta a revisão consolidada de todos os dados antes da persistência final:
- * - Seção 1: Dados Pessoais (Nome, Status, CPF, Nascimento, Telefone, E-mail).
- * - Seção 2: Endereço (CEP, Logradouro, Número, Complemento, Bairro, Cidade/UF).
- * - Mensagens e botão contextualizados:
- *   - Modo Criação (`isEditing = false`): texto "Salvar paciente".
- *   - Modo Edição (`isEditing = true`): texto "Salvar alterações".
- * - Feedback de carregamento (`loading={isSubmitting}`) e bloqueio do botão Voltar durante o envio.
- */
-
-import { CheckCircle2, ArrowLeft, Check, User, MapPin } from "lucide-react";
-import { Button } from "@/shared/ui/Button";
+// Etapa 3 do cadastro de paciente: revisão consolidada antes de salvar
+import { ArrowLeft, Check, CheckCircle2, MapPin, User } from "lucide-react";
+import { hasAddressInput } from "@/domain/patient/schemas/patientSchema";
 import { Badge } from "@/shared/ui/Badge";
-import styles from "./PatientWizard.module.css";
+import { Button } from "@/shared/ui/Button";
+import styles from "@/domain/patient/components/wizard/PatientWizard.module.css";
 
-/**
- * @param {Object} props
- * @param {Object} props.formData - Objeto consolidado com os valores de todos os campos preenchidos
- * @param {boolean} [props.isEditing=false] - Indica se o fluxo atual é de edição
- * @param {boolean} [props.isSubmitting=false] - Indica se a mutação da API está em andamento
- * @param {function(): void} props.onBack - Retorna para a etapa 2 (Endereço)
- * @param {function(): void} props.onSubmit - Dispara a submissão e gravação dos dados
- */
 export function ConfirmationStep({
   formData = {},
+  active = true,
+  referringProviderName = null,
   isEditing = false,
   isSubmitting = false,
   onBack,
   onSubmit,
 }) {
-  const isAtivo = formData.status === "ACTIVE";
+  const hasAddress = hasAddressInput(formData);
 
   return (
     <div className={styles.stepContainer}>
-      {/* Cabeçalho da Etapa 3 */}
       <div className={styles.cardHeader}>
         <div className={styles.headerIconCircle}>
           <CheckCircle2 size={22} />
@@ -51,9 +32,7 @@ export function ConfirmationStep({
         </div>
       </div>
 
-      {/* Conteúdo de Revisão */}
       <div className={styles.reviewContent}>
-        {/* Bloco de Dados Pessoais */}
         <div className={styles.reviewSection}>
           <div className={styles.reviewSectionHeader}>
             <User size={16} />
@@ -67,10 +46,10 @@ export function ConfirmationStep({
             </div>
 
             <div className={styles.reviewField}>
-              <span className={styles.reviewLabel}>Status Inicial</span>
+              <span className={styles.reviewLabel}>Status</span>
               <div>
-                <Badge variant={isAtivo ? "active" : "inactive"}>
-                  {isAtivo ? "Ativo" : "Inativo"}
+                <Badge variant={active ? "active" : "inactive"}>
+                  {active ? "Ativo" : "Inativo"}
                 </Badge>
               </div>
             </div>
@@ -87,57 +66,61 @@ export function ConfirmationStep({
 
             <div className={styles.reviewField}>
               <span className={styles.reviewLabel}>Telefone</span>
-              <span className={styles.reviewValue}>{formData.phone || "--"}</span>
+              <span className={styles.reviewValue}>{formData.phone || "Não informado"}</span>
             </div>
 
             <div className={styles.reviewField}>
               <span className={styles.reviewLabel}>E-mail</span>
               <span className={styles.reviewValue}>{formData.email || "Não informado"}</span>
             </div>
+
+            <div className={styles.reviewField}>
+              <span className={styles.reviewLabel}>Origem do Paciente</span>
+              <span className={styles.reviewValue}>
+                {referringProviderName || "Clínica"}
+              </span>
+            </div>
           </div>
         </div>
 
-        {/* Bloco de Endereço */}
         <div className={styles.reviewSection}>
           <div className={styles.reviewSectionHeader}>
             <MapPin size={16} />
             <span>Endereço</span>
           </div>
 
-          <div className={styles.reviewGrid}>
-            <div className={styles.reviewField}>
-              <span className={styles.reviewLabel}>CEP</span>
-              <span className={styles.reviewValue}>{formData.cep || "--"}</span>
-            </div>
+          {hasAddress ? (
+            <div className={styles.reviewGrid}>
+              <div className={styles.reviewField}>
+                <span className={styles.reviewLabel}>CEP</span>
+                <span className={styles.reviewValue}>{formData.cep || "--"}</span>
+              </div>
 
-            <div className={styles.reviewField}>
-              <span className={styles.reviewLabel}>Logradouro e Número</span>
-              <span className={styles.reviewValue}>
-                {formData.street ? `${formData.street}, ${formData.number || "S/N"}` : "--"}
-              </span>
-            </div>
+              <div className={styles.reviewField}>
+                <span className={styles.reviewLabel}>Rua e Número</span>
+                <span className={styles.reviewValue}>
+                  {formData.street
+                    ? `${formData.street}, ${formData.numberHouse || "S/N"}`
+                    : "--"}
+                </span>
+              </div>
 
-            <div className={styles.reviewField}>
-              <span className={styles.reviewLabel}>Complemento</span>
-              <span className={styles.reviewValue}>{formData.complement || "Nenhum"}</span>
-            </div>
+              <div className={styles.reviewField}>
+                <span className={styles.reviewLabel}>Complemento</span>
+                <span className={styles.reviewValue}>{formData.complement || "Nenhum"}</span>
+              </div>
 
-            <div className={styles.reviewField}>
-              <span className={styles.reviewLabel}>Bairro</span>
-              <span className={styles.reviewValue}>{formData.neighborhood || "--"}</span>
+              <div className={styles.reviewField}>
+                <span className={styles.reviewLabel}>Cidade</span>
+                <span className={styles.reviewValue}>{formData.city || "--"}</span>
+              </div>
             </div>
-
-            <div className={styles.reviewField}>
-              <span className={styles.reviewLabel}>Cidade / UF</span>
-              <span className={styles.reviewValue}>
-                {[formData.city, formData.state].filter(Boolean).join(" / ") || "--"}
-              </span>
-            </div>
-          </div>
+          ) : (
+            <span className={styles.reviewValue}>Endereço não informado</span>
+          )}
         </div>
       </div>
 
-      {/* Rodapé com botão de voltar e ação final de salvar */}
       <div className={styles.cardFooter}>
         <Button variant="outline" type="button" onClick={onBack} disabled={isSubmitting}>
           <ArrowLeft size={18} /> Voltar

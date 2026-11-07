@@ -1,73 +1,47 @@
-/**
- * ======================================================================================
- * COMPONENTE: PatientDetailsModal
- * ======================================================================================
- *
- * Modal aberto ao clicar na ação da tabela de pacientes ("Ver / Editar" ou "Ver"):
- * - Apresenta todos os dados do paciente divididos em duas seções claras:
- *   1. Dados Pessoais (CPF, Nascimento, Telefone, E-mail)
- *   2. Endereço Completo (CEP, Logradouro, Número, Complemento, Bairro, Cidade/UF)
- * - Exibe a tag de status (Ativo / Inativo).
- * - Efeito visual de blur no backdrop escurecido (`backdrop-filter: blur(5px)`).
- * - Fechamento via clique no backdrop escuro, no botão de "X" ou no botão "Fechar".
- * - Se o usuário for Administrador (`isAdmin = true`):
- *   1. Disponibiliza o botão "Editar cadastro" (que abre o wizard de edição).
- *   2. Disponibiliza o botão de desativar/reativar paciente com pedido de confirmação
- *      e alerta explicativo sobre a futura verificação de pendências contratuais.
- */
-
+// Modal de detalhes do paciente, com edição e inativação/reativação para perfil ADMIN
 import { useState } from "react";
 import {
-  X,
-  User,
-  Phone,
-  Mail,
   Calendar,
-  MapPin,
   CreditCard,
+  Info,
+  Mail,
+  MapPin,
   Pencil,
-  AlertTriangle,
-  UserX,
+  Phone,
+  User,
   UserCheck,
+  UserX,
+  X,
 } from "lucide-react";
 import { Badge } from "@/shared/ui/Badge";
 import { Button } from "@/shared/ui/Button";
-import styles from "./PatientDetailsModal.module.css";
+import { formatDate } from "@/shared/utils/date";
+import { maskCep, maskCpf, maskPhone } from "@/shared/utils/masks";
+import styles from "@/domain/patient/components/PatientDetailsModal.module.css";
 
-/**
- * @param {Object} props
- * @param {Object|null} props.patient - Dados do paciente selecionado (ou null se fechado)
- * @param {boolean} [props.isAdmin=false] - Indica se o usuário atual é administrador
- * @param {function(): void} props.onClose - Callback para fechar o modal
- * @param {function(Object): void} [props.onEdit] - Callback disparado ao clicar em "Editar cadastro"
- * @param {function(Object, string): void} [props.onToggleStatus] - Callback para alternar o status do paciente
- */
 export function PatientDetailsModal({
   patient,
   isAdmin = false,
+  isTogglingStatus = false,
   onClose,
   onEdit,
   onToggleStatus,
 }) {
   const [showConfirm, setShowConfirm] = useState(false);
 
-  // Se nenhum paciente estiver selecionado, não renderiza nada
   if (!patient) return null;
 
-  const isAtivo = patient.status === "ACTIVE";
+  const isActive = Boolean(patient.active);
+  const address = patient.address;
 
-  const handleConfirmToggle = () => {
-    const nextStatus = isAtivo ? "INACTIVE" : "ACTIVE";
-    onToggleStatus?.(patient, nextStatus);
+  function handleConfirmToggle() {
+    onToggleStatus?.(patient);
     setShowConfirm(false);
-  };
+  }
 
   return (
-    /* Backdrop escurecido com desfoque blur cobrindo a tela inteira */
     <div className={styles.backdrop} onClick={onClose}>
-      {/* Container do modal: stopPropagation impede que cliques internos fechem o modal */}
       <div className={styles.modal} onClick={(e) => e.stopPropagation()}>
-        {/* Cabeçalho do modal com nome, status e botão de fechar */}
         <div className={styles.header}>
           <div className={styles.titleInfo}>
             <div className={styles.iconCircle}>
@@ -76,8 +50,8 @@ export function PatientDetailsModal({
             <div>
               <div className={styles.nameRow}>
                 <h3 className={styles.name}>{patient.name}</h3>
-                <Badge variant={isAtivo ? "active" : "inactive"}>
-                  {isAtivo ? "Ativo" : "Inativo"}
+                <Badge variant={isActive ? "active" : "inactive"}>
+                  {isActive ? "Ativo" : "Inativo"}
                 </Badge>
               </div>
               <p className={styles.subtitle}>Detalhes do cadastro do paciente</p>
@@ -94,9 +68,7 @@ export function PatientDetailsModal({
           </button>
         </div>
 
-        {/* Corpo com as seções de informações */}
         <div className={styles.content}>
-          {/* Seção 1: Dados Pessoais */}
           <div className={styles.section}>
             <h4 className={styles.sectionTitle}>Dados Pessoais</h4>
             <div className={styles.grid}>
@@ -104,19 +76,25 @@ export function PatientDetailsModal({
                 <span className={styles.fieldLabel}>
                   <CreditCard size={14} /> CPF
                 </span>
-                <span className={styles.fieldValue}>{patient.cpf || "--"}</span>
+                <span className={styles.fieldValue}>
+                  {patient.cpf ? maskCpf(patient.cpf) : "--"}
+                </span>
               </div>
               <div className={styles.field}>
                 <span className={styles.fieldLabel}>
                   <Calendar size={14} /> Data de Nascimento
                 </span>
-                <span className={styles.fieldValue}>{patient.birthDate || "--"}</span>
+                <span className={styles.fieldValue}>
+                  {formatDate(patient.birthDate) || "--"}
+                </span>
               </div>
               <div className={styles.field}>
                 <span className={styles.fieldLabel}>
                   <Phone size={14} /> Telefone
                 </span>
-                <span className={styles.fieldValue}>{patient.phone || "--"}</span>
+                <span className={styles.fieldValue}>
+                  {patient.phone ? maskPhone(patient.phone) : "--"}
+                </span>
               </div>
               <div className={styles.field}>
                 <span className={styles.fieldLabel}>
@@ -124,92 +102,107 @@ export function PatientDetailsModal({
                 </span>
                 <span className={styles.fieldValue}>{patient.email || "--"}</span>
               </div>
-            </div>
-          </div>
-
-          {/* Seção 2: Endereço */}
-          <div className={styles.section}>
-            <h4 className={styles.sectionTitle}>Endereço</h4>
-            <div className={styles.grid}>
               <div className={styles.field}>
                 <span className={styles.fieldLabel}>
-                  <MapPin size={14} /> CEP
+                  <UserCheck size={14} /> Origem do Paciente
                 </span>
-                <span className={styles.fieldValue}>{patient.cep || "--"}</span>
-              </div>
-              <div className={styles.field}>
-                <span className={styles.fieldLabel}>Logradouro</span>
                 <span className={styles.fieldValue}>
-                  {patient.street ? `${patient.street}, ${patient.number || "S/N"}` : "--"}
-                </span>
-              </div>
-              <div className={styles.field}>
-                <span className={styles.fieldLabel}>Complemento / Bairro</span>
-                <span className={styles.fieldValue}>
-                  {[patient.complement, patient.neighborhood].filter(Boolean).join(" - ") || "--"}
-                </span>
-              </div>
-              <div className={styles.field}>
-                <span className={styles.fieldLabel}>Cidade / UF</span>
-                <span className={styles.fieldValue}>
-                  {[patient.city, patient.state].filter(Boolean).join(" / ") || "--"}
+                  {patient.referringProviderName || "Clínica"}
                 </span>
               </div>
             </div>
           </div>
 
-          {/* Caixa de Confirmação de Desativação com Alerta de Pendências */}
+          <div className={styles.section}>
+            <h4 className={styles.sectionTitle}>Endereço</h4>
+            {address ? (
+              <div className={styles.grid}>
+                <div className={styles.field}>
+                  <span className={styles.fieldLabel}>
+                    <MapPin size={14} /> CEP
+                  </span>
+                  <span className={styles.fieldValue}>
+                    {address.cep ? maskCep(address.cep) : "--"}
+                  </span>
+                </div>
+                <div className={styles.field}>
+                  <span className={styles.fieldLabel}>Rua e Número</span>
+                  <span className={styles.fieldValue}>
+                    {address.street
+                      ? `${address.street}, ${address.numberHouse || "S/N"}`
+                      : "--"}
+                  </span>
+                </div>
+                <div className={styles.field}>
+                  <span className={styles.fieldLabel}>Complemento</span>
+                  <span className={styles.fieldValue}>{address.complement || "--"}</span>
+                </div>
+                <div className={styles.field}>
+                  <span className={styles.fieldLabel}>Cidade</span>
+                  <span className={styles.fieldValue}>{address.city || "--"}</span>
+                </div>
+              </div>
+            ) : (
+              <span className={styles.fieldValue}>Endereço não informado</span>
+            )}
+          </div>
+
           {showConfirm && (
             <div className={styles.confirmBox}>
               <h4 className={styles.confirmTitle}>
-                Deseja realmente {isAtivo ? "desativar" : "reativar"} o paciente{" "}
+                Deseja realmente {isActive ? "inativar" : "reativar"} o paciente{" "}
                 <strong>{patient.name}</strong>?
               </h4>
 
-              {/* Alerta de verificação futura de contratos e pendências */}
-              <div className={styles.warningAlert}>
-                <AlertTriangle size={18} className={styles.warningIcon} />
-                <span className={styles.warningText}>
-                  <strong>Aviso:</strong> Em versões futuras, a desativação verificará automaticamente
-                  se existem contratos vigentes, mensalidades em aberto e agendamentos pendentes antes de ser concluída.
+              <div className={styles.infoAlert}>
+                <Info size={18} className={styles.infoIcon} />
+                <span className={styles.infoText}>
+                  {isActive
+                    ? "O paciente ficará inativo e não poderá entrar em contratos ou atendimentos novos, mas contratos e atendimentos antigos continuam preservados."
+                    : "O paciente voltará a ficar ativo e poderá entrar em contratos e atendimentos novos."}
                 </span>
               </div>
 
               <div className={styles.confirmActions}>
-                <Button variant="outline" onClick={() => setShowConfirm(false)}>
+                <Button
+                  variant="outline"
+                  onClick={() => setShowConfirm(false)}
+                  disabled={isTogglingStatus}
+                >
                   Cancelar
                 </Button>
                 <button
                   type="button"
-                  className={isAtivo ? styles.dangerOutlineButton : styles.reactivateButton}
+                  className={isActive ? styles.dangerOutlineButton : styles.reactivateButton}
                   onClick={handleConfirmToggle}
+                  disabled={isTogglingStatus}
                 >
-                  {isAtivo ? "Confirmar desativação" : "Confirmar reativação"}
+                  {isActive ? "Confirmar inativação" : "Confirmar reativação"}
                 </button>
               </div>
             </div>
           )}
         </div>
 
-        {/* Rodapé com botões de ação */}
         <div className={styles.footer}>
-          {/* Lado esquerdo: Botão de Desativar ou Reativar paciente (apenas para Admin) */}
           <div>
             {isAdmin && onToggleStatus && !showConfirm && (
-              isAtivo ? (
+              isActive ? (
                 <button
                   type="button"
                   className={styles.dangerOutlineButton}
                   onClick={() => setShowConfirm(true)}
-                  title="Desativar paciente"
+                  disabled={isTogglingStatus}
+                  title="Inativar paciente"
                 >
-                  <UserX size={16} /> Desativar paciente
+                  <UserX size={16} /> Inativar paciente
                 </button>
               ) : (
                 <button
                   type="button"
                   className={styles.reactivateButton}
                   onClick={() => setShowConfirm(true)}
+                  disabled={isTogglingStatus}
                   title="Reativar paciente"
                 >
                   <UserCheck size={16} /> Reativar paciente
@@ -218,13 +211,11 @@ export function PatientDetailsModal({
             )}
           </div>
 
-          {/* Lado direito: Fechar e Editar */}
           <div className={styles.footerActions}>
             <Button variant="outline" onClick={onClose}>
               Fechar
             </Button>
 
-            {/* Botão de edição exclusivo para perfil administrador */}
             {isAdmin && onEdit && !showConfirm && (
               <Button onClick={() => onEdit(patient)}>
                 <Pencil size={16} /> Editar cadastro
