@@ -13,7 +13,7 @@ export const navigationItems = [
   { label: "Contratos", path: "/contracts", icon: FileText, roles: [ADMIN] },
   { label: "Preços", path: "/pricing", icon: Tag, roles: [ADMIN] },
   { label: "Lançamentos", path: "/consultations", icon: CalendarCheck, roles: [ADMIN, PROVIDER] },
-  { label: "Prestadores", path: "/providers", icon: Stethoscope, roles: [ADMIN], disabled: true },
+  { label: "Prestadores", path: "/providers", icon: Stethoscope, roles: [ADMIN] },
   { label: "Usuários", path: "/users", icon: UserCog, roles: [ADMIN], disabled: true },
   { label: "Configurações", path: "/settings", icon: Settings, roles: [ADMIN, PROVIDER] },
 ];

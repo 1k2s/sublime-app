@@ -20,9 +20,10 @@ import jakarta.validation.Validator;
 // Admin padrão: com todas as rotas protegidas, ninguém conseguiria criar o primeiro
 // usuário pela API. Na primeira subida (ainda sem admin padrão no banco), cria um com
 // ADMIN_EMAIL e ADMIN_PASSWORD, pelo UserService (mesmas regras do cadastro: hash, e-mail
-// único), marcado como admin padrão: não pode ser inativado nem mudar de perfil. Depois
-// disso as variáveis são ignoradas (o banco é a fonte da verdade). Ver o "Primeiro admin"
-// no domain-model (seção User) e o ADR 0023.
+// único), marcado como admin padrão (não pode ser inativado nem mudar de perfil) e já com
+// senha definitiva (sem exigir primeiro acesso). Depois disso as variáveis são ignoradas
+// (o banco é a fonte da verdade). Ver o "Primeiro admin" no domain-model (seção User) e os
+// ADRs 0023 e 0025.
 @Component
 @EnableConfigurationProperties(AdminProperties.class)
 public class AdminInitializer implements ApplicationRunner {

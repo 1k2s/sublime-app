@@ -2,7 +2,6 @@
 import { Pencil } from "lucide-react";
 import { Badge } from "@/shared/ui/Badge";
 import { formatCurrency } from "@/shared/utils/money";
-import { formatDate } from "@/shared/utils/date";
 import { formatPriceAxis, getPriceAxisLabel } from "../priceAxis";
 import styles from "./PriceTable.module.css";
 
@@ -18,7 +17,6 @@ export function PriceTable({ prices, pricingModel, onEdit }) {
             <th>{axisLabel}</th>
             <th>Valor da sessão</th>
             <th>Vigência</th>
-            <th>Status</th>
             <th>Ações</th>
           </tr>
         </thead>
@@ -28,9 +26,13 @@ export function PriceTable({ prices, pricingModel, onEdit }) {
               <td>{price.planName}</td>
               <td>{formatPriceAxis(price)}</td>
               <td className={styles.value}>{formatCurrency(price.sessionValue)}</td>
-              <td>Desde {formatDate(price.validFrom)}</td>
               <td>
-                <Badge>Vigente</Badge>
+                {/* validTo nulo = vigente; preenchido = encerrada por reajuste (validTo é exclusivo: valeu até o dia anterior) */}
+                {price.validTo == null ? (
+                  <Badge variant="active">Vigente</Badge>
+                ) : (
+                  <Badge variant="inactive">Encerrado</Badge>
+                )}
               </td>
               <td>
                 <button

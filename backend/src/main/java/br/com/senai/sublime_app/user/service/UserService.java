@@ -31,18 +31,24 @@ public class UserService {
     }
 
     // Unicidade do e-mail depende do banco (fica aqui); as regras do usuário ficam
-    // no construtor da UserEntity. A senha é gravada com hash, nunca em texto puro.
+    // na UserEntity. A senha criada pelo admin nasce como provisória (FIRST_ACCESS: + hash)
+    // para que o próprio titular defina sua senha no primeiro acesso (ADR 0025).
     @Transactional
     public UserResponseDTO create(UserRequestDTO dto) {
         requireEmailAvailable(dto.email());
 
-        UserEntity user = new UserEntity(dto.email(), passwordEncoder.encode(dto.password()), dto.role());
+        UserEntity user = UserEntity.withProvisionalPassword(
+                dto.email(),
+                passwordEncoder.encode(dto.password()),
+                dto.role());
         userRepository.save(user);
         return UserResponseDTO.fromEntity(user);
     }
 
     // Admin padrão, criado na primeira subida pelo AdminInitializer (que já validou o
-    // formato do e-mail e o tamanho da senha). Mesmas regras do cadastro, com a marca.
+    // formato do e-mail e o tamanho da senha). Mesmas regras do cadastro, com a marca e a
+    // senha definitiva (sem primeiro acesso: a credencial vem do ambiente da clínica;
+    // ADRs 0023 e 0025).
     @Transactional
     public UserResponseDTO createDefaultAdmin(String email, String rawPassword) {
         requireEmailAvailable(email);
@@ -71,8 +77,9 @@ public class UserService {
     }
 
     /**
-     * Atualiza e-mail e perfil e, se a requisição trouxer uma senha nova, troca a senha
-     * (com hash). Sem senha, mantém a atual. Gravado pelo dirty checking do Hibernate.
+     * Atualiza e-mail e perfil e, se a requisição trouxer uma senha nova, redefine a senha
+     * como provisória (FIRST_ACCESS: + hash), exigindo que o titular escolha sua própria
+     * senha no próximo login. Sem senha, mantém a atual. Gravado pelo dirty checking.
      */
     @Transactional
     public UserResponseDTO update(Long id, UserUpdateRequestDTO dto) {
@@ -82,9 +89,23 @@ public class UserService {
 
         user.update(dto.email(), dto.role());
         if (dto.hasNewPassword()) {
-            user.changePassword(passwordEncoder.encode(dto.password()));
+            user.changeToProvisionalPassword(passwordEncoder.encode(dto.password()));
         }
         return UserResponseDTO.fromEntity(user);
+    }
+
+    /**
+     * Conclui o primeiro acesso trocando a senha provisória por uma senha definitiva
+     * escolhida pelo próprio usuário (ADR 0025). Exige que a nova senha seja diferente da
+     * senha provisória.
+     */
+    @Transactional
+    public void completeFirstAccess(Long id, String newPassword) {
+        UserEntity user = getUserOrThrow(id);
+        if (passwordEncoder.matches(newPassword, user.extractPasswordHash())) {
+            throw new BusinessRuleException("A nova senha deve ser diferente da senha provisória.");
+        }
+        user.changePassword(passwordEncoder.encode(newPassword));
     }
 
     /**

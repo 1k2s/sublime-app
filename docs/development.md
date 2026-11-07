@@ -141,6 +141,7 @@ O schema é criado e alterado **só pelas migrations do Flyway**
 | `V1__initial_schema.sql` | todas as tabelas, com constraints de nomes legíveis |
 | `V2__price_exclusive_arc_check.sql` | `CHECK` do exclusive arc em `contract_item` e `consultation` |
 | `V3__single_current_price.sql` | uma linha de preço vigente por combinação (`current_flag` + `UNIQUE`) |
+| `V4__seed_pricing_catalog.sql` | seed do catálogo atual da clínica: grupos, técnicas, planos, de-para e preços vigentes (pula o que já existe) |
 
 ### Criando uma migration
 
@@ -242,21 +243,28 @@ genérico ("conflito de integridade"); a causa exata aparece no log da aplicaç�
 
 - Criados **pela API** (Swagger ou frontend), nunca por `INSERT`/`data.sql`, para
   passar pelas regras do domínio. Scripts de apoio, se houver, ficam em `scripts/`.
+  A exceção é o **catálogo de preços** da clínica (módulo pricing: grupos, técnicas,
+  planos, de-para e preços vigentes), que chega pela migration `V4` e respeita as
+  mesmas regras (tipo × `sessionCount`/`termWeeks`, de-para entre famílias, tipo do
+  plano × modelo do grupo, um preço vigente por combinação). Depois do seed, o
+  catálogo muda só pela aplicação (reajuste pela tela de preço).
 - **Ordem de cadastro** (cada passo depende dos anteriores):
   0. login como admin (`POST /api/auth/login`, com o admin criado pelo `ADMIN_EMAIL` /
      `ADMIN_PASSWORD` do `.env`) e o token em **Authorize** no Swagger: todas as rotas
      abaixo exigem o token;
-  1. grupos de preço;
-  2. técnicas;
-  3. planos;
-  4. de-para dos planos (`PUT /api/plans/{id}/equivalent`, nos dois lados);
-  5. preços;
-  6. usuários;
-  7. prestadores;
-  8. pacientes (com a origem, se houver);
-  9. contratos.
+  1. ~~grupos, técnicas, planos, de-para e preços~~: já criados pela `V4` (falta só
+     o preço da Evolução Familiar no Individual Especializado e no Em Dupla, ainda
+     não definido);
+  2. usuários;
+  3. prestadores;
+  4. pacientes (com a origem, se houver);
+  5. contratos.
 
 ## Catálogo atual da clínica (dados para o cadastro inicial)
+
+> Estes valores são os carregados pela migration `V4__seed_pricing_catalog.sql`. Um
+> reajuste é feito pela tela de preço; a migration e esta tabela não são editadas
+> para refleti-lo (a tabela registra o catálogo inicial).
 
 Os planos seguem a tabela "Planos atuais da clínica" em `Plan` (tipo, sessões,
 `termWeeks` e de-para). Os grupos e técnicas estão em "Grupos atuais da clínica",

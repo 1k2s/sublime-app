@@ -20,10 +20,10 @@ import br.com.senai.sublime_app.auth.security.ProblemDetailAuthenticationEntryPo
 import br.com.senai.sublime_app.auth.service.TokenService;
 import br.com.senai.sublime_app.user.enums.Role;
 
-// Regras de acesso da API: login e Swagger públicos; todo o resto exige o token JWT
-// (validado pelo resource server do Spring a cada requisição) e o perfil certo. Sem sessão
-// no servidor: cada requisição se identifica pelo token. Ver a seção "Segurança" do
-// docs/architecture.md e o ADR 0023.
+// Regras de acesso da API: login, primeiro acesso e Swagger públicos; todo o resto exige o
+// token JWT (validado pelo resource server do Spring a cada requisição) e o perfil certo.
+// Sem sessão no servidor: cada requisição se identifica pelo token. Ver a seção
+// "Segurança" do docs/architecture.md e os ADRs 0023 e 0025.
 @Configuration
 public class SecurityConfig {
 
@@ -47,7 +47,7 @@ public class SecurityConfig {
             .csrf(csrf -> csrf.disable())
             .sessionManagement(session -> session.sessionCreationPolicy(SessionCreationPolicy.STATELESS))
             .authorizeHttpRequests(auth -> auth
-                .requestMatchers(HttpMethod.POST, "/api/auth/login").permitAll()
+                .requestMatchers(HttpMethod.POST, "/api/auth/login", "/api/auth/first-access").permitAll()
                 .requestMatchers(PUBLIC_DOCS).permitAll()
                 // Página de erro interna do Spring: sem isto, um erro numa rota pública
                 // viraria 401

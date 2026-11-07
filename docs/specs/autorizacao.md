@@ -52,11 +52,13 @@ tudo.
 **Fica para as specs de cada tela** (as telas já nascem sobre esta autorização):
 - **redesenho do lançamento:** usa o endpoint de pacientes do lançamento e esconde o
   prestador para o `PROVIDER`;
-- **telas de Prestadores e Usuários:** decidido um **formulário só, em Prestadores**, que
-  cria o usuário e o prestador juntos (na mesma transação) ou vincula um usuário existente
-  (admin que também atende). A tela de Usuários fica para os admins e para inativar e
-  reativar acessos (usa o `defaultAdmin` da resposta para esconder "Inativar" e a troca de
-  perfil do admin padrão);
+- **telas de Prestadores e Usuários:** decidido em 2026-11-07 (substitui o "formulário
+  só, em Prestadores"): **duas telas separadas**. O admin cria o usuário na tela de
+  **Usuários** e depois, na de **Prestadores**, cria o prestador **vinculando um usuário já
+  existente** (o `POST /api/providers` já recebe o `userId`). A tela de Usuários também
+  inativa e reativa acessos (usa o `defaultAdmin` da resposta para esconder "Inativar" e a
+  troca de perfil do admin padrão). O wizard de Prestadores que veio da `dev` (PR #38) cria
+  o usuário na etapa "Conta de acesso" e precisa ser ajustado a esse fluxo;
 - **dashboard do prestador** (ver o [`roadmap.md`](../roadmap.md)).
 
 ## 3. Regras
@@ -370,14 +372,28 @@ ativo e um inativo.
 ## 8. Pendências e pontos abertos
 
 - **Testar** (seção 7) e, se algo falhar, corrigir antes da documentação.
-- **Destino do PR:** o `development.md` diz "PR para a `dev`", mas os merges recentes foram na
-  `main`. Decidir antes de abrir o PR.
-- **Fora desta feature, para decidir se entram no roadmap:**
+- **Destino do PR: a `dev`** (decidido em 2026-11-07; todos os PRs, do #29 ao #38, entraram
+  na `dev`, e a `main` não muda desde 2026-09-04).
+- **Merge da `dev` nesta branch** (antes do teste): traz o primeiro acesso com senha
+  provisória ([ADR 0025](../adr/0025-primeiro-acesso-com-senha-provisoria.md)), a tela de
+  Prestadores e a migration `V4` (seed do catálogo). Conflitos previstos: `AdminInitializer`
+  (o admin padrão nasce com senha definitiva **e** a marca `defaultAdmin`), `SecurityConfig`,
+  `GlobalExceptionHandler`, `UserEntity`, `navigationItems.js`, `userApi.js` e
+  `specs/README.md`; no `UserService`, juntar o `createDefaultAdmin` e o
+  `createDefinitiveAdmin` num só. Os ADRs desta feature passam a ser 0026 a 0028 (o 0025 é
+  o do primeiro acesso).
+- **Registrar no roadmap depois do merge** (decidido em 2026-11-07; esperando o merge para
+  não aumentar o conflito no `roadmap.md`):
   - `npm ci` acusou **7 vulnerabilidades** nas dependências do front (4 moderadas, 3 altas).
   - **Erros por campo da API não chegam ao formulário:** o `architecture.md` (seção
     "Camada `api/`") diz que o `errors` do `ProblemDetail` aparece no `FormField`, mas o
     `apiClient` só lê o `detail`, e nenhum componente lê o `errors`. Um 400 de validação do
     DTO aparece como "Campos da requisição inválidos." no alerta.
+  - **Tela de Prestadores no fluxo de telas separadas** (seção 2): tirar do wizard a criação
+    do usuário e vincular um usuário existente; criar a tela de Usuários.
+  - **Textos desatualizados pela `V4`:** no `roadmap.md`, a melhoria "Carga inicial do
+    catálogo" (já feita pela `V4`); no `development.md`, "Crie o arquivo seguinte:
+    `V4__...`" (o próximo é a `V5`).
 
 ## 9. Documentação ao concluir
 

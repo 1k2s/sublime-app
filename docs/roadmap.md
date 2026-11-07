@@ -31,8 +31,8 @@ feature em andamento fica na spec dela, em [`specs/`](specs/).
 | Módulo | Situação |
 |---|---|
 | `patient` | implementado: incl. origem do paciente (`referringProvider`), soft delete e reativação com 409 |
-| `user` | implementado: soft delete, e-mail único (409), senha com hash BCrypt (mínimo 8), senha opcional na alteração |
-| `auth` | implementado no backend e no front (2026-11-06): login com JWT, todas as rotas protegidas (exceto login e Swagger), corte imediato do acesso ao inativar ou mudar o perfil, primeiro admin, Swagger com "Authorize"; no front, login real, sessão que expira, tela inicial por perfil ([ADR 0023](adr/0023-autenticacao-jwt-resource-server.md), [ADR 0024](adr/0024-sessao-frontend-localstorage.md)). Sem autorização por perfil: qualquer usuário logado acessa todos os endpoints |
+| `user` | implementado: soft delete, e-mail único (409), senha com hash BCrypt (mínimo 8), senha opcional na alteração; em andamento: senha provisória com troca obrigatória no primeiro acesso ([`specs/prestadores-e-primeiro-acesso.md`](specs/prestadores-e-primeiro-acesso.md), [ADR 0025](adr/0025-primeiro-acesso-com-senha-provisoria.md)) |
+| `auth` | implementado no backend e no front (2026-11-06): login com JWT, todas as rotas protegidas (exceto login e Swagger), corte imediato do acesso ao inativar ou mudar o perfil, primeiro admin, Swagger com "Authorize"; no front, login real, sessão que expira, tela inicial por perfil ([ADR 0023](adr/0023-autenticacao-jwt-resource-server.md), [ADR 0024](adr/0024-sessao-frontend-localstorage.md)); em andamento: fluxo de primeiro acesso (`POST /api/auth/first-access` e transição automática no login, [ADR 0025](adr/0025-primeiro-acesso-com-senha-provisoria.md)). Sem autorização por perfil: qualquer usuário logado acessa todos os endpoints |
 | `provider` | implementado: dois percentuais (padrão 40/45), usuário ativo obrigatório na criação, reativação |
 | `pricing` | implementado: grupos, técnicas (com reativação), planos (`PlanType`, `termWeeks`, de-para), preços com reajuste historizado |
 | `contract` | implementado: cabeçalho + `ContractItem`, vigência calculada (`SessionFrequency`), aditivos, opções do plano do Grupo, endpoints de apoio, beneficiário de no máximo um contrato vigente |
@@ -151,8 +151,9 @@ chamadas batem com a API real ainda não foram conferidos.**
 | `pricing` | catálogo de preços (tabela, busca de técnica, modal de preço) |
 | `consultation` | tela de lançamento (formulário, agenda, carrinho, total). `consultationApi.js` com trechos mockados |
 | `contract` | tela de contratos (filtros, tabela, formulário com seleção de paciente e preço, resumo), com fallback mockado no `contractApi.js`. **Envio no modelo antigo do contrato** (ver "Pendências") |
-| `provider` | só a página placeholder |
-| `user` | nada |
+| `provider` | em andamento: listagem, detalhes e cadastro/edição em wizard de 3 etapas (`/providers`, exclusivo para `ADMIN`; spec: [`specs/prestadores-e-primeiro-acesso.md`](specs/prestadores-e-primeiro-acesso.md)) |
+| `user` | em andamento: camada `api/` consumida pelo cadastro de prestadores e fluxo de primeiro acesso ([`specs/prestadores-e-primeiro-acesso.md`](specs/prestadores-e-primeiro-acesso.md)) |
+
 | `app/`, `shared/` | layout com menu lateral, router com rotas `lazy`, `apiClient`, utilitários (`money`, `date`, `masks`, `alert`, `viacep`) e componentes de `shared/ui/` |
 
 - **`npm run build` funciona** desde a atualização de 2026-11-05 (as correções do PR #13

@@ -8,6 +8,7 @@ feature enquanto ela não está pronta.
 | Spec | Feature |
 |---|---|
 | [`autorizacao.md`](autorizacao.md) | o que cada perfil (`ADMIN`, `PROVIDER`) acessa na API e no front, prestador do lançamento vindo do login, admin padrão protegido, configurações do próprio usuário |
+| [`prestadores-e-primeiro-acesso.md`](prestadores-e-primeiro-acesso.md) | cadastro de prestadores em wizard (`/providers`, só `ADMIN`) e troca obrigatória de senha provisória no primeiro acesso |
 
 ## O que uma spec tem
 
