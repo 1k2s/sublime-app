@@ -9,3 +9,14 @@ export function showError(message) {
     confirmButtonColor: "#5f7a58",
   });
 }
+
+// Aviso que não impede nada (a ação já foi feita), só chama a atenção do usuário
+export function showWarning(message) {
+  return Swal.fire({
+    icon: "warning",
+    title: "Atenção",
+    text: message,
+    confirmButtonText: "Ok",
+    confirmButtonColor: "#5f7a58",
+  });
+}
