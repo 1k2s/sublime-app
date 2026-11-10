@@ -66,8 +66,12 @@ discussões que estavam no `domain-model.md` e no `architecture.md`.
 | [0018](0018-saldo-esgotado-aceita-lancamento.md) | Saldo esgotado aceita o lançamento | aceito |
 | [0019](0019-repasse-com-half-up.md) | Repasse arredondado com `HALF_UP` | aceito |
 | [0020](0020-lancamento-imutavel.md) | Lançamento de atendimento imutável | aceito |
-| [0021](0021-schema-versionado-flyway.md) | Schema versionado pelo Flyway, com `validate`, e enums como `varchar` | aceito |
+| [0021](0021-schema-versionado-flyway.md) | Schema versionado pelo Flyway, com `validate`, e enums como `varchar` | aceito (em parte substituído por 0028, até a versão estável) |
 | [0022](0022-monorepo.md) | Monorepo: backend e frontend no mesmo repositório | aceito |
-| [0023](0023-autenticacao-jwt-resource-server.md) | Autenticação por JWT próprio, validado pelo resource server do Spring | aceito |
+| [0023](0023-autenticacao-jwt-resource-server.md) | Autenticação por JWT próprio, validado pelo resource server do Spring | aceito (em parte substituído por 0027: o primeiro admin) |
 | [0024](0024-sessao-frontend-localstorage.md) | Sessão do frontend no `localStorage`, encerrada pela `expiresAt` e pelo 401 | aceito |
-| [0025](0025-primeiro-acesso-com-senha-provisoria.md) | Primeiro acesso com senha provisória no próprio hash e troca automática no login | aceito |
+| [0025](0025-primeiro-acesso-com-senha-provisoria.md) | Primeiro acesso com senha provisória no próprio hash e troca automática no login | aceito (em parte substituído por 0029: como o estado é guardado) |
+| [0026](0026-acesso-por-perfil-centralizado.md) | Autorização por perfil: tabela única no `SecurityConfig`, com o `ADMIN` como padrão | aceito |
+| [0027](0027-admin-padrao-protegido.md) | Admin padrão protegido por uma marca no usuário | aceito |
+| [0028](0028-migrations-editaveis-ate-versao-estavel.md) | Migrations editáveis até a versão estável | aceito |
+| [0029](0029-senha-provisoria-por-coluna.md) | Senha provisória marcada por uma coluna, não por prefixo no hash | aceito |

@@ -62,6 +62,7 @@ erDiagram
   PATIENT ||--o{ CONSULTATION : atendido
   CONTRACT |o--o{ CONSULTATION : contrato_do_atendimento
   PROVIDER ||--o{ CONSULTATION : realiza
+  USER ||--o{ CONSULTATION : lanca
   TECHNIQUE ||--o{ CONSULTATION : executada
   SESSION_DURATION_PRICE |o--o{ CONSULTATION : aplicado
   SESSION_FREQUENCY_PRICE |o--o{ CONSULTATION : aplicado
@@ -150,8 +151,10 @@ erDiagram
     bigint id PK
     string email UK
     string password
+    boolean passwordChangeRequired
     string role
     boolean active
+    boolean defaultAdmin
   }
 
   PROVIDER {
@@ -178,6 +181,7 @@ erDiagram
     Percentage commissionPercentageApplied
     Money baseValue
     Money payoutValue
+    bigint launchedByUserId FK
     boolean active
   }
 ```
@@ -200,13 +204,13 @@ removidos do banco; o `DELETE` só inativa (`active = false`). Inativar um regis
 que **já está inativo** é rejeitado com 409 — a regra fica no `deactivate()` da
 própria entidade, que conhece o próprio estado.
 
-**Reativação:** `Patient`, `Provider` e `Technique` podem ser reativados com
-`PATCH /api/{patients|providers|techniques}/{id}/activate` (204), espelhando o
+**Reativação:** `Patient`, `Provider`, `Technique` e `User` podem ser reativados com
+`PATCH /api/{patients|providers|techniques|users}/{id}/activate` (204), espelhando o
 inativar: reativar um registro **já ativo** → 409 (`activate()` com
 `requireInactive()`). É o caminho de volta para quem foi inativado e volta à
-clínica: registro inativo não entra em contrato nem em atendimento novo. `User`,
-`Contract` e `Consultation` não têm reativação (contrato e atendimento se corrigem
-por aditivo e por novo lançamento).
+clínica: registro inativo não entra em contrato nem em atendimento novo, e usuário
+inativo não faz login. `Contract` e `Consultation` não têm reativação (contrato e
+atendimento se corrigem por aditivo e por novo lançamento).
 
 **Unicidade de nome e CPF:** nome de `PricingGroup`, `Technique` e `Plan`, CPF de
 `Patient` e e-mail de `User` são únicos. A garantia real é o `unique` da coluna; o
@@ -797,6 +801,9 @@ fica preservado ([ADR 0011](adr/0011-contrato-versionado-por-aditivos.md)). Regr
 - O request traz o **estado completo** da nova versão (o frontend abre o
   formulário preenchido com a versão atual). Nova versão passa pelas mesmas
   regras da criação, exceto o fim (ver "O fim no aditivo").
+- **Só a versão ativa recebe aditivo** (versão inativa → 409). Dois aditivos
+  simultâneos sobre a mesma versão: o segundo é recusado (409), pela `UNIQUE` de
+  `previous_contract_id` (uma versão tem no máximo uma sucessora).
 - O **titular nunca muda** (é copiado): trocar o titular é um contrato novo.
 - O **início nunca muda** (é copiado): o `startDate` é do acordo, não da versão.
 - O **plano nunca muda** (é copiado): trocar o plano é encerrar o contrato e fazer
@@ -834,8 +841,10 @@ fica preservado ([ADR 0011](adr/0011-contrato-versionado-por-aditivos.md)). Regr
 | `id` | Long | auto-increment |
 | `email` | string, unique | e-mail duplicado → 409 (na criação e na atualização); é o login |
 | `password` | string | **hash BCrypt**, nunca a senha digitada; nunca devolvida nas respostas |
+| `passwordChangeRequired` | boolean | senha provisória: o login não emite token até o próprio usuário definir a senha dele (ver "Senha") |
 | `role` | ENUM: `ADMIN` \| `PROVIDER` | perfil, levado no token |
 | `active` | boolean | soft delete; inativo não acessa o sistema |
+| `defaultAdmin` | boolean | admin padrão (ver "Admin padrão"); nunca vem do request; vem na resposta, para a tela esconder as ações proibidas |
 
 **Acesso ao sistema** (login e token: ver "Segurança" no
 [`architecture.md`](architecture.md); [ADR 0023](adr/0023-autenticacao-jwt-resource-server.md)):
@@ -843,32 +852,66 @@ fica preservado ([ADR 0011](adr/0011-contrato-versionado-por-aditivos.md)). Regr
   inexistente, senha errada ou inativo), para não revelar quais e-mails existem.
 - **Inativar o usuário ou mudar o perfil dele corta o acesso na hora:** o token que ele
   já tinha deixa de valer na próxima requisição, e ele faz login de novo.
+- **Perfis** ([ADR 0026](adr/0026-acesso-por-perfil-centralizado.md)): o `ADMIN` acessa
+  tudo. O `PROVIDER` usa só as telas Dashboard, Lançamentos e Configurações, e na API acessa
+  só `POST`, `GET` e `DELETE` de `/api/consultations` (só os próprios lançamentos; ver
+  "Quem lança" e "Leituras" em `Consultation`), os apoios do lançamento
+  (`eligible-contracts`, `session-balance`, `patients`), `GET /api/techniques` (ativas) e
+  `GET`/`PUT /api/users/me`. Nos demais, 403 "Você não tem permissão para acessar este
+  recurso.".
 - Não há cadastro público: usuários são criados pelo `POST /api/users`.
+- **Reativar o usuário** (`PATCH /api/users/{id}/activate`) devolve o acesso. Consequência
+  aceita: um token emitido antes da inativação e ainda dentro das 8 horas volta a valer
+  (mesmo usuário, mesmo perfil).
 
 **Senha:**
 - **Mínimo de 8 caracteres**, sem exigir maiúscula ou símbolo (o que protege é o tamanho, NIST SP 800-63B).
 - **Senha provisória e troca obrigatória no primeiro acesso**
-  ([ADR 0025](adr/0025-primeiro-acesso-com-senha-provisoria.md)): quando o administrador
-  cria um usuário (`POST /api/users`) ou redefine a senha dele (`PUT /api/users/{id}` com
-  senha preenchida), o hash BCrypt é gravado no campo `password` com o prefixo
-  `FIRST_ACCESS:` (sem novos atributos na entidade). No login (`POST /api/auth/login`), se
-  a senha provisória estiver correta, o sistema não emite token e responde `403`
-  (`firstAccessRequired: true`), levando o usuário direto ao formulário de definição da
-  própria senha (`POST /api/auth/first-access`), que exige uma senha diferente da provisória, grava o hash BCrypt definitivo (sem prefixo) e já autentica o usuário.
-
-- **Na alteração (`PUT`), a senha é opcional:** vazia ou ausente mantém a atual; preenchida,
-  troca por uma nova senha provisória (mínimo de 8, exigindo redefinição no próximo login). Com hash, a senha atual não volta para o formulário, e exigir uma
-  nova obrigaria o admin a inventar uma só para corrigir um e-mail. Por isso a alteração
-  usa um DTO próprio (`UserUpdateRequestDTO`).
+  ([ADR 0025](adr/0025-primeiro-acesso-com-senha-provisoria.md); estado guardado na coluna,
+  [ADR 0029](adr/0029-senha-provisoria-por-coluna.md)): quando o administrador cria um
+  usuário (`POST /api/users`) ou redefine a senha dele (`PUT /api/users/{id}` com senha
+  preenchida), o hash BCrypt é gravado e o `passwordChangeRequired` fica `true`.
+  - No login (`POST /api/auth/login`) com a senha provisória correta, o sistema não emite
+    token e responde **403** "Primeiro acesso pendente. Defina sua nova senha para
+    continuar." com `firstAccessRequired: true`. Senha errada ou usuário inativo: o 401 de
+    sempre.
+  - O próprio usuário define a senha em `POST /api/auth/first-access` (público:
+    `email`, `provisionalPassword`, `newPassword`), que exige uma senha diferente da
+    provisória (400 "A nova senha deve ser diferente da senha provisória."), desliga o
+    `passwordChangeRequired` e já devolve o token. Provisória errada, usuário inativo ou
+    sem pendência → 401.
+  - **Redefinir a senha corta a sessão aberta:** o token do usuário deixa de valer na
+    próxima requisição, como ao inativar.
+- **Na alteração (`PUT`), a senha é opcional:** vazia ou ausente mantém a atual;
+  preenchida, troca por uma nova senha provisória (mínimo de 8, exigindo redefinição no
+  próximo login). Com hash, a senha atual não volta para o formulário, e exigir uma nova
+  obrigaria o admin a inventar uma só para corrigir um e-mail. Por isso a alteração usa um
+  DTO próprio (`UserUpdateRequestDTO`).
 - A entidade recebe sempre o hash (`UserEntity(email, encodedPassword, role)`,
-  `changePassword(encodedPassword)`, `changeToProvisionalPassword(encodedPassword)`); o tamanho mínimo só existe na senha digitada e fica
-  nos DTOs. Quem faz o hash é o `UserService` (pela interface `PasswordEncoder`).
+  `withProvisionalPassword`, `changePassword` para a senha definitiva,
+  `changeToProvisionalPassword`); o tamanho mínimo só existe na senha digitada e fica nos
+  DTOs. Quem faz o hash é o `UserService` (pela interface `PasswordEncoder`).
 
-**Primeiro admin:** ao subir, se não houver nenhum `ADMIN` ativo, a aplicação cria um com
-`ADMIN_EMAIL` e `ADMIN_PASSWORD` (variáveis de ambiente), pelo `UserService`, já com senha definitiva (sem o prefixo `FIRST_ACCESS:`) e com as mesmas
-regras do cadastro. Valores inválidos impedem a aplicação de subir; sem as variáveis, ela
-sobe com um aviso no log e ninguém consegue logar. Com um `ADMIN` ativo, as variáveis são
-ignoradas.
+**Configurações do próprio usuário (`GET` / `PUT /api/users/me`, os dois perfis):** troca
+do e-mail e, se informada, da senha (`email`, `newPassword` opcional, `currentPassword`
+obrigatória). O usuário vem do token; o perfil nunca muda por aqui.
+- Senha atual errada → **400** "Senha atual incorreta." (não 401: o front encerraria a
+  sessão). A senha é conferida antes do e-mail, para o endpoint não revelar quais e-mails
+  existem.
+- A senha nova é definitiva (sem primeiro acesso). Trocar o e-mail não invalida o token
+  (o validador confere o usuário pelo `userId`).
+
+**Admin padrão** ([ADR 0027](adr/0027-admin-padrao-protegido.md)): na primeira subida (sem
+admin padrão no banco), a aplicação cria um `ADMIN` com `ADMIN_EMAIL` e `ADMIN_PASSWORD`
+(variáveis de ambiente), pelo `UserService`, com as mesmas regras do cadastro, a marca
+`defaultAdmin` e **senha definitiva** (sem primeiro acesso).
+- **Não pode ser inativado nem mudar de perfil** (409 "O administrador padrão não pode ser
+  inativado." / "O perfil do administrador padrão não pode ser alterado."). Os outros
+  usuários, sim. Assim sempre existe um admin ativo. Ele pode trocar o próprio e-mail e a
+  senha (pelo `PUT` ou pelo `/me`).
+- **As variáveis só valem na primeira subida:** depois, o banco é a fonte da verdade
+  (trocar a senha no `.env` não muda nada). Valores inválidos impedem a aplicação de
+  subir; sem as variáveis, ela sobe com um aviso no log e ninguém consegue logar.
 
 **Por que soft delete também no usuário:** o usuário pode estar vinculado a um
 prestador. Remover o registro quebraria esse histórico (ou seria barrado pela FK
@@ -933,9 +976,9 @@ um prestador válido. Por ser fixo, a alteração do prestador (`PUT`) nem receb
   administrador remove o acesso do prestador ao sistema. O prestador continua no
   banco.
 - Um prestador que não está atendendo é inativado, sem desvincular o usuário.
-- **Reativar o prestador não exige usuário ativo:** o lançamento de atendimento
-  recebe o `providerId` explícito e não depende de login, e o usuário ainda não tem
-  reativação. Com a autenticação, isso é revisto (ver [`roadmap.md`](roadmap.md)).
+- **Reativar o prestador também exige usuário ativo** (400 "O usuário está inativo.", a
+  mesma regra da criação): sem usuário ativo, o prestador não faz login para lançar. Para
+  reativar os dois, reativa-se primeiro o usuário (`PATCH /api/users/{id}/activate`).
 
 ---
 
@@ -950,7 +993,7 @@ prestador, sem fluxo de aprovação.
 | `id` | Long | auto-increment |
 | `patientId` | FK → Patient | **quem compareceu**: o titular ou o beneficiário de um contrato, ou um paciente sem contrato |
 | `contractId` | FK → Contract, nullable | **contrato do atendimento**, escolhido entre os vinculados ao paciente (ver "Contrato do atendimento"): debita o item do grupo (caso 1) ou dá o plano do de-para (caso 2); `null` só no Avulso (caso 3). Referencia a raiz do agregado, nunca o `ContractItem` |
-| `providerId` | FK → Provider | quem atendeu; explícito no request (ver "Quem lança") |
+| `providerId` | FK → Provider | quem atendeu: o do login para o `PROVIDER`, explícito para o `ADMIN` (ver "Quem lança") |
 | `techniqueId` | FK → Technique | técnica clinicamente executada |
 | `durationMinutes` | int | obrigatório em todos os grupos; eixo do preço nos grupos por duração; no Pilates em Grupo só registra a duração da aula |
 | `occurredAt` | date | data do atendimento; não pode ser futura; referência da vigência do contrato |
@@ -961,6 +1004,7 @@ prestador, sem fluxo de aprovação.
 | `commissionPercentageApplied` | `Percentage` (VO), `DECIMAL(5,2)` | snapshot do percentual (ver "Comissão") |
 | `baseValue` | `Money` (VO), `DECIMAL(10,2)` | snapshot do valor da sessão (cópia do `sessionValue` da linha usada) |
 | `payoutValue` | `Money` (VO), `DECIMAL(10,2)` | snapshot do **repasse** ao prestador (ver "Repasse"). *Payout* = valor pago a quem prestou o serviço (`commissionValue` se confundiria com o percentual) |
+| `launchedByUserId` | FK → User | **quem lançou**: o usuário logado (pode ser diferente de quem atendeu, quando o admin lança por um prestador) |
 | `active` | boolean | soft delete: inativo não conta no saldo nem no repasse |
 
 **Snapshots:** `baseValue`, `commissionPercentageApplied` e `payoutValue` são sempre
@@ -1084,14 +1128,25 @@ conta no saldo nem no repasse.
 
 ### Quem lança
 
-- `providerId` explícito no request, não inferido do login (o `SecurityConfig` ainda
-  libera tudo). Com a autenticação, entra a regra de permissão e o
-  `launchedByUserId` (ver [`roadmap.md`](roadmap.md)).
+- **`PROVIDER` só lança para ele mesmo:** o prestador vem do vínculo do usuário logado;
+  `providerId` opcional no request, e informado diferente do dele → **403** "Você só pode
+  lançar atendimentos em seu próprio nome.".
+- **`ADMIN` lança para qualquer prestador:** `providerId` obrigatório (400 "O prestador é
+  obrigatório.").
+- **`PROVIDER` sem prestador vinculado** (usuário criado antes do prestador) → **403** "Seu
+  usuário não está vinculado a um prestador. Procure o administrador." (no lançamento e nas
+  leituras).
+- `launchedByUserId` grava o usuário logado.
 - Prestador, paciente e técnica precisam estar **ativos** (400).
 
 ### Leituras
 
 - `GET /api/consultations?providerId&patientId&from&to`: filtros opcionais (período
   pela `occurredAt`, inclusivo), ativos e inativos, do mais recente para o mais
-  antigo.
-- `GET /api/consultations/{id}`.
+  antigo. **Para o `PROVIDER`, o `providerId` é sempre o dele**, qualquer que seja o da URL.
+- `GET /api/consultations/{id}`. O lançamento de outro prestador responde **404**, com a
+  mesma mensagem de um id inexistente (não revela que existe); o mesmo vale para a
+  inativação (`DELETE`).
+- `GET /api/consultations/patients` (apoio do lançamento, os dois perfis): só pacientes
+  **ativos**, por nome, com `id`, `name` e `birthDate` (sem CPF, contato e endereço). O
+  `PROVIDER` não acessa a listagem de pacientes (`GET /api/patients`).

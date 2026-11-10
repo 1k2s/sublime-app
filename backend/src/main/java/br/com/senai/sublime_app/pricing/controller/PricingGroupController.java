@@ -24,8 +24,8 @@ import jakarta.validation.Valid;
 @RestController
 @RequestMapping("/api/pricing-groups")
 @Tag(name = "Grupos de preço", description = """
-        Cadastro e consulta dos grupos de precificação. Técnicas do mesmo grupo
-        compartilham a mesma tabela de preço.
+        Grupos de preço (técnicas do mesmo grupo têm a mesma tabela). Regras: "PricingGroup"
+        no `docs/domain-model.md`.
         """)
 public class PricingGroupController {
 
@@ -36,10 +36,8 @@ public class PricingGroupController {
     }
 
     @Operation(summary = "Cadastrar grupo de preço", description = """
-            Cria um grupo de precificação. O `pricingModel` define a tabela de preço do grupo
-            e **não pode ser alterado depois**:
-            - `DURATION_BASED` → preços por duração da sessão × plano
-            - `FREQUENCY_BASED` → preços por frequência semanal × plano
+            `pricingModel` (`DURATION_BASED` ou `FREQUENCY_BASED`) define a tabela e não muda
+            depois.
             """)
     @ApiResponses({
             @ApiResponse(responseCode = "201", description = "Grupo criado", content = @Content(schema = @Schema(implementation = PricingGroupResponseDTO.class))),

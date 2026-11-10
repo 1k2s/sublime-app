@@ -1,0 +1,10 @@
+.form {
+  display: flex;
+  flex-direction: column;
+  gap: 16px;
+}
+
+.form-submit {
+  align-self: flex-end;
+  margin-top: 8px;
+}

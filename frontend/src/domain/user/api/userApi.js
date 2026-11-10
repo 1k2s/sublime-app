@@ -12,7 +12,7 @@ export async function getUserById(id) {
   return data;
 }
 
-// POST /api/users — cria usuário com senha provisória (FIRST_ACCESS:)
+// POST /api/users — cria usuário com senha provisória (troca obrigatória no primeiro acesso)
 export async function createUser({ email, password, role }) {
   const { data } = await apiClient.post("/users", { email, password, role });
   return data;
@@ -32,4 +32,16 @@ export async function updateUser(id, { email, password, role }) {
 // DELETE /api/users/{id} — inativa o usuário (soft delete)
 export async function deactivateUser(id) {
   await apiClient.delete(`/users/${id}`);
+}
+
+// GET /api/users/me: o usuário logado. Devolve { id, email, role, active, defaultAdmin }
+export async function getMe() {
+  const { data } = await apiClient.get("/users/me");
+  return data;
+}
+
+// PUT /api/users/me: { email, newPassword (vazia = mantém), currentPassword }. Devolve o usuário atualizado
+export async function updateMe({ email, newPassword, currentPassword }) {
+  const { data } = await apiClient.put("/users/me", { email, newPassword, currentPassword });
+  return data;
 }

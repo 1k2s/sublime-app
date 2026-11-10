@@ -11,19 +11,21 @@ Monorepo ([ADR 0022](docs/adr/0022-monorepo.md)):
 - `frontend/` — interface React + Vite (npm). Comandos rodam em `frontend/`
   (`npm ...`).
 - `docs/` — documentação do produto, uma só para os dois lados.
+- `scripts/` — scripts de apoio (ex: `check-docs.mjs`, ver "Ao concluir uma tarefa").
 
 ## Documentação
 
-O contexto do projeto está em `docs/`:
+O contexto do projeto está em `docs/`; o mapa completo (o que cada documento tem) está
+em [`docs/README.md`](docs/README.md). Quando ler cada um:
 
-| Documento | Conteúdo | Quando ler |
-|---|---|---|
-| [`docs/architecture.md`](docs/architecture.md) | como o sistema é construído: convenção de idioma, mapa de módulos, princípios de modelagem (DDD: onde cada validação mora, agregados), padrão de construção por camada, formato dos erros; seção **"Frontend"** com princípios (o backend é a fonte da verdade), estrutura de pastas, mapa de módulos, camada `api/`, estado, estilo, rotas e sessão | **sempre**, antes de qualquer tarefa (a seção "Frontend" antes de mexer em `frontend/`) |
-| [`docs/domain-model.md`](docs/domain-model.md) | regras de negócio **implementadas** (valem para os dois lados: o front as exibe, não as decide): diagrama ER, entidades, atributos e regras, com o "por quê" em uma linha e link para o ADR | antes de mexer em qualquer entidade, regra de negócio, schema ou tela que mostre essas regras |
-| [`docs/roadmap.md`](docs/roadmap.md) | estado atual, próximos passos, pendências técnicas, melhorias futuras e o que ainda não foi modelado; seção "Frontend" com o mesmo para o front | no início de uma tarefa nova, para saber onde o projeto está |
-| [`docs/specs/`](docs/specs/) | feature em andamento: regras decididas e ainda não implementadas, desenho e tarefas | antes de trabalhar na feature |
-| [`docs/adr/`](docs/adr/README.md) | decisões: contexto, alternativas descartadas e consequências | antes de propor mudar uma decisão já tomada |
-| [`docs/development.md`](docs/development.md) | stack, como rodar, banco e reset do schema, dados de teste e catálogo da clínica, problemas conhecidos do ambiente | ao rodar, configurar ou cadastrar dados |
+| Documento | Quando ler |
+|---|---|
+| [`docs/architecture.md`](docs/architecture.md) | **sempre**, antes de qualquer tarefa (a seção "Frontend" antes de mexer em `frontend/`) |
+| [`docs/domain-model.md`](docs/domain-model.md) | antes de mexer em qualquer entidade, regra de negócio, schema ou tela que mostre essas regras |
+| [`docs/roadmap.md`](docs/roadmap.md) | no início de uma tarefa nova, para saber onde o projeto está |
+| [`docs/specs/`](docs/specs/README.md) | antes de trabalhar na feature |
+| [`docs/adr/`](docs/adr/README.md) | antes de propor mudar uma decisão já tomada |
+| [`docs/development.md`](docs/development.md) | ao rodar, configurar ou cadastrar dados |
 
 ## Onde registrar cada coisa
 
@@ -42,6 +44,17 @@ time e entram no mesmo PR):
   "Frontend"). Nunca em `architecture.md`/`domain-model.md`.
 - **Feature concluída** → regras da spec para o `domain-model.md`, decisões para
   ADRs, spec removida, `roadmap.md` atualizado.
+
+Ao escrever:
+
+- **Comentário no código cita um ADR ou uma seção de documento de referência** (ex:
+  `Ver o ADR 0026`, `ver "Quem lança" em Consultation, no domain-model`), **nunca uma
+  spec** (é temporária: some quando a feature termina) nem o roadmap.
+- **Títulos sem data:** a data vai numa linha abaixo do título, para a âncora do índice
+  não mudar.
+- **Spec nova segue o modelo** do [`docs/specs/README.md`](docs/specs/README.md).
+- **ADR que substitui outro em parte:** o antigo recebe o status "aceito (em parte
+  substituído por NNNN)"; o texto dele não é editado.
 
 ## Regras de trabalho neste projeto
 
@@ -73,3 +86,31 @@ time e entram no mesmo PR):
 - **Respeite o mapa de módulos** da seção "Frontend" do `architecture.md` (o mesmo do backend) e
   importe com o alias `@/`.
 - **Confira depois das mudanças:** `npm run build` e `npm run lint` (em `frontend/`).
+
+## Ao concluir uma tarefa
+
+Antes de dizer que terminou, confira (e diga o que foi ou não conferido):
+
+1. **Build:** `./mvnw -q compile` em `backend/`; `npm run build` e `npm run lint` em
+   `frontend/`.
+2. **Documentação:** `node scripts/check-docs.mjs` na raiz (índices, links entre
+   arquivos e specs citadas que não existem mais, nos docs e nos comentários do código).
+3. **Nomes removidos ou renomeados** na tarefa (spec, arquivo, classe, método, endpoint,
+   coluna): procure cada um nos `docs/` e nos comentários do código.
+4. **Referência só com o presente:** procure "ainda não", "hoje", "em andamento" e
+   "futuramente" no `architecture.md` e no `domain-model.md`; cada ocorrência é uma regra
+   que mudou ou um status fora do lugar.
+5. **Swagger:** os textos das anotações (`@Operation`) batem com as regras alteradas.
+6. **ADRs:** status dos substituídos atualizado; numeração sequencial.
+7. **Roadmap:** tire o que foi resolvido; o que a spec deixou para depois vira item
+   antes de a spec ser removida.
+8. **Ambiente:** variável nova entra no `backend/.env.example`; migration editada
+   ([ADR 0028](docs/adr/0028-migrations-editaveis-ate-versao-estavel.md)) vira aviso na
+   descrição do PR ("zerem o banco local").
+9. **Sugira o commit e a descrição do PR:**
+   - **commit em uma linha**, no padrão do histórico (`feat:`, `fix:`, `docs:`,
+     `chore:` + descrição em português);
+   - **descrição do PR com tudo:** o que mudou e por quê, as decisões tomadas, o que foi
+     testado e o que não foi, e os avisos ao time.
+
+   Só sugira: commit e push são feitos pelo usuário.

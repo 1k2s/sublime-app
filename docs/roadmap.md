@@ -8,13 +8,13 @@ feature em andamento fica na spec dela, em [`specs/`](specs/).
 ## Índice <!-- omit from toc -->
 
 - [Fases](#fases)
-- [Estado atual (Fase 1 — atualizado em 2026-11-06)](#estado-atual-fase-1--atualizado-em-2026-11-06)
+- [Estado atual (Fase 1)](#estado-atual-fase-1)
 - [Próximos passos](#próximos-passos)
 - [Pendências técnicas](#pendências-técnicas)
 - [Melhorias futuras (anotadas, sem prioridade)](#melhorias-futuras-anotadas-sem-prioridade)
 - [Não modelado ainda](#não-modelado-ainda)
 - [Frontend](#frontend)
-  - [Estado atual (a revisar no inventário; atualizado em 2026-11-06)](#estado-atual-a-revisar-no-inventário-atualizado-em-2026-11-06)
+  - [Estado atual](#estado-atual)
   - [Próximos passos](#próximos-passos-1)
   - [Pendências](#pendências)
   - [Melhorias (sem prioridade)](#melhorias-sem-prioridade)
@@ -26,60 +26,88 @@ feature em andamento fica na spec dela, em [`specs/`](specs/).
 - **Fase 2:** `Payment` e saldo financeiro do paciente (visão da clínica).
 - **Fase 3:** app de consulta de saldo para o paciente.
 
-## Estado atual (Fase 1 — atualizado em 2026-11-06)
+## Estado atual (Fase 1)
+
+*Atualizado em 2026-11-07.*
 
 | Módulo | Situação |
 |---|---|
 | `patient` | implementado: incl. origem do paciente (`referringProvider`), soft delete e reativação com 409 |
-| `user` | implementado: soft delete, e-mail único (409), senha com hash BCrypt (mínimo 8), senha opcional na alteração; em andamento: senha provisória com troca obrigatória no primeiro acesso ([`specs/prestadores-e-primeiro-acesso.md`](specs/prestadores-e-primeiro-acesso.md), [ADR 0025](adr/0025-primeiro-acesso-com-senha-provisoria.md)) |
-| `auth` | implementado no backend e no front (2026-11-06): login com JWT, todas as rotas protegidas (exceto login e Swagger), corte imediato do acesso ao inativar ou mudar o perfil, primeiro admin, Swagger com "Authorize"; no front, login real, sessão que expira, tela inicial por perfil ([ADR 0023](adr/0023-autenticacao-jwt-resource-server.md), [ADR 0024](adr/0024-sessao-frontend-localstorage.md)); em andamento: fluxo de primeiro acesso (`POST /api/auth/first-access` e transição automática no login, [ADR 0025](adr/0025-primeiro-acesso-com-senha-provisoria.md)). Sem autorização por perfil: qualquer usuário logado acessa todos os endpoints |
-| `provider` | implementado: dois percentuais (padrão 40/45), usuário ativo obrigatório na criação, reativação |
+| `user` | implementado: soft delete e reativação, e-mail único (409), senha com hash BCrypt (mínimo 8), senha opcional na alteração, senha provisória com troca obrigatória no primeiro acesso (coluna `password_change_required`; [ADR 0025](adr/0025-primeiro-acesso-com-senha-provisoria.md), [ADR 0029](adr/0029-senha-provisoria-por-coluna.md)), admin padrão protegido ([ADR 0027](adr/0027-admin-padrao-protegido.md)), Configurações do próprio usuário (`/api/users/me`) |
+| `auth` | implementado no backend e no front: login com JWT, rotas protegidas (exceto login, primeiro acesso e Swagger), corte imediato do acesso ao inativar, mudar o perfil ou redefinir a senha, Swagger com "Authorize" ([ADR 0023](adr/0023-autenticacao-jwt-resource-server.md), [ADR 0024](adr/0024-sessao-frontend-localstorage.md)); **autorização por perfil** (2026-11-07): tabela de acesso no `SecurityConfig` com o `ADMIN` como padrão e o `CurrentUser` para as regras de dados ([ADR 0026](adr/0026-acesso-por-perfil-centralizado.md)) |
+| `provider` | implementado: dois percentuais (padrão 40/45), usuário ativo obrigatório na criação e na reativação |
 | `pricing` | implementado: grupos, técnicas (com reativação), planos (`PlanType`, `termWeeks`, de-para), preços com reajuste historizado |
 | `contract` | implementado: cabeçalho + `ContractItem`, vigência calculada (`SessionFrequency`), aditivos, opções do plano do Grupo, endpoints de apoio, beneficiário de no máximo um contrato vigente |
-| `consultation` | implementado: lançamento com contratos vinculados e escolha livre, resolução de preço (casos 1 a 3), `pricingSource`, comissão pela origem, repasse `HALF_UP`, saldo pela cadeia de versões, soft delete sem `PUT`, endpoints de apoio (`eligible-contracts`, `session-balance`) |
+| `consultation` | implementado: lançamento com contratos vinculados e escolha livre, resolução de preço (casos 1 a 3), `pricingSource`, comissão pela origem, repasse `HALF_UP`, saldo pela cadeia de versões, soft delete sem `PUT`, endpoints de apoio (`eligible-contracts`, `session-balance`, `patients`); prestador do login para o `PROVIDER`, que só vê e inativa os próprios lançamentos; `launchedByUserId` |
 | **frontend** | **em andamento**: ver a seção [Frontend](#frontend) |
 
 - **Monorepo** desde 2026-10-29 ([ADR 0022](adr/0022-monorepo.md)): o backend em
   `backend/` e o frontend, importado com o histórico, em `frontend/`.
-- **Schema versionado pelo Flyway** (V1 a V3, desde 2026-10-29; ver
-  [`development.md`](development.md)), com `ddl-auto=validate`. Banco local criado
-  antes disso: zerar uma vez (`docker compose down -v`).
+- **Schema versionado pelo Flyway** (V1 a V4, com o seed do catálogo na V4; ver
+  [`development.md`](development.md)), com `ddl-auto=validate`. **Até a versão estável, as
+  migrations podem ser editadas** ([ADR 0028](adr/0028-migrations-editaveis-ate-versao-estavel.md)):
+  a V1 foi editada em 2026-11-07 (colunas `default_admin`, `password_change_required` e
+  `launched_by_user_id`), então quem puxar zera o banco local (`docker compose down -v`).
 - **Teste manual do fluxo completo pela API** (2026-10-29, comandos manuais, sem script): o
   catálogo, os cadastros, o contrato (incluindo o aditivo), os três casos de
   lançamento, o saldo, a reativação e as constraints do banco funcionaram como
-  esperado. Testes automatizados continuam como melhoria futura.
+  esperado.
 - **Teste manual da autenticação pela API** (2026-11-05): login, tokens inválidos e
   vencidos, senha com e sem troca, corte imediato do acesso, primeiro admin, Swagger e CORS
   funcionaram como esperado.
 - **Teste manual da autenticação pela interface** (2026-11-06): login de cada perfil, senha
   errada, sessão vencida, logout seguido de outro login e usuário inativado durante o uso
   funcionaram como esperado.
+- **Teste manual da autorização por perfil e do primeiro acesso** (2026-11-07, banco
+  zerado): 55 casos pela API (acesso de cada perfil, lançamento com e sem `providerId`,
+  restrição de dados, admin padrão, `/me`, reativações, primeiro acesso e redefinição de
+  senha) e 20 pela interface (menu e rotas por papel, primeiro acesso, Configurações)
+  funcionaram como esperado. Também o `AdminInitializer` sem admin padrão: com
+  `ADMIN_PASSWORD` inválida, a aplicação não sobe e diz o motivo; com `ADMIN_EMAIL` já
+  usado por outro usuário, sobe só com um aviso no log, sem criar ninguém.
 - **Variáveis locais:** a aplicação precisa do `backend/.env` (ver "Variáveis de ambiente"
   no [`development.md`](development.md)); sem `JWT_SECRET`, não sobe.
-- **Testes:** decidido testar pela **interface gráfica** (não por Swagger nem por
-  testes automatizados por enquanto).
+- **Testes:** até aqui, manuais (pela API e pela interface). Decidido em 2026-11-07 que os
+  **testes automatizados** são o próximo passo (ver abaixo).
 
 ## Próximos passos
 
-1. **Autorização por perfil** (`ADMIN`/`PROVIDER`), no backend e no front, com spec
-   própria. Vem antes das telas que faltam: hoje um `PROVIDER` logado acessa todos os
-   endpoints (inclusive o cadastro de usuários), e as telas dependem do que cada perfil vê.
-   - quais endpoints e dados cada perfil acessa: restringir ao `ADMIN` as operações de
-     cadastro da clínica, como a listagem completa de técnicas
-     (`GET /api/techniques/all`) e as reativações; definir o que o prestador vê;
-   - o `launchedByUserId` no `Consultation` (quem lançou) e a regra de permissão do
-     lançamento, com o prestador vindo do login;
-   - a reativação do `User` e a decisão de exigir usuário ativo para reativar o
-     prestador (hoje não exige);
-   - no front: menu e rotas por papel (ver "Pendências" da seção [Frontend](#frontend)).
-2. **Interface gráfica** (React + Vite, em `frontend/`) e testes por ela: ver a seção
-   [Frontend](#frontend).
+1. **Testes automatizados no backend** (decidido em 2026-11-07, antes das telas): cada
+   feature hoje exige dezenas de casos manuais, refeitos a cada merge da `dev`, e as regras
+   mais arriscadas são financeiras (resolução de preço, comissão, repasse, saldo).
+   - Começar pelos **testes de unidade das entidades** (JUnit + AssertJ, já no
+     `spring-boot-starter-test`; sem banco nem servidor).
+   - Depois, **testes de integração** da API (autorização e lançamento primeiro), com o
+     MySQL do **Testcontainers** (as migrations usam recursos do MySQL, então o H2 não
+     serve). Os 55 casos manuais da autorização são a base.
+   - Antes do código, os conceitos explicados em partes; os primeiros testes escritos
+     juntos, comentados, como padrão para os seguintes.
+2. **CI no GitHub Actions**, logo depois dos primeiros testes: a cada PR, compilar e testar
+   o backend, build e lint do front e `node scripts/check-docs.mjs`, com o resultado no PR.
+   CD (deploy automático) fica para quando houver a versão 1 no ar.
+3. **Interface gráfica** (React + Vite, em `frontend/`) e testes por ela: ver a seção
+   [Frontend](#frontend). As próximas telas já têm decisões tomadas:
+   - **Usuários e Prestadores em telas separadas** (decidido em 2026-11-07): o admin cria
+     o usuário na tela de **Usuários** e depois, na de **Prestadores**, cria o prestador
+     **vinculando um usuário já existente** (o `POST /api/providers` já recebe o
+     `userId`). A tela de Usuários também inativa e reativa acessos, e usa o
+     `defaultAdmin` da resposta para esconder "Inativar" e a troca de perfil do admin
+     padrão. O wizard de Prestadores atual cria o usuário na etapa "Conta de acesso" e
+     precisa ser ajustado a esse fluxo.
+   - **Redesenho do lançamento:** usa o `GET /api/consultations/patients` para escolher o
+     paciente, esconde o prestador para o `PROVIDER` (vem do login) e mostra o valor só
+     depois de lançar (sem prévia de preço).
+4. **Dashboard do prestador**, com spec própria: os
+   rendimentos do próprio prestador (soma dos repasses dos atendimentos dele) no dia, na
+   semana e no mês. Decidido em 2026-11-06 que o `PROVIDER` vê só os próprios rendimentos.
+   Em aberto para a spec: o que conta como rendimento (quais status, por qual data) e se o
+   `ADMIN` terá um dashboard da clínica.
 
 ## Pendências técnicas
 
-- **Primeiro admin, dois casos sem teste em execução:** `ADMIN_PASSWORD` ou `ADMIN_EMAIL`
-  inválidos (a aplicação não deve subir) e `ADMIN_EMAIL` já usado por outro usuário (só
-  aviso no log). A lógica está no `AdminInitializer`.
+- **Antes da versão 1 no ar:** revisar e consolidar as migrations e voltar a regra de
+  nunca editá-las ([ADR 0028](adr/0028-migrations-editaveis-ate-versao-estavel.md)); zerar
+  o banco de produção.
 
 Frontend: ver a seção [Frontend](#frontend).
 
@@ -97,9 +125,8 @@ Frontend: ver a seção [Frontend](#frontend).
   `id`, `email` e `role`, e o menu do front mostra o e-mail. Para mostrar um nome, a
   resposta precisa trazê-lo. O `User` não tem nome hoje: decidir entre um campo `name` no
   `User` e o nome do `Provider` vinculado (que não cobre o admin sem prestador).
-- Carga inicial do catálogo da clínica pronta ao subir. Hoje ele é cadastrado pela
-  API; como migration, os `INSERT`s pulariam as regras do domínio (ADR 0021).
-- Testes automatizados.
+- **Expiração da senha provisória** (ex: 7 dias, como no AWS Cognito): hoje ela vale até o
+  primeiro acesso.
 
 ## Não modelado ainda
 
@@ -141,41 +168,42 @@ Frontend: ver a seção [Frontend](#frontend).
 
 Convenções na seção "Frontend" do [`architecture.md`](architecture.md).
 
-### Estado atual (a revisar no inventário; atualizado em 2026-11-06)
+### Estado atual
+
+*Atualizado em 2026-11-07; a revisar no inventário.*
 
 Levantado pelos arquivos de `frontend/src/`; **o comportamento de cada tela e se as
 chamadas batem com a API real ainda não foram conferidos.**
 
 | Módulo | O que existe |
 |---|---|
-| `auth` | **concluído e testado pela tela** (2026-11-06): login real, sessão no `localStorage` que expira pela `expiresAt` e cai num 401, cache limpo ao sair, tela inicial por perfil (`HomeRedirect`), `ProtectedRoute` (só confere sessão), menu filtrado por papel, mensagem da API no `error.message` (interceptor do `apiClient`). Ver "Rotas e sessão" no [`architecture.md`](architecture.md) |
-| `patient` | listagem com filtros e busca, modal de detalhes, cadastro em wizard (dados pessoais, endereço com ViaCEP, confirmação). `patientApi.js` com trechos mockados |
+| `auth` | **concluído e testado pela tela** (2026-11-07): login real, primeiro acesso (a tela troca sozinha para a definição da senha), sessão no `localStorage` que expira pela `expiresAt` e cai num 401, cache limpo ao sair, tela inicial por perfil (`HomeRedirect`), **rotas e menu por papel** (`ProtectedRoute` com `roles`), mensagem da API no `error.message` (interceptor do `apiClient`). Ver "Rotas e sessão" no [`architecture.md`](architecture.md) |
+| `patient` | listagem com filtros e busca, modal de detalhes, cadastro em wizard (dados pessoais com a origem do paciente, endereço com ViaCEP, confirmação), ligado à API real (PR #33) |
 | `pricing` | catálogo de preços (tabela, busca de técnica, modal de preço) |
 | `consultation` | tela de lançamento (formulário, agenda, carrinho, total). `consultationApi.js` com trechos mockados |
 | `contract` | tela de contratos (filtros, tabela, formulário com seleção de paciente e preço, resumo), com fallback mockado no `contractApi.js`. **Envio no modelo antigo do contrato** (ver "Pendências") |
-| `provider` | em andamento: listagem, detalhes e cadastro/edição em wizard de 3 etapas (`/providers`, exclusivo para `ADMIN`; spec: [`specs/prestadores-e-primeiro-acesso.md`](specs/prestadores-e-primeiro-acesso.md)) |
-| `user` | em andamento: camada `api/` consumida pelo cadastro de prestadores e fluxo de primeiro acesso ([`specs/prestadores-e-primeiro-acesso.md`](specs/prestadores-e-primeiro-acesso.md)) |
-
+| `provider` | tela de Prestadores (`/providers`, só `ADMIN`; PR #38): listagem, detalhes e cadastro/edição em wizard de 3 etapas. **Cria o usuário junto** (etapa "Conta de acesso"): a ajustar ao fluxo de telas separadas (ver "Próximos passos") |
+| `user` | tela de Configurações (`/settings`, os dois perfis): troca do e-mail e da senha com a senha atual; camada `api/` (usuários e `/me`). Sem a tela de Usuários |
 | `app/`, `shared/` | layout com menu lateral, router com rotas `lazy`, `apiClient`, utilitários (`money`, `date`, `masks`, `alert`, `viacep`) e componentes de `shared/ui/` |
 
 - **`npm run build` funciona** desde a atualização de 2026-11-05 (as correções do PR #13
-  do repositório antigo resolveram os arquivos cortados). `npm run lint`: sem erros, 1
-  aviso (ver "Pendências").
+  do repositório antigo resolveram os arquivos cortados). `npm run lint`: sem erros e sem
+  avisos (2026-11-07).
 - Monorepo desde 2026-10-29: o front foi importado com o histórico da `dev` do repositório
   antigo e atualizado em 2026-11-05 com os PRs #13 (correções) e #14 (tela de contratos).
-  O repositório antigo está congelado.
+  O repositório antigo está arquivado no GitHub.
 
 ### Próximos passos
 
-1. **Autorização por perfil**, junto com o backend (item 1 dos
-   [Próximos passos](#próximos-passos) do projeto): menu e rotas por papel.
-2. **Inventário:** o que cada tela faz e se as chamadas batem com o contrato real da API
+1. **Inventário:** o que cada tela faz e se as chamadas batem com o contrato real da API
    (Swagger). Atualizar esta seção com o resultado.
-3. **Trocar os mocks pelas chamadas reais** onde o backend já tem o endpoint (`patient`,
-   `pricing`, `contract`, `consultation`).
-4. **Telas que faltam**, na ordem de cadastro (cada uma depende dos dados da anterior):
-   prestadores e usuários → ajuste dos contratos ao contrato real → lançamento ligado à
-   API real. Cada tela começa com uma spec em [`specs/`](specs/README.md).
+2. **Trocar os mocks pelas chamadas reais** onde o backend já tem o endpoint (`contract`,
+   `consultation`).
+3. **Telas que faltam**, na ordem de cadastro (cada uma depende dos dados da anterior):
+   tela de Usuários e ajuste da de Prestadores ao fluxo de telas separadas → ajuste dos
+   contratos ao contrato real → lançamento ligado à API real (decisões nos
+   [Próximos passos](#próximos-passos) do projeto). Cada tela começa com uma spec em
+   [`specs/`](specs/README.md).
 
 Checklist da Fase 1 no front (herdado do guia original):
 - [x] Login funcionando e rotas protegidas.
@@ -185,16 +213,20 @@ Checklist da Fase 1 no front (herdado do guia original):
 - [ ] Fluxo completo de lançamento.
 - [ ] Histórico de atendimentos com filtro por período.
 - [ ] Valores monetários sempre como string, formatados só na exibição.
-- [ ] `npm run lint` sem erros e `npm run build` gerando o bundle.
+- [x] `npm run lint` sem erros e `npm run build` gerando o bundle.
 
 ### Pendências
 
-- **Aviso do lint** em `PatientWizard.jsx`: o `watch()` do React Hook Form não pode ser
-  memoizado (`react-hooks/incompatible-library`). O usual é trocar por `useWatch`.
+- **7 vulnerabilidades nas dependências** (4 moderadas, 3 altas), acusadas pelo `npm ci`
+  em 2026-11-06: avaliar com `npm audit` e atualizar o que for seguro.
+- **Erros por campo da API não chegam ao formulário:** o `apiClient` só lê o `detail`, e
+  nenhum componente lê o `errors` do `ProblemDetail`. Um 400 de validação do DTO aparece só
+  como "Campos da requisição inválidos." no alerta.
 - **Tela de lançamento planejada em conflito com a API.** O guia original dizia que o
   front envia só `patientId` e `arrivalTime` e que o prestador vem do login. O
   `POST /api/consultations` espera `patientId`, `contractId` (escolhido entre os
-  vinculados), `providerId`, `techniqueId`, `durationMinutes`, `occurredAt` e `status`
+  vinculados), `providerId` (só o `ADMIN` informa; para o `PROVIDER`, vem do login),
+  `techniqueId`, `durationMinutes`, `occurredAt` e `status`
   (ver `Consultation` no [`domain-model.md`](domain-model.md)). Redesenhar a tela sobre o
   contrato real, com spec.
 - **Tela de contratos no modelo antigo do contrato.** `ContractForm.jsx` e o mock de
@@ -208,20 +240,11 @@ Checklist da Fase 1 no front (herdado do guia original):
 - **Mensagem de erro da API no `PriceFormModal`:** ele lê `error.response.data.message`,
   campo que o `ProblemDetail` não tem, e sempre cai na mensagem própria. Trocar por
   `error.message`, que o interceptor do `apiClient` já preenche com o `detail` da API.
-- **Origem do paciente:** conferir se o cadastro de paciente envia o
-  `referringProviderId` (prestador que trouxe o paciente), que define a comissão.
-- **Menu e rotas por papel** (com a autorização por perfil): `/providers` existe, mas não
-  está no menu do design; Dashboard (Fase 2) e Configurações (sem tela definida) ficam no
-  menu, desabilitados; o `ProtectedRoute` não bloqueia rota por papel. Falta decidir os
-  itens do menu de cada papel. A tela inicial de cada um já está resolvida (`HomeRedirect`).
 - **Fora das convenções** da seção "Frontend" do [`architecture.md`](architecture.md):
-  `PageLoader` e `RouteError` com estilo inline; `PatientWizard` com imports relativos
-  (`../../`) em vez de `@/`.
+  `PageLoader` e `RouteError` com estilo inline.
 - **`frontend/.env` versionado:** hoje só tem `VITE_API_URL` (sem segredo). Avaliar trocar
   por um `.env.example` versionado e o `.env` no `.gitignore`, antes que entre algum valor
   sensível.
-- **Arquivar o repositório antigo do front** (`1k2s/sublime-app-front`) no GitHub, depois
-  do merge do monorepo.
 - Sidebar: trocar a logo em texto pelo arquivo da marca; criar a `Topbar`, se o design
   tiver barra superior.
 

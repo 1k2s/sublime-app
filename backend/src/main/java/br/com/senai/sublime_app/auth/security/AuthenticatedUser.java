@@ -25,7 +25,7 @@ public record AuthenticatedUser(
         return new AuthenticatedUser(
                 user.getId(),
                 user.getEmail(),
-                user.extractPasswordHash(),
+                user.getPassword(),
                 user.getRole(),
                 user.isActive(),
                 user.isFirstAccessPending());

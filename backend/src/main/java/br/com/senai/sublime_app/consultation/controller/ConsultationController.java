@@ -1,10 +1,12 @@
 package br.com.senai.sublime_app.consultation.controller;
 
+import br.com.senai.sublime_app.consultation.dto.ConsultationPatientResponseDTO;
 import br.com.senai.sublime_app.consultation.dto.ConsultationRequestDTO;
 import br.com.senai.sublime_app.consultation.dto.ConsultationResponseDTO;
 import br.com.senai.sublime_app.consultation.dto.ContractSessionBalanceResponseDTO;
 import br.com.senai.sublime_app.consultation.dto.EligibleContractResponseDTO;
 import br.com.senai.sublime_app.consultation.service.ConsultationService;
+import br.com.senai.sublime_app.user.domain.CurrentUser;
 import io.swagger.v3.oas.annotations.Operation;
 import io.swagger.v3.oas.annotations.Parameter;
 import io.swagger.v3.oas.annotations.media.Content;
@@ -24,10 +26,8 @@ import java.util.List;
 @RestController
 @RequestMapping("/api/consultations")
 @Tag(name = "Atendimentos", description = """
-        Lançamento dos atendimentos cobrados. O sistema descobre de qual contrato a sessão
-        sai, resolve o preço, debita o saldo de sessões do item e grava o repasse devido ao
-        prestador (sem aprovação). O lançamento nunca é editado: para corrigir, inative e
-        lance de novo.
+        Lançamento dos atendimentos cobrados (preço, débito de sessão e repasse resolvidos
+        pelo sistema). Regras: "Consultation" no `docs/domain-model.md`.
         """)
 public class ConsultationController {
 
@@ -38,44 +38,34 @@ public class ConsultationController {
     }
 
     @Operation(summary = "Lançar atendimento", description = """
-            Lança um atendimento cobrado: `ATTENDED` (aconteceu), `NO_SHOW` (faltou sem aviso)
-            ou `CANCELED_LATE` (desmarcou com menos de 6h). Os três são cobrados e geram repasse.
+            Lança um atendimento cobrado (`ATTENDED`, `NO_SHOW` ou `CANCELED_LATE`). Preço,
+            comissão e débito de sessão são resolvidos pelo sistema; o `contractId` vem do
+            `GET /api/consultations/eligible-contracts` (vazio = Avulso).
 
-            **Contrato:** consulte antes `GET /api/consultations/eligible-contracts`. Se o
-            paciente tiver contrato vinculado na data (como titular ou beneficiário),
-            `contractId` é **obrigatório** e precisa ser um deles; sem contrato vinculado, envie
-            vazio (Avulso).
-
-            **Preço** (resolvido pelo sistema, nunca enviado):
-            - o contrato cobre o grupo da técnica → preço do item (travado na mesma duração; atual
-              em outra duração) e **debita uma sessão**;
-            - o contrato não cobre o grupo → de-para do plano do contrato, preço atual (Pilates em
-              Grupo: 1x por semana); não debita;
-            - sem contrato → preço atual do Avulso; o Pilates em Grupo exige contrato.
-
-            **Comissão:** pela origem do titular do contrato (sem contrato, do paciente atendido).
-            Repasse = valor × percentual, arredondado para 2 casas (`HALF_UP`).
-
-            **Resposta:** `remainingSessions` traz o saldo do item depois do lançamento, quando ele
-            debitou um item por duração. Negativo = saldo esgotado (o lançamento é aceito).
+            **Perfis:** ADMIN (informa o `providerId`) e PROVIDER (só em nome próprio).
+            Regras: "Consultation" no `docs/domain-model.md`.
             """)
     @ApiResponses({
             @ApiResponse(responseCode = "201", description = "Atendimento lançado", content = @Content(schema = @Schema(implementation = ConsultationResponseDTO.class))),
-            @ApiResponse(responseCode = "400", description = "Requisição inválida — data futura, contrato ausente ou não vinculado ao paciente na data, sem preço para a combinação, plano sem equivalente, Pilates em Grupo sem contrato, ou paciente, prestador ou técnica inativos", content = @Content),
+            @ApiResponse(responseCode = "400", description = "Dados inválidos ou regra do lançamento violada (o `detail` diz qual)", content = @Content),
+            @ApiResponse(responseCode = "403", description = "PROVIDER lançando para outro prestador, ou usuário sem prestador vinculado", content = @Content),
             @ApiResponse(responseCode = "404", description = "Paciente, prestador ou técnica não encontrado", content = @Content)
     })
     @PostMapping
-    public ResponseEntity<ConsultationResponseDTO> create(@RequestBody @Valid ConsultationRequestDTO requestDTO) {
-        ConsultationResponseDTO response = consultationService.create(requestDTO);
+    public ResponseEntity<ConsultationResponseDTO> create(@RequestBody @Valid ConsultationRequestDTO requestDTO,
+            CurrentUser currentUser) {
+        ConsultationResponseDTO response = consultationService.create(requestDTO, currentUser);
         return ResponseEntity.status(HttpStatus.CREATED).body(response);
     }
 
     @Operation(summary = "Listar atendimentos", description = """
-            Lista os atendimentos, ativos e inativos, do mais recente para o mais antigo. Todos
-            os filtros são opcionais e se combinam.
+            Ativos e inativos, do mais recente para o mais antigo; filtros opcionais.
+
+            **Perfis:** ADMIN e PROVIDER (só os dele).
             """)
     @ApiResponses({
-            @ApiResponse(responseCode = "200", description = "Lista retornada com sucesso", content = @Content(schema = @Schema(implementation = ConsultationResponseDTO.class)))
+            @ApiResponse(responseCode = "200", description = "Lista retornada com sucesso", content = @Content(schema = @Schema(implementation = ConsultationResponseDTO.class))),
+            @ApiResponse(responseCode = "403", description = "Usuário PROVIDER sem prestador vinculado", content = @Content)
     })
     @GetMapping
     public ResponseEntity<List<ConsultationResponseDTO>> search(
@@ -84,18 +74,29 @@ public class ConsultationController {
             @Parameter(description = "Data inicial do atendimento, inclusiva (AAAA-MM-DD)", example = "2026-10-01")
             @RequestParam(required = false) @DateTimeFormat(iso = DateTimeFormat.ISO.DATE) LocalDate from,
             @Parameter(description = "Data final do atendimento, inclusiva (AAAA-MM-DD)", example = "2026-10-31")
-            @RequestParam(required = false) @DateTimeFormat(iso = DateTimeFormat.ISO.DATE) LocalDate to) {
-        return ResponseEntity.ok(consultationService.search(providerId, patientId, from, to));
+            @RequestParam(required = false) @DateTimeFormat(iso = DateTimeFormat.ISO.DATE) LocalDate to,
+            CurrentUser currentUser) {
+        return ResponseEntity.ok(consultationService.search(providerId, patientId, from, to, currentUser));
+    }
+
+    @Operation(summary = "Pacientes do lançamento", description = """
+            Pacientes ativos, por nome, só com `id`, `name` e `birthDate`.
+
+            **Perfis:** ADMIN e PROVIDER.
+            """)
+    @ApiResponses({
+            @ApiResponse(responseCode = "200", description = "Lista retornada com sucesso", content = @Content(schema = @Schema(implementation = ConsultationPatientResponseDTO.class)))
+    })
+    @GetMapping("/patients")
+    public ResponseEntity<List<ConsultationPatientResponseDTO>> findPatients() {
+        return ResponseEntity.ok(consultationService.findPatients());
     }
 
     @Operation(summary = "Contratos vinculados (modal do lançamento)", description = """
-            Lista, sem gravar nada, os contratos vinculados ao paciente na data do atendimento:
-            versões ativas que cobrem a data, com ele como titular ou beneficiário (no máximo
-            dois). Para cada um: se ele cobre o grupo da técnica (`CONTRACT_ITEM`, debita o item)
-            ou vai pelo de-para (`EQUIVALENT_PLAN`), e o saldo do item, quando houver.
+            Contratos do paciente na data (no máximo dois), com a origem do preço e o saldo.
+            Vazio = Avulso; um = selecionado; dois = o usuário escolhe.
 
-            Lista vazia → Avulso (sem `contractId`); um → selecionado automaticamente; dois → o
-            usuário escolhe livremente.
+            **Perfis:** ADMIN e PROVIDER.
             """)
     @ApiResponses({
             @ApiResponse(responseCode = "200", description = "Contratos vinculados", content = @Content(schema = @Schema(implementation = EligibleContractResponseDTO.class))),
@@ -111,10 +112,10 @@ public class ConsultationController {
     }
 
     @Operation(summary = "Saldo de sessões do contrato", description = """
-            Saldo de cada item por duração do contrato (sessões do plano − sessões usadas),
-            somando os atendimentos de toda a cadeia de versões até a versão informada (use a
-            versão ativa). O saldo pode ser negativo. O item do Pilates em Grupo não tem saldo e
-            não aparece.
+            Saldo de cada item por duração (pode ser negativo), contando toda a cadeia de
+            versões. Informe a versão ativa.
+
+            **Perfis:** ADMIN e PROVIDER.
             """)
     @ApiResponses({
             @ApiResponse(responseCode = "200", description = "Saldo calculado", content = @Content(schema = @Schema(implementation = ContractSessionBalanceResponseDTO.class))),
@@ -126,31 +127,40 @@ public class ConsultationController {
         return ResponseEntity.ok(consultationService.findSessionBalance(contractId));
     }
 
-    @Operation(summary = "Buscar atendimento por ID", description = "Retorna um atendimento lançado, ativo ou inativo.")
+    @Operation(summary = "Buscar atendimento por ID", description = """
+            Ativo ou inativo.
+
+            **Perfis:** ADMIN e PROVIDER (o de outro prestador responde 404).
+            """)
     @ApiResponses({
             @ApiResponse(responseCode = "200", description = "Atendimento encontrado", content = @Content(schema = @Schema(implementation = ConsultationResponseDTO.class))),
+            @ApiResponse(responseCode = "403", description = "Usuário PROVIDER sem prestador vinculado", content = @Content),
             @ApiResponse(responseCode = "404", description = "Atendimento não encontrado", content = @Content)
     })
     @GetMapping("/{id}")
     public ResponseEntity<ConsultationResponseDTO> findById(
-            @Parameter(description = "Identificador do atendimento", required = true, example = "1") @PathVariable Long id) {
-        return ResponseEntity.ok(consultationService.findById(id));
+            @Parameter(description = "Identificador do atendimento", required = true, example = "1") @PathVariable Long id,
+            CurrentUser currentUser) {
+        return ResponseEntity.ok(consultationService.findById(id, currentUser));
     }
 
     @Operation(summary = "Inativar atendimento", description = """
-            Realiza o **soft delete** do atendimento: o registro é marcado como `active = false`
-            e deixa de contar no saldo de sessões e no repasse. O lançamento nunca é editado:
-            para corrigir, inative e lance de novo (o erro e a correção ficam registrados).
+            Soft delete: deixa de contar no saldo e no repasse. Para corrigir um lançamento,
+            inative e lance de novo.
+
+            **Perfis:** ADMIN e PROVIDER (o de outro prestador responde 404).
             """)
     @ApiResponses({
             @ApiResponse(responseCode = "204", description = "Atendimento inativado com sucesso"),
+            @ApiResponse(responseCode = "403", description = "Usuário PROVIDER sem prestador vinculado", content = @Content),
             @ApiResponse(responseCode = "404", description = "Atendimento não encontrado", content = @Content),
             @ApiResponse(responseCode = "409", description = "O atendimento já está inativo", content = @Content)
     })
     @DeleteMapping("/{id}")
     public ResponseEntity<Void> deactivate(
-            @Parameter(description = "Identificador do atendimento", required = true, example = "1") @PathVariable Long id) {
-        consultationService.deactivate(id);
+            @Parameter(description = "Identificador do atendimento", required = true, example = "1") @PathVariable Long id,
+            CurrentUser currentUser) {
+        consultationService.deactivate(id, currentUser);
         return ResponseEntity.noContent().build();
     }
 }

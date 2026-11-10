@@ -13,6 +13,7 @@ import br.com.senai.sublime_app.provider.domain.Percentage;
 import br.com.senai.sublime_app.provider.domain.ProviderEntity;
 import br.com.senai.sublime_app.shared.exception.BusinessRuleException;
 import br.com.senai.sublime_app.shared.exception.ConflictException;
+import br.com.senai.sublime_app.user.domain.UserEntity;
 import org.hibernate.annotations.JdbcTypeCode;
 import org.hibernate.type.SqlTypes;
 
@@ -60,9 +61,15 @@ public class ConsultationEntity {
     @JoinColumn(name = "contract_id")
     private ContractEntity contract;
 
+    // Quem atendeu
     @ManyToOne(fetch = FetchType.LAZY, optional = false)
     @JoinColumn(name = "provider_id", nullable = false)
     private ProviderEntity provider;
+
+    // Quem lançou: pode ser diferente de quem atendeu (o admin lança por um prestador)
+    @ManyToOne(fetch = FetchType.LAZY, optional = false)
+    @JoinColumn(name = "launched_by_user_id", nullable = false)
+    private UserEntity launchedBy;
 
     // Técnica clinicamente executada (a linha de preço só aponta para o grupo)
     @ManyToOne(fetch = FetchType.LAZY, optional = false)
@@ -115,9 +122,11 @@ public class ConsultationEntity {
     // Construtor público de negócio: a linha de preço já vem resolvida pelo service
     // (casos 1 a 3); o resto (caso do preço, valor, comissão e repasse) é calculado aqui.
     public ConsultationEntity(PatientEntity patient, ContractEntity contract, ProviderEntity provider,
-            TechniqueEntity technique, int durationMinutes, LocalDate occurredAt, ConsultationStatus status,
-            SessionDurationPriceEntity durationPrice, SessionFrequencyPriceEntity frequencyPrice) {
+            UserEntity launchedBy, TechniqueEntity technique, int durationMinutes, LocalDate occurredAt,
+            ConsultationStatus status, SessionDurationPriceEntity durationPrice,
+            SessionFrequencyPriceEntity frequencyPrice) {
         validateActiveParticipants(patient, provider, technique);
+        validateLaunchedBy(launchedBy);
         validateDurationAndStatus(durationMinutes, status);
         validateOccurredAt(occurredAt);
         validatePrice(technique, durationMinutes, durationPrice, frequencyPrice);
@@ -125,6 +134,7 @@ public class ConsultationEntity {
         this.patient = patient;
         this.contract = contract;
         this.provider = provider;
+        this.launchedBy = launchedBy;
         this.technique = technique;
         this.durationMinutes = durationMinutes;
         this.occurredAt = occurredAt;
@@ -202,6 +212,13 @@ public class ConsultationEntity {
         }
         if (!technique.isActive()) {
             throw new BusinessRuleException("A técnica está inativa.");
+        }
+    }
+
+    // Todo lançamento registra quem lançou (vem do usuário logado, não do request)
+    private static void validateLaunchedBy(UserEntity launchedBy) {
+        if (launchedBy == null) {
+            throw new BusinessRuleException("O usuário que lança o atendimento é obrigatório.");
         }
     }
 

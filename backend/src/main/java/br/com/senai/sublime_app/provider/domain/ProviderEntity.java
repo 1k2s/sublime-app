@@ -99,11 +99,12 @@ public class ProviderEntity {
         this.active = false;
     }
 
-    // Reativação: o prestador volta a poder receber lançamentos. Não exige usuário ativo:
-    // o lançamento recebe o providerId explícito, sem depender de login (a reativação do
-    // usuário entra com a autenticação).
+    // Reativação: o prestador volta a poder receber lançamentos. Exige usuário ativo, a
+    // mesma regra da criação: com a autorização, o prestador lança pelo próprio login.
+    // Usuário inativo → reativar o usuário antes.
     public void activate() {
         requireInactive();
+        validateActiveUser(user);
         this.active = true;
     }
 

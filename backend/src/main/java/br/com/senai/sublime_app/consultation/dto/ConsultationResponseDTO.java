@@ -19,6 +19,8 @@ public record ConsultationResponseDTO(
         Long contractId,
         Long providerId,
         String providerName,
+        // quem lançou (pode ser o admin, lançando por um prestador)
+        Long launchedByUserId,
         Long techniqueId,
         String techniqueName,
         int durationMinutes,
@@ -54,6 +56,7 @@ public record ConsultationResponseDTO(
                 entity.getContract() != null ? entity.getContract().getId() : null,
                 entity.getProvider().getId(),
                 entity.getProvider().getName(),
+                entity.getLaunchedBy().getId(),
                 entity.getTechnique().getId(),
                 entity.getTechnique().getName(),
                 entity.getDurationMinutes(),

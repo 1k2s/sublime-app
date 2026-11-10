@@ -8,18 +8,22 @@
 -- - collation utf8mb4_0900_ai_ci: a unicidade de nomes e e-mails ignora maiúsculas e
 --   acentos ("Essencial" = "essencial").
 -- Regras que o Hibernate não gera entram nas migrations seguintes (V2, V3).
--- Uma migration já aplicada NUNCA é editada: mudança nova = arquivo novo.
+-- Até a versão estável, as migrations podem ser editadas (quem puxar a mudança zera o
+-- banco local); depois dela, uma migration já aplicada NUNCA é editada: mudança nova =
+-- arquivo novo.
 
 -- ---------------------------------------------------------------------------
 -- user / provider
 -- ---------------------------------------------------------------------------
 
 CREATE TABLE `user` (
-    id       BIGINT       NOT NULL AUTO_INCREMENT,
-    active   BIT(1)       NOT NULL,
-    email    VARCHAR(255) NOT NULL,
-    password VARCHAR(255) NOT NULL,
-    role     VARCHAR(30)  NOT NULL,
+    id                       BIGINT       NOT NULL AUTO_INCREMENT,
+    active                   BIT(1)       NOT NULL,
+    default_admin            BIT(1)       NOT NULL DEFAULT b'0',
+    email                    VARCHAR(255) NOT NULL,
+    password                 VARCHAR(255) NOT NULL,
+    password_change_required BIT(1)       NOT NULL DEFAULT b'0',
+    role                     VARCHAR(30)  NOT NULL,
     CONSTRAINT pk_user PRIMARY KEY (id),
     CONSTRAINT uk_user_email UNIQUE (email)
 ) ENGINE = InnoDB DEFAULT CHARSET = utf8mb4 COLLATE = utf8mb4_0900_ai_ci;
@@ -172,6 +176,7 @@ CREATE TABLE consultation (
     pricing_source                VARCHAR(30)   NOT NULL,
     status                        VARCHAR(30)   NOT NULL,
     contract_id                   BIGINT        NULL,
+    launched_by_user_id           BIGINT        NOT NULL,
     patient_id                    BIGINT        NOT NULL,
     provider_id                   BIGINT        NOT NULL,
     session_duration_price_id     BIGINT        NULL,
@@ -179,6 +184,7 @@ CREATE TABLE consultation (
     technique_id                  BIGINT        NOT NULL,
     CONSTRAINT pk_consultation PRIMARY KEY (id),
     CONSTRAINT fk_consultation_contract FOREIGN KEY (contract_id) REFERENCES contract (id),
+    CONSTRAINT fk_consultation_launched_by_user FOREIGN KEY (launched_by_user_id) REFERENCES `user` (id),
     CONSTRAINT fk_consultation_patient FOREIGN KEY (patient_id) REFERENCES patient (id),
     CONSTRAINT fk_consultation_provider FOREIGN KEY (provider_id) REFERENCES provider (id),
     CONSTRAINT fk_consultation_duration_price FOREIGN KEY (session_duration_price_id) REFERENCES session_duration_price (id),
