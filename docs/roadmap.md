@@ -149,9 +149,9 @@ chamadas batem com a API real ainda não foram conferidos.**
 | Módulo | O que existe |
 |---|---|
 | `auth` | **concluído e testado pela tela** (2026-11-06): login real, sessão no `localStorage` que expira pela `expiresAt` e cai num 401, cache limpo ao sair, tela inicial por perfil (`HomeRedirect`), `ProtectedRoute` (só confere sessão), menu filtrado por papel, mensagem da API no `error.message` (interceptor do `apiClient`). Ver "Rotas e sessão" no [`architecture.md`](architecture.md) |
-| `patient` | listagem com filtros e busca, modal de detalhes, cadastro em wizard (dados pessoais, endereço com ViaCEP, confirmação). `patientApi.js` com trechos mockados |
+| `patient` | listagem com filtros e busca, modal de detalhes, cadastro em wizard (dados pessoais, endereço com ViaCEP, confirmação). `patientApi.js` chama a API real |
 | `pricing` | catálogo de preços (tabela, busca de técnica, modal de preço) |
-| `consultation` | tela de lançamento (formulário, agenda, carrinho, total). `consultationApi.js` com trechos mockados |
+| `consultation` | em andamento: tela de lançamento ligada à API real, falta testar pela tela (carrinho com um POST por item, escolha de contrato, total do dia pelo `payoutValue`; spec: [`specs/lancamento-de-atendimentos.md`](specs/lancamento-de-atendimentos.md)) |
 | `contract` | tela de contratos (filtros, tabela, formulário com seleção de paciente e preço, resumo), com fallback mockado no `contractApi.js`. **Envio no modelo antigo do contrato** (ver "Pendências") |
 | `provider` | em andamento: listagem, detalhes e cadastro/edição em wizard de 3 etapas (`/providers`, exclusivo para `ADMIN`; spec: [`specs/prestadores-e-primeiro-acesso.md`](specs/prestadores-e-primeiro-acesso.md)) |
 | `user` | em andamento: camada `api/` consumida pelo cadastro de prestadores e fluxo de primeiro acesso ([`specs/prestadores-e-primeiro-acesso.md`](specs/prestadores-e-primeiro-acesso.md)) |
@@ -191,12 +191,13 @@ Checklist da Fase 1 no front (herdado do guia original):
 
 - **Aviso do lint** em `PatientWizard.jsx`: o `watch()` do React Hook Form não pode ser
   memoizado (`react-hooks/incompatible-library`). O usual é trocar por `useWatch`.
-- **Tela de lançamento planejada em conflito com a API.** O guia original dizia que o
-  front envia só `patientId` e `arrivalTime` e que o prestador vem do login. O
-  `POST /api/consultations` espera `patientId`, `contractId` (escolhido entre os
-  vinculados), `providerId`, `techniqueId`, `durationMinutes`, `occurredAt` e `status`
-  (ver `Consultation` no [`domain-model.md`](domain-model.md)). Redesenhar a tela sobre o
-  contrato real, com spec.
+- **Lançamento em lote no backend:** o "Finalizar" do carrinho faz um POST por item e
+  pode gravar só parte dele. Um endpoint de lote (tudo ou nada) resolveria; decisão a
+  tomar, com ADR.
+- **`providerId` na resposta do login:** hoje a tela de lançamento baixa o
+  `GET /api/providers` inteiro para achar o prestador do usuário logado.
+- **Inativar lançamento pela tela:** o `DELETE /api/consultations/{id}` existe, mas a tela
+  não lista os lançamentos gravados nem permite corrigir um errado.
 - **Tela de contratos no modelo antigo do contrato.** `ContractForm.jsx` e o mock de
   `contractApi.js` usam um preço único no cabeçalho (`groupPlanPriceId` /
   `groupPlanFrequencyPriceId`, campos que não existem na API). O `POST /api/contracts`

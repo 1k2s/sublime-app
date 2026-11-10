@@ -8,6 +8,7 @@ feature enquanto ela não está pronta.
 | Spec | Feature |
 |---|---|
 | [`prestadores-e-primeiro-acesso.md`](prestadores-e-primeiro-acesso.md) | cadastro de prestadores em wizard (`/providers`, só `ADMIN`) e troca obrigatória de senha provisória no primeiro acesso |
+| [`lancamento-de-atendimentos.md`](lancamento-de-atendimentos.md) | tela de lançamento (`/consultations`, só `PROVIDER`) ligada à API real: carrinho com um POST por item, escolha de contrato |
 
 ## O que uma spec tem
 
