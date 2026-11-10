@@ -52,8 +52,10 @@ paciente), `pricing` (busca de técnica e durações da tabela vigente).
   `createConsultation`. `useConsultations.js`: `useConsultations`, `useEligibleContracts`,
   `useCreateConsultations` (laço sequencial numa única `mutationFn`).
 - `consultation/consultationStatus.js`: os três status com rótulo.
-- `hooks/useConsultationCart.js`: item em edição, `addItem(payload, contract)`,
-  `applyResults(results)`.
+- `ConsultationForm`: React Hook Form + Zod (`consultationSchema`), como o `ContractForm`.
+  Chama `onAdd(values, clearDraft)`; a page resolve o contrato e limpa o formulário.
+- `ConsultationPage`: o carrinho é um `useState` (itens, adicionar, remover, resultado do
+  "Finalizar"), sem hook próprio.
 - Componentes: `ConsultationForm` (data, duração, status), `ContractChoiceModal` (novo),
   `ConsultationCart` (contrato no lugar do valor, erro por item), `ConsultationAgenda`
   (duração), `ConsultationTotal` (`payoutValue` dos ativos).

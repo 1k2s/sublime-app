@@ -359,7 +359,7 @@ Dentro de cada módulo, só as pastas que ele usa:
 | `components/` | peças do módulo; recebem dados por props |
 | `pages/` | telas inteiras, uma por rota; buscam dados pelos hooks e montam os componentes |
 | `schemas/` | schemas Zod dos formulários |
-| `hooks/` | estado de uma tela ou fluxo (ex: `useConsultationCart`) |
+| `hooks/` | estado de uma tela ou fluxo, quando não cabe na própria page (formulário fica no React Hook Form) |
 | `context/` | só no `auth` (sessão) |
 
 | Onde | O quê |
@@ -454,7 +454,7 @@ Regras:
 |---|---|---|
 | Vem da API | pacientes, contratos, preços, lançamentos | TanStack Query (hooks em `api/`) |
 | Global, que não vem de listagem | sessão do usuário | contexto, com o provider em `app/AppProviders.jsx` |
-| De uma tela ou fluxo | itens do lançamento em montagem | `useState` ou hook local (`hooks/`) |
+| De uma tela ou fluxo | itens do carrinho de lançamentos | `useState` na page ou hook local (`hooks/`) |
 
 - Dado do servidor nunca vai para contexto: o cache do TanStack Query já compartilha a mesma
   lista entre componentes.

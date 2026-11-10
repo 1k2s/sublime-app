@@ -194,6 +194,15 @@ Checklist da Fase 1 no front (herdado do guia original):
 - **Lançamento em lote no backend:** o "Finalizar" do carrinho faz um POST por item e
   pode gravar só parte dele. Um endpoint de lote (tudo ou nada) resolveria; decisão a
   tomar, com ADR.
+- **Cadastro de prestador em várias requisições:** o `providerApi.js`
+  (`createProviderWithUser`, `updateProviderWithUser`) encadeia `POST /users` +
+  `POST /providers` na criação e até três chamadas na edição (usuário, prestador,
+  ativar/inativar). Se a segunda falhar, fica um usuário sem prestador (e o e-mail já
+  cadastrado impede tentar de novo) ou uma edição pela metade. Mais grave que o lote do
+  lançamento: usuário e prestador são um cadastro só. Resolver no backend, com um
+  endpoint que grave os dois na mesma transação; decisão a tomar, com ADR. Quando sair,
+  o encadeamento deixa o `providerApi.js` (hoje fora da regra "uma função por endpoint"
+  do `architecture.md`).
 - **`providerId` na resposta do login:** hoje a tela de lançamento baixa o
   `GET /api/providers` inteiro para achar o prestador do usuário logado.
 - **Inativar lançamento pela tela:** o `DELETE /api/consultations/{id}` existe, mas a tela
