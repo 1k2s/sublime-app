@@ -1,4 +1,4 @@
-// Folha de agenda que mostra o lançamento sendo montado: paciente, técnica e horário, cada um com seu ícone
+// Folha de agenda que mostra o lançamento sendo montado: paciente, técnica e duração, cada um com seu ícone
 // Ocupa só a altura que o pai der: linhas de altura fixa e animações só de transform/opacity
 import { Activity, Check, User } from "lucide-react";
 import { TechniqueIcon } from "@/domain/pricing/components/TechniqueIcon";
@@ -12,9 +12,9 @@ function initials(name) {
   return `${parts[0][0]}${last}`.toUpperCase();
 }
 
-export function ConsultationAgenda({ patient, technique, arrivalTime, className }) {
-  const time = formatDate(arrivalTime, "HH:mm");
-  const [hours, minutes] = (time || "00:00").split(":").map(Number);
+export function ConsultationAgenda({ patient, technique, durationMinutes, occurredAt, className }) {
+  // O relógio mostra a duração como se fosse um horário (ex: 50 min -> ponteiro nos 50)
+  const totalMinutes = Number(durationMinutes) || 0;
 
   const rows = [
     {
@@ -34,9 +34,9 @@ export function ConsultationAgenda({ patient, technique, arrivalTime, className 
       icon: technique ? <TechniqueIcon key={technique.id} name={technique.name} /> : <Activity size={18} aria-hidden />,
     },
     {
-      label: "Horário de chegada",
-      value: time,
-      icon: <ClockIcon hours={hours} minutes={minutes} />,
+      label: "Duração",
+      value: totalMinutes > 0 ? `${totalMinutes} min` : "",
+      icon: <ClockIcon hours={Math.floor(totalMinutes / 60)} minutes={totalMinutes % 60} />,
     },
   ];
 
@@ -61,7 +61,7 @@ export function ConsultationAgenda({ patient, technique, arrivalTime, className 
       className={[styles["agenda"], isComplete && styles["agenda-complete"], className].filter(Boolean).join(" ")}
     >
       <div className={styles["agenda-header"]}>
-        <span className={styles["agenda-date"]}>{formatDate(arrivalTime || new Date(), "EEEE, d 'de' MMMM")}</span>
+        <span className={styles["agenda-date"]}>{formatDate(occurredAt || new Date(), "EEEE, d 'de' MMMM")}</span>
         <span className={styles["agenda-status"]}>
           <Check size={14} strokeWidth={3} aria-hidden />
           Pronto
