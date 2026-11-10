@@ -1,10 +1,12 @@
-// Barra com o total de repasse do dia: soma os lançamentos já registrados hoje, não o carrinho
+// Barra com o total de repasse do dia: soma o payoutValue (calculado pela API) dos lançamentos ativos de hoje,
+// não o carrinho. Inativos não contam no repasse
 import { formatCurrency, sumMoney } from "@/shared/utils/money";
 import styles from "./ConsultationTotal.module.css";
 
 export function ConsultationTotal({ className, consultations = [], isLoading = false }) {
-  const total = sumMoney(consultations.map((consultation) => consultation.providerPayoutValue));
-  const countLabel = consultations.length === 1 ? "1 atendimento" : `${consultations.length} atendimentos`;
+  const active = consultations.filter((consultation) => consultation.active);
+  const total = sumMoney(active.map((consultation) => consultation.payoutValue));
+  const countLabel = active.length === 1 ? "1 atendimento" : `${active.length} atendimentos`;
 
   return (
     <section className={[styles["total-bar"], className].filter(Boolean).join(" ")} aria-live="polite" aria-busy={isLoading}>
