@@ -64,8 +64,8 @@ export function ConsultationCart({
                 </span>
               ) : (
                 <span className={styles["cart-item-details"]}>
-                  {item.technique.name} · {item.payload.durationMinutes} min · {getStatusLabel(item.payload.status)} ·{" "}
-                  {formatDate(item.payload.occurredAt, "dd/MM")}
+                  {item.technique.name} · {item.durationMinutes} min · {getStatusLabel(item.status)} ·{" "}
+                  {formatDate(item.occurredAt, "dd/MM")}
                 </span>
               )}
             </div>

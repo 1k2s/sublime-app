@@ -29,12 +29,11 @@ function durationOptions(priceTable) {
 }
 
 // onAdd(values, clearDraft): a página resolve o contrato e chama clearDraft quando o item entra no carrinho
-export function ConsultationForm({ className, onAdd, isInCart, isAdding = false, isLocked = false }) {
+export function ConsultationForm({ className, onAdd, isAdding = false, isLocked = false }) {
   const {
     control,
     register,
     setValue,
-    setError,
     setFocus,
     reset,
     handleSubmit,
@@ -61,13 +60,7 @@ export function ConsultationForm({ className, onAdd, isInCart, isAdding = false,
   }
 
   // Limpa paciente, técnica e duração para o próximo; data e status ficam, para agilizar a sequência
-  const submit = handleSubmit((draft) => {
-    if (isInCart(draft)) {
-      setError("technique", { message: "Este paciente já está no carrinho com essa técnica nessa data" });
-      return;
-    }
-    onAdd(draft, () => reset(emptyDraft(draft.occurredAt, draft.status)));
-  });
+  const submit = handleSubmit((draft) => onAdd(draft, () => reset(emptyDraft(draft.occurredAt, draft.status))));
 
   // O Enter num <select> não envia o formulário no navegador: envia aqui, para o fluxo seguir só no teclado
   function handleKeyDown(event) {
