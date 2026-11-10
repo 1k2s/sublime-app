@@ -3,6 +3,7 @@ import {
   activateProvider,
   createProviderWithUser,
   deactivateProvider,
+  listProviders,
   listProvidersWithUsers,
   updateProviderWithUser,
 } from "./providerApi";
@@ -26,6 +27,17 @@ export function useProviders({ search = "", status = "ALL" } = {}) {
         return matchesName || matchesEmail;
       });
     },
+  });
+}
+
+// Prestador vinculado ao usuário logado (o vínculo é 1:1), ou undefined se não houver (ex: ADMIN).
+// Busca a lista inteira porque a API ainda não expõe o prestador por usuário (ver roadmap.md)
+export function useCurrentProvider(userId) {
+  return useQuery({
+    queryKey: ["providers", "by-user", userId],
+    queryFn: listProviders,
+    select: (providers) => providers.find((provider) => provider.userId === userId),
+    enabled: userId != null,
   });
 }
 
