@@ -1,11 +1,12 @@
-// Carrinho de lançamentos: itens adicionados e o botão que grava tudo
+// Carrinho de lançamentos: itens adicionados e o botão que grava tudo (um POST por item, ver useCreateConsultations).
+// Sem valor: o repasse só existe depois do lançamento. Item que falhou fica com a mensagem da API.
 // Mostra sempre CART_SLOTS vagas: as que sobram viram placeholders. Passando disso, só a lista rola
 import { useEffect, useRef } from "react";
 import { CircleCheck, Trash2 } from "lucide-react";
 import { Button } from "@/shared/ui/Button";
 import { Card } from "@/shared/ui/Card";
-import { formatDateTime } from "@/shared/utils/date";
-import { formatCurrency } from "@/shared/utils/money";
+import { formatDate } from "@/shared/utils/date";
+import { getStatusLabel } from "../consultationStatus";
 import styles from "./ConsultationCart.module.css";
 
 const CART_SLOTS = 7;
@@ -51,14 +52,24 @@ export function ConsultationCart({
     <Card title={`Carrinho (${items.length})`} className={[styles["cart-card"], className].filter(Boolean).join(" ")}>
       <ul ref={listRef} className={styles["cart-list"]}>
         {items.map((item) => (
-          <li key={item.key} className={`${styles["cart-slot"]} ${styles["cart-item"]}`}>
+          <li
+            key={item.key}
+            className={`${styles["cart-slot"]} ${styles["cart-item"]} ${item.error ? styles["cart-item-failed"] : ""}`}
+          >
             <div className={styles["cart-item-info"]}>
               <span className={styles["cart-item-name"]}>{item.patient.name}</span>
-              <span className={styles["cart-item-details"]}>
-                {item.technique.name} · {formatDateTime(item.arrivalTime)}
-              </span>
+              {item.error ? (
+                <span className={styles["cart-item-error"]} title={item.error} role="alert">
+                  {item.error}
+                </span>
+              ) : (
+                <span className={styles["cart-item-details"]}>
+                  {item.technique.name} · {item.payload.durationMinutes} min · {getStatusLabel(item.payload.status)} ·{" "}
+                  {formatDate(item.payload.occurredAt, "dd/MM")}
+                </span>
+              )}
             </div>
-            <span className={styles["cart-item-value"]}>{formatCurrency(item.providerPayoutValue)}</span>
+            <span className={styles["cart-item-contract"]}>{item.contract?.planName ?? "Avulso"}</span>
             <button
               type="button"
               className={styles["cart-item-remove"]}

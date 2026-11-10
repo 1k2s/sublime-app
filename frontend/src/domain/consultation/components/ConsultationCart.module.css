@@ -65,8 +65,25 @@
   white-space: nowrap;
 }
 
-.cart-item-value {
+.cart-item-failed {
+  border-color: var(--color-danger);
+  background: #fef3f2;
+}
+
+.cart-item-error {
+  overflow: hidden;
+  font-size: 13px;
+  color: var(--color-danger);
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.cart-item-contract {
+  max-width: 35%;
+  overflow: hidden;
+  font-size: 13px;
   font-weight: 600;
+  text-overflow: ellipsis;
   white-space: nowrap;
 }
 
