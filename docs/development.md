@@ -324,11 +324,22 @@ Não são do código:
   Depois da mudança para o monorepo, se a extensão continuar procurando o
   `pom.xml` na raiz (ou recriar uma pasta `target/` vazia na raiz), use
   **Ctrl+Shift+P → "Java: Clean Java Language Server Workspace"**.
-- **Sem acesso ao Maven Central e ao GitHub por HTTPS** (erro de certificado
-  PKIX/SSL, provável proxy da rede): só o cache local do Maven funciona (plugins
-  novos não baixam) e o `git push` pode falhar. Tentar outra rede ou
-  `git config --global http.sslBackend schannel`. **Nunca desligar a verificação
-  SSL.**
+- **Erro de certificado no Maven ou no Git** ("PKIX path building failed",
+  "certificate_unknown"): só o cache local do Maven funciona (dependências e plugins novos
+  não baixam) e o `git fetch`/`push` pode falhar. **Causa** (confirmada em 2026-11-07): um
+  antivírus com inspeção de HTTPS (ex: **Avast Web/Mail Shield**) ou um firewall da rede
+  reassina as conexões com um certificado próprio, que o Windows conhece e o Java e o Git
+  não. Para confirmar, o emissor mostra quem assinou:
+  `echo | openssl s_client -connect repo.maven.apache.org:443 2>/dev/null | openssl x509 -noout -issuer`
+  (aparece o antivírus no lugar de uma autoridade pública). **Solução**, usando os
+  certificados do Windows, só na sua máquina:
+  - Maven: a variável de ambiente do usuário `MAVEN_OPTS=-Djavax.net.ssl.trustStoreType=Windows-ROOT`
+    (`[Environment]::SetEnvironmentVariable('MAVEN_OPTS', '-Djavax.net.ssl.trustStoreType=Windows-ROOT', 'User')`
+    no PowerShell; reabra o VS Code e os terminais). Não versionar: o `Windows-ROOT` só existe
+    no Windows e quebraria o build no Linux e no CI.
+  - Git: `git config --global http.sslBackend schannel`.
+
+  **Nunca desligar a verificação SSL** (nem a do antivírus).
 - **Arquivos que voltaram sozinhos para versões antigas** (já aconteceu com
   `TechniqueController` e `domain-model.md`): suspeita de OneDrive sincronizando a
   Área de Trabalho ou de aba antiga do VS Code salva por cima.
