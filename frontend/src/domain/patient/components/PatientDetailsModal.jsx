@@ -21,7 +21,6 @@ import styles from "@/domain/patient/components/PatientDetailsModal.module.css";
 
 export function PatientDetailsModal({
   patient,
-  isAdmin = false,
   isTogglingStatus = false,
   onClose,
   onEdit,
@@ -42,7 +41,7 @@ export function PatientDetailsModal({
   const footer = (
     <div className={styles.footer}>
       <div>
-        {isAdmin && onToggleStatus && !showConfirm && (
+        {onToggleStatus && !showConfirm && (
           isActive ? (
             <Button
               variant="danger"
@@ -70,7 +69,7 @@ export function PatientDetailsModal({
           Fechar
         </Button>
 
-        {isAdmin && onEdit && !showConfirm && (
+        {onEdit && !showConfirm && (
           <Button onClick={() => onEdit(patient)}>
             <Pencil size={16} /> Editar cadastro
           </Button>

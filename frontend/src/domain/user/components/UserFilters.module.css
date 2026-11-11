@@ -1,0 +1,15 @@
+.container {
+  display: flex;
+  align-items: center;
+  flex-wrap: wrap;
+  gap: 16px;
+  margin-bottom: 24px;
+}
+
+.searchWrapper {
+  width: 320px;
+}
+
+.roleWrapper {
+  width: 200px;
+}

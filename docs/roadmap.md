@@ -92,8 +92,8 @@ feature em andamento fica na spec dela, em [`specs/`](specs/).
      **vinculando um usuário já existente** (o `POST /api/providers` já recebe o
      `userId`). A tela de Usuários também inativa e reativa acessos, e usa o
      `defaultAdmin` da resposta para esconder "Inativar" e a troca de perfil do admin
-     padrão. O wizard de Prestadores atual cria o usuário na etapa "Conta de acesso" e
-     precisa ser ajustado a esse fluxo.
+     padrão. **A tela de Usuários está pronta** (2026-11-11). O wizard de Prestadores atual
+     cria o usuário na etapa "Conta de acesso" e precisa ser ajustado a esse fluxo.
    - **Redesenho do lançamento:** usa o `GET /api/consultations/patients` para escolher o
      paciente, esconde o prestador para o `PROVIDER` (vem do login) e mostra o valor só
      depois de lançar (sem prévia de preço).
@@ -183,9 +183,16 @@ chamadas batem com a API real ainda não foram conferidos.**
 | `consultation` | tela de lançamento (formulário, agenda, carrinho, total). `consultationApi.js` com trechos mockados |
 | `contract` | tela de contratos (filtros, tabela, formulário com seleção de paciente e preço, resumo), com fallback mockado no `contractApi.js`. **Envio no modelo antigo do contrato** (ver "Pendências") |
 | `provider` | tela de Prestadores (`/providers`, só `ADMIN`; PR #38): listagem, detalhes e cadastro/edição em wizard de 3 etapas. **Cria o usuário junto** (etapa "Conta de acesso"): a ajustar ao fluxo de telas separadas (ver "Próximos passos") |
-| `user` | tela de Configurações (`/settings`, os dois perfis): troca do e-mail e da senha com a senha atual; camada `api/` (usuários e `/me`). Sem a tela de Usuários |
+| `user` | tela de Configurações (`/settings`, os dois perfis): troca do e-mail e da senha com a senha atual; camada `api/` (usuários e `/me`). **Tela de Usuários** (`/users`, só `ADMIN`; 2026-11-10): listagem com busca e filtros, cadastro e alteração com senha provisória, inativar e reativar, admin padrão protegido. Ligada à API e **testada pela tela** (2026-11-11) |
 | `app/`, `shared/` | layout com menu lateral, router com rotas `lazy`, `apiClient`, utilitários (`money`, `date`, `masks`, `alert`, `viacep`) e componentes de `shared/components/` |
 
+- **Telas de listagem padronizadas** (2026-11-11): Usuários, Pacientes, Prestadores e
+  Contratos seguem o mesmo padrão (filtro na page, modal pelo `id`, permissão só no router,
+  `ListMessage` com os quatro estados, um hook por endpoint para inativar e reativar). Ver
+  "Telas de listagem" no [`architecture.md`](architecture.md). **Teste manual pela tela**
+  (2026-11-11), depois da padronização: filtros, inativar e reativar com o modal aberto,
+  mensagens da tabela, cadastro e edição nas quatro telas, busca de paciente no contrato e
+  no lançamento, e Configurações; tudo funcionou como esperado.
 - **`npm run build` funciona** desde a atualização de 2026-11-05 (as correções do PR #13
   do repositório antigo resolveram os arquivos cortados). `npm run lint`: sem erros e sem
   avisos (2026-11-07).
@@ -200,8 +207,8 @@ chamadas batem com a API real ainda não foram conferidos.**
 2. **Trocar os mocks pelas chamadas reais** onde o backend já tem o endpoint (`contract`,
    `consultation`).
 3. **Telas que faltam**, na ordem de cadastro (cada uma depende dos dados da anterior):
-   tela de Usuários e ajuste da de Prestadores ao fluxo de telas separadas → ajuste dos
-   contratos ao contrato real → lançamento ligado à API real (decisões nos
+   ajuste da tela de Prestadores ao fluxo de telas separadas (a de Usuários está pronta),
+   já com os erros por campo da API → ajuste dos contratos ao contrato real → lançamento ligado à API real (decisões nos
    [Próximos passos](#próximos-passos) do projeto). Cada tela começa com uma spec em
    [`specs/`](specs/README.md).
 
@@ -219,9 +226,29 @@ Checklist da Fase 1 no front (herdado do guia original):
 
 - **7 vulnerabilidades nas dependências** (4 moderadas, 3 altas), acusadas pelo `npm ci`
   em 2026-11-06: avaliar com `npm audit` e atualizar o que for seguro.
-- **Erros por campo da API não chegam ao formulário:** o `apiClient` só lê o `detail`, e
-  nenhum componente lê o `errors` do `ProblemDetail`. Um 400 de validação do DTO aparece só
-  como "Campos da requisição inválidos." no alerta.
+- **Erros por campo da API em dois formulários:** Pacientes e Usuários já marcam o `errors`
+  do `ProblemDetail` nos campos (`applyApiFieldErrors`; ver "Camada `api/`" no
+  [`architecture.md`](architecture.md)). Faltam o wizard de Prestadores e o formulário de
+  Contratos, que serão refeitos (vincular usuário existente; contrato real): aplicar junto
+  com essas mudanças. Até lá, um 400 de validação aparece só no alerta.
+- **Regra de negócio no front** (levantado em 2026-11-11; o backend é a fonte da verdade,
+  princípio 1 da seção "Frontend" do [`architecture.md`](architecture.md)):
+  - **Total de repasse do dia calculado no front:** o `ConsultationTotal.jsx` soma o
+    `providerPayoutValue` dos lançamentos do dia (`sumMoney`). Decidir o que entra na soma
+    (inativos, status, por qual data) é regra, e é a mesma pergunta em aberto do dashboard
+    do prestador. Trocar por um total devolvido pelo backend, junto com o dashboard. Hoje
+    soma dados mockados.
+  - **Prévia do valor antes de lançar:** o `previewConsultation` (`consultationApi.js`,
+    mockado) mostra o valor e o repasse antes do lançamento, o que contradiz a decisão "sem
+    prévia de preço: o valor aparece só depois de lançar". Os endpoints previstos no
+    comentário (`/consultations/preview`, `/consultations/batch`) não existem. Resolver no
+    redesenho do lançamento.
+  - **Percentuais padrão fixos no front:** o `mapProviderViewModel` (`providerApi.js`) usa
+    `"40"` e `"45"` como reserva, que são as constantes do `ProviderEntity` no backend. Usar
+    só o que a API devolve (ela sempre devolve os dois percentuais).
+  - **Invariante do `Provider` no Zod:** o `providerSchema` confere "comissão por indicação
+    maior ou igual à padrão", que é regra de negócio (o backend responde 400), não formato.
+    Tirar do schema.
 - **Tela de lançamento planejada em conflito com a API.** O guia original dizia que o
   front envia só `patientId` e `arrivalTime` e que o prestador vem do login. O
   `POST /api/consultations` espera `patientId`, `contractId` (escolhido entre os
@@ -240,9 +267,6 @@ Checklist da Fase 1 no front (herdado do guia original):
 - **Mensagem de erro da API no `PriceFormModal`:** ele lê `error.response.data.message`,
   campo que o `ProblemDetail` não tem, e sempre cai na mensagem própria. Trocar por
   `error.message`, que o interceptor do `apiClient` já preenche com o `detail` da API.
-- **Inativar ou reativar prestador sem bloqueio durante a requisição:** o `ProviderPage` não
-  passa ao modal o estado da mutation, então um clique duplo envia a requisição duas vezes
-  (a segunda volta 409).
 - **Fora das convenções** da seção "Frontend" do [`architecture.md`](architecture.md):
   `PageLoader` e `RouteError` com estilo inline.
 - **`frontend/.env` versionado:** hoje só tem `VITE_API_URL` (sem segredo). Avaliar trocar

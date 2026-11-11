@@ -2,6 +2,7 @@
 import { useEffect, useId, useState } from "react";
 import { Search } from "lucide-react";
 import { usePatients } from "@/domain/patient/api/usePatients";
+import { filterPatients } from "@/domain/patient/filterPatients";
 import { Input } from "@/shared/components/Input";
 import { maskCpf } from "@/shared/utils/masks";
 import styles from "@/domain/patient/components/PatientSearchInput.module.css";
@@ -21,7 +22,8 @@ export function PatientSearchInput({ id, onSelect, invalid = false, autoFocus = 
   }, [text]);
 
   const enabled = search.length >= MIN_SEARCH_LENGTH;
-  const { data: patients = [], isLoading, isError } = usePatients({ search, status: "ACTIVE" }, { enabled });
+  const { data: allPatients = [], isLoading, isError } = usePatients({ enabled });
+  const patients = enabled ? filterPatients(allPatients, { search, status: "ACTIVE" }) : [];
   const showResults = enabled && patients.length > 0;
   const activeIndex = Math.min(highlighted, patients.length - 1);
 

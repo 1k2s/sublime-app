@@ -1,8 +1,6 @@
 // Página de gerenciamento de pacientes (/patients)
-import { useState, useTransition } from "react";
+import { useState } from "react";
 import { Plus } from "lucide-react";
-import { useAuth } from "@/domain/auth/context/useAuth";
-import { ROLES } from "@/domain/auth/roles";
 import {
   useActivatePatient,
   useCreatePatient,
@@ -14,86 +12,53 @@ import { PatientDetailsModal } from "@/domain/patient/components/PatientDetailsM
 import { PatientFilters } from "@/domain/patient/components/PatientFilters";
 import { PatientTable } from "@/domain/patient/components/PatientTable";
 import { PatientWizard } from "@/domain/patient/components/wizard/PatientWizard";
+import { filterPatients } from "@/domain/patient/filterPatients";
 import { Button } from "@/shared/components/Button";
 import { PageHeader } from "@/shared/components/PageHeader";
 import { showError } from "@/shared/utils/alert";
 import styles from "@/domain/patient/pages/PatientPage.module.css";
 
 export function PatientPage() {
-  const { user } = useAuth();
-  const isAdmin = user?.role === ROLES.ADMIN.value;
-
   const [view, setView] = useState("list");
   const [search, setSearch] = useState("");
   const [status, setStatus] = useState("ACTIVE");
-  const [selectedPatient, setSelectedPatient] = useState(null);
+  const [selectedPatientId, setSelectedPatientId] = useState(null);
   const [editingPatient, setEditingPatient] = useState(null);
-  const [, startTransition] = useTransition();
 
-  const { data: patients = [], isLoading } = usePatients({ search, status });
+  const { data: patients = [], isLoading, isError } = usePatients();
   const createPatientMutation = useCreatePatient();
   const updatePatientMutation = useUpdatePatient();
   const deactivatePatientMutation = useDeactivatePatient();
   const activatePatientMutation = useActivatePatient();
 
-  const isFormMode = (view === "create" || view === "edit") && isAdmin;
+  const visiblePatients = filterPatients(patients, { search, status });
+  // Lido da lista inteira: depois de inativar ou reativar, o modal mostra o estado novo
+  const selectedPatient = patients.find((patient) => patient.id === selectedPatientId) ?? null;
+  const isFormMode = view === "create" || view === "edit";
   const isEditing = view === "edit";
   const isSubmitting = createPatientMutation.isPending || updatePatientMutation.isPending;
   const isTogglingStatus =
     deactivatePatientMutation.isPending || activatePatientMutation.isPending;
 
-  // Mantém o modal sincronizado caso a lista de pacientes seja atualizada
-  const currentSelectedPatient = selectedPatient
-    ? patients.find((p) => p.id === selectedPatient.id) ?? selectedPatient
-    : null;
-
   function handleToggleStatus(patient) {
-    if (patient.active) {
-      deactivatePatientMutation.mutate(patient.id, {
-        onSuccess: () =>
-          setSelectedPatient((prev) => (prev ? { ...prev, active: false } : null)),
-        onError: (error) => showError(error.message),
-      });
-    } else {
-      activatePatientMutation.mutate(patient.id, {
-        onSuccess: () =>
-          setSelectedPatient((prev) => (prev ? { ...prev, active: true } : null)),
-        onError: (error) => showError(error.message),
-      });
-    }
+    const mutation = patient.active ? deactivatePatientMutation : activatePatientMutation;
+    mutation.mutate(patient.id, { onError: (error) => showError(error.message) });
   }
 
   function handleSavePatient(payload, { applyApiErrors }) {
+    const options = {
+      onSuccess: handleBackToList,
+      onError: (error) => {
+        applyApiErrors?.(error);
+        showError(error.message);
+      },
+    };
+
     if (isEditing && editingPatient) {
-      updatePatientMutation.mutate(
-        { id: editingPatient.id, data: payload },
-        {
-          onSuccess: handleBackToList,
-          onError: (error) => {
-            applyApiErrors?.(error.response?.data?.errors);
-            showError(error.message);
-          },
-        }
-      );
+      updatePatientMutation.mutate({ id: editingPatient.id, data: payload }, options);
     } else {
-      createPatientMutation.mutate(payload, {
-        onSuccess: handleBackToList,
-        onError: (error) => {
-          applyApiErrors?.(error.response?.data?.errors);
-          showError(error.message);
-        },
-      });
+      createPatientMutation.mutate(payload, options);
     }
-  }
-
-  function handleSearchChange(val) {
-    startTransition(() => {
-      setSearch(val);
-    });
-  }
-
-  function handleStatusChange(val) {
-    setStatus(val);
   }
 
   function handleStartCreate() {
@@ -102,7 +67,7 @@ export function PatientPage() {
   }
 
   function handleStartEdit(patient) {
-    setSelectedPatient(null);
+    setSelectedPatientId(null);
     setEditingPatient(patient);
     setView("edit");
   }
@@ -121,33 +86,31 @@ export function PatientPage() {
             title="Pacientes"
             description="Gerencie o cadastro de pacientes da clínica."
             action={
-              isAdmin ? (
-                <Button onClick={handleStartCreate}>
-                  <Plus size={18} /> Novo paciente
-                </Button>
-              ) : null
+              <Button onClick={handleStartCreate}>
+                <Plus size={18} /> Novo paciente
+              </Button>
             }
           />
 
           <PatientFilters
             search={search}
-            onSearchChange={handleSearchChange}
+            onSearchChange={setSearch}
             status={status}
-            onStatusChange={handleStatusChange}
+            onStatusChange={setStatus}
           />
 
           <PatientTable
-            patients={patients}
+            patients={visiblePatients}
             isLoading={isLoading}
-            isAdmin={isAdmin}
-            onViewDetails={(patient) => setSelectedPatient(patient)}
+            isError={isError}
+            hasRecords={patients.length > 0}
+            onViewDetails={(patient) => setSelectedPatientId(patient.id)}
           />
 
           <PatientDetailsModal
-            patient={currentSelectedPatient}
-            isAdmin={isAdmin}
+            patient={selectedPatient}
             isTogglingStatus={isTogglingStatus}
-            onClose={() => setSelectedPatient(null)}
+            onClose={() => setSelectedPatientId(null)}
             onEdit={handleStartEdit}
             onToggleStatus={handleToggleStatus}
           />

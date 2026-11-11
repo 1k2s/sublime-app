@@ -10,6 +10,7 @@ import { fullPatientSchema, toPatientPayload } from "@/domain/patient/schemas/pa
 import { useProviders } from "@/domain/provider/api/useProviders";
 import { Card } from "@/shared/components/Card";
 import { Stepper } from "@/shared/components/Stepper";
+import { applyApiFieldErrors } from "@/shared/http/apiFieldErrors";
 import { formatDate } from "@/shared/utils/date";
 import { maskCep, maskCpf, maskPhone } from "@/shared/utils/masks";
 import styles from "@/domain/patient/components/wizard/PatientWizard.module.css";
@@ -110,22 +111,13 @@ export function PatientWizard({
     }
   }
 
-  function applyApiErrors(apiErrors) {
-    if (!apiErrors || typeof apiErrors !== "object") return;
-
-    let targetStep = null;
-    for (const [rawField, message] of Object.entries(apiErrors)) {
-      const field = normalizeApiFieldName(rawField);
-      setError(field, { type: "server", message });
-      if (STEP_1_FIELDS.has(field)) {
-        targetStep = 1;
-      } else if (STEP_2_FIELDS.has(field) && targetStep !== 1) {
-        targetStep = 2;
-      }
-    }
-
-    if (targetStep) {
-      setCurrentStep(targetStep);
+  // Erro da API: a page chama no onError. Marca os campos e volta para a primeira etapa com erro
+  function applyApiErrors(error) {
+    const fields = applyApiFieldErrors(error, setError, normalizeApiFieldName);
+    if (fields.some((field) => STEP_1_FIELDS.has(field))) {
+      setCurrentStep(1);
+    } else if (fields.some((field) => STEP_2_FIELDS.has(field))) {
+      setCurrentStep(2);
     }
   }
 

@@ -1,7 +1,5 @@
 import { useState } from "react";
 import { Plus } from "lucide-react";
-import { useAuth } from "@/domain/auth/context/useAuth";
-import { ROLES } from "@/domain/auth/roles";
 import { PageHeader } from "@/shared/components/PageHeader";
 import { Button } from "@/shared/components/Button";
 import { showError } from "@/shared/utils/alert";
@@ -9,19 +7,17 @@ import { useContracts, useCreateContract } from "../api/useContracts";
 import { ContractFilters } from "../components/ContractFilters";
 import { ContractForm } from "../components/ContractForm";
 import { ContractTable } from "../components/ContractTable";
+import { filterContracts } from "../filterContracts";
 import styles from "./ContractPage.module.css";
 
 export function ContractPage() {
-  const { user } = useAuth();
-  const isAdmin = user?.role === ROLES.ADMIN.value;
-
   const [view, setView] = useState("list");
   const [search, setSearch] = useState("");
   const [status, setStatus] = useState("ACTIVE");
 
-  const { data: contracts = [], isLoading, isError } = useContracts({ search, status });
+  const { data: contracts = [], isLoading, isError } = useContracts();
   const createContract = useCreateContract();
-  const isFiltered = search.trim() !== "" || status !== "ALL";
+  const visibleContracts = filterContracts(contracts, { search, status });
 
   function handleCreate(contract) {
     createContract.mutate(contract, {
@@ -30,7 +26,7 @@ export function ContractPage() {
     });
   }
 
-  if (view === "create" && isAdmin) {
+  if (view === "create") {
     return (
       <div className={styles["page-create"]}>
         <PageHeader title="Novo contrato" description="Vincule paciente, plano e técnica para emitir um novo contrato." />
@@ -49,17 +45,20 @@ export function ContractPage() {
         title="Contratos"
         description="Contratos vigentes e histórico de vigência dos pacientes."
         action={
-          isAdmin && (
-            <Button onClick={() => setView("create")}>
-              <Plus size={18} /> Novo contrato
-            </Button>
-          )
+          <Button onClick={() => setView("create")}>
+            <Plus size={18} /> Novo contrato
+          </Button>
         }
       />
 
       <ContractFilters search={search} onSearchChange={setSearch} status={status} onStatusChange={setStatus} />
 
-      <ContractTable contracts={contracts} isLoading={isLoading} isError={isError} isFiltered={isFiltered} />
+      <ContractTable
+        contracts={visibleContracts}
+        isLoading={isLoading}
+        isError={isError}
+        hasRecords={contracts.length > 0}
+      />
     </div>
   );
 }

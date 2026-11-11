@@ -100,19 +100,3 @@
   opacity: 0.5;
 }
 
-.table-message {
-  padding: 48px;
-  text-align: center;
-}
-
-.table-message-title {
-  margin: 0 0 6px;
-  color: #374151;
-  font-size: 16px;
-  font-weight: 600;
-}
-
-.table-message-text {
-  color: #6b7280;
-  font-size: 14px;
-}

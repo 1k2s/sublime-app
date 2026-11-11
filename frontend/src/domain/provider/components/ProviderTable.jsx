@@ -1,8 +1,17 @@
 import { Pencil } from "lucide-react";
 import { Card } from "@/shared/components/Card";
 import { Badge } from "@/shared/components/Badge";
+import { ListMessage } from "@/shared/components/ListMessage";
 import { ROLES } from "@/domain/auth/roles";
 import styles from "./ProviderTable.module.css";
+
+const MESSAGES = {
+  loading: "Carregando prestadores...",
+  error: "Não foi possível carregar os prestadores",
+  filtered: "Nenhum prestador encontrado",
+  empty: "Nenhum prestador cadastrado",
+  emptyHint: "Clique em Novo prestador para começar.",
+};
 
 function getInitials(name = "") {
   const parts = name.trim().split(/\s+/).filter(Boolean);
@@ -18,25 +27,12 @@ function getRoleLabel(roleValue) {
 export function ProviderTable({
   providers = [],
   isLoading = false,
+  isError = false,
+  hasRecords = false,
   onViewDetails,
 }) {
-  if (isLoading) {
-    return (
-      <Card className={styles.loadingCard}>
-        <span className={styles.emptyText}>Carregando prestadores...</span>
-      </Card>
-    );
-  }
-
-  if (providers.length === 0) {
-    return (
-      <Card className={styles.emptyCard}>
-        <p className={styles.emptyTitle}>Nenhum prestador encontrado</p>
-        <span className={styles.emptyText}>
-          Tente ajustar os filtros ou cadastrar um novo prestador.
-        </span>
-      </Card>
-    );
+  if (isLoading || isError || providers.length === 0) {
+    return <ListMessage isLoading={isLoading} isError={isError} hasRecords={hasRecords} messages={MESSAGES} />;
   }
 
   return (

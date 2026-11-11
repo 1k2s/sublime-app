@@ -7,25 +7,12 @@ import {
   updateProviderWithUser,
 } from "./providerApi";
 
-export function useProviders({ search = "", status = "ALL" } = {}) {
+// A lista inteira, numa requisição só (cache ["providers"]). Quem lista filtra com o
+// filterProviders: a lista inteira continua disponível (ex: o modal lê o prestador dela)
+export function useProviders() {
   return useQuery({
     queryKey: ["providers"],
     queryFn: listProvidersWithUsers,
-    select: (providers) => {
-      const normalizedSearch = search.trim().toLowerCase();
-
-      return providers.filter((provider) => {
-        const matchesStatus =
-          !status || status === "ALL" ? true : provider.status === status;
-
-        if (!matchesStatus) return false;
-        if (!normalizedSearch) return true;
-
-        const matchesName = provider.name?.toLowerCase().includes(normalizedSearch);
-        const matchesEmail = provider.email?.toLowerCase().includes(normalizedSearch);
-        return matchesName || matchesEmail;
-      });
-    },
   });
 }
 
@@ -53,17 +40,23 @@ export function useUpdateProvider() {
   });
 }
 
-export function useToggleProviderStatus() {
+// Um hook por endpoint (DELETE e PATCH .../activate), como em pacientes e usuários
+export function useDeactivateProvider() {
   const queryClient = useQueryClient();
 
   return useMutation({
-    mutationFn: async ({ provider, nextStatus }) => {
-      if (nextStatus === "INACTIVE") {
-        await deactivateProvider(provider.id);
-      } else {
-        await activateProvider(provider.id);
-      }
+    mutationFn: deactivateProvider,
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ["providers"] });
     },
+  });
+}
+
+export function useActivateProvider() {
+  const queryClient = useQueryClient();
+
+  return useMutation({
+    mutationFn: activateProvider,
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ["providers"] });
     },

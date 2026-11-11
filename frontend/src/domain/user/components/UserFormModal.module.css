@@ -1,0 +1,17 @@
+.form {
+  display: flex;
+  flex-direction: column;
+  gap: 16px;
+}
+
+.hint {
+  margin: 0;
+  font-size: 13px;
+  color: var(--color-muted);
+}
+
+.actions {
+  display: flex;
+  justify-content: flex-end;
+  gap: 12px;
+}

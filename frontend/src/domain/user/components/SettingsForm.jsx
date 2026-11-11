@@ -39,6 +39,16 @@ export function SettingsForm({ defaultEmail, onSubmit, isSubmitting = false }) {
         />
       </FormField>
 
+      <FormField label="Senha atual" htmlFor="settings-current-password" error={errors.currentPassword?.message}>
+        <Input
+          id="settings-current-password"
+          type="password"
+          autoComplete="current-password"
+          invalid={Boolean(errors.currentPassword)}
+          {...register("currentPassword")}
+        />
+      </FormField>
+
       <FormField label="Nova senha (deixe em branco para manter a atual)" htmlFor="settings-new-password" error={errors.newPassword?.message}>
         <Input
           id="settings-new-password"
@@ -56,16 +66,6 @@ export function SettingsForm({ defaultEmail, onSubmit, isSubmitting = false }) {
           autoComplete="new-password"
           invalid={Boolean(errors.confirmNewPassword)}
           {...register("confirmNewPassword")}
-        />
-      </FormField>
-
-      <FormField label="Senha atual" htmlFor="settings-current-password" error={errors.currentPassword?.message}>
-        <Input
-          id="settings-current-password"
-          type="password"
-          autoComplete="current-password"
-          invalid={Boolean(errors.currentPassword)}
-          {...register("currentPassword")}
         />
       </FormField>
 
