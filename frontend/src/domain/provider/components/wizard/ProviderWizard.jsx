@@ -1,8 +1,8 @@
 import { useState } from "react";
 import { useForm, useWatch } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
-import { Stepper } from "@/shared/ui/Stepper";
-import { Card } from "@/shared/ui/Card";
+import { Stepper } from "@/shared/components/Stepper";
+import { Card } from "@/shared/components/Card";
 import { showError } from "@/shared/utils/alert";
 import { createProviderSchema } from "../../schemas/providerSchema";
 import { useCreateProvider, useUpdateProvider } from "../../api/useProviders";

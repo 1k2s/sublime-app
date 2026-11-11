@@ -1,8 +1,8 @@
 // Tabela de preços vigentes, filtrada por grupo de preço
 import { useState } from "react";
 import { Plus } from "lucide-react";
-import { Button } from "@/shared/ui/Button";
-import { PageHeader } from "@/shared/ui/PageHeader";
+import { Button } from "@/shared/components/Button";
+import { PageHeader } from "@/shared/components/PageHeader";
 import { PriceFormModal } from "../components/PriceFormModal";
 import { PriceTable } from "../components/PriceTable";
 import { usePlans, usePricingGroups, useTechniquePrices, useTechniques } from "../api/usePricing";

@@ -1,11 +1,11 @@
 import { useForm } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
 import { getRole, ROLES } from "@/domain/auth/roles";
-import { Button } from "@/shared/ui/Button";
-import { FormField } from "@/shared/ui/FormField";
-import { Input } from "@/shared/ui/Input";
-import { Modal } from "@/shared/ui/Modal";
-import { Select } from "@/shared/ui/Select";
+import { Button } from "@/shared/components/Button";
+import { FormField } from "@/shared/components/FormField";
+import { Input } from "@/shared/components/Input";
+import { Modal } from "@/shared/components/Modal";
+import { Select } from "@/shared/components/Select";
 import { createUserSchema, updateUserSchema } from "../schemas/userSchema";
 import styles from "./UserFormModal.module.css";
 

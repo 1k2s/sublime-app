@@ -8,8 +8,8 @@ import { PatientPreviewCard } from "@/domain/patient/components/wizard/PatientPr
 import { PersonalDataStep } from "@/domain/patient/components/wizard/PersonalDataStep";
 import { fullPatientSchema, toPatientPayload } from "@/domain/patient/schemas/patientSchema";
 import { useProviders } from "@/domain/provider/api/useProviders";
-import { Card } from "@/shared/ui/Card";
-import { Stepper } from "@/shared/ui/Stepper";
+import { Card } from "@/shared/components/Card";
+import { Stepper } from "@/shared/components/Stepper";
 import { formatDate } from "@/shared/utils/date";
 import { maskCep, maskCpf, maskPhone } from "@/shared/utils/masks";
 import styles from "@/domain/patient/components/wizard/PatientWizard.module.css";

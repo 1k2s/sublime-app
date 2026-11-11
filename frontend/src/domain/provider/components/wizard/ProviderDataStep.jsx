@@ -1,7 +1,7 @@
 import { User, Percent, Info, ArrowRight } from "lucide-react";
-import { FormField } from "@/shared/ui/FormField";
-import { Input } from "@/shared/ui/Input";
-import { Button } from "@/shared/ui/Button";
+import { FormField } from "@/shared/components/FormField";
+import { Input } from "@/shared/components/Input";
+import { Button } from "@/shared/components/Button";
 import styles from "./ProviderWizard.module.css";
 
 export function ProviderDataStep({ register, errors, onCancel, onNext }) {

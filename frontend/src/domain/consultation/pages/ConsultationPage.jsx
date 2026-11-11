@@ -1,6 +1,6 @@
 // Lançamento do prestador: vai adicionando pacientes ao carrinho só com o Enter e grava tudo de uma vez
 import { useState } from "react";
-import { PageHeader } from "@/shared/ui/PageHeader";
+import { PageHeader } from "@/shared/components/PageHeader";
 import { showError } from "@/shared/utils/alert";
 import { toDateInputValue } from "@/shared/utils/date";
 import { useConsultations, useCreateConsultations, usePreviewConsultation } from "../api/useConsultations";

@@ -1,8 +1,8 @@
 import { KeyRound, Mail, ShieldCheck, ArrowLeft, ArrowRight } from "lucide-react";
-import { FormField } from "@/shared/ui/FormField";
-import { Input } from "@/shared/ui/Input";
-import { Select } from "@/shared/ui/Select";
-import { Button } from "@/shared/ui/Button";
+import { FormField } from "@/shared/components/FormField";
+import { Input } from "@/shared/components/Input";
+import { Select } from "@/shared/components/Select";
+import { Button } from "@/shared/components/Button";
 import styles from "./ProviderWizard.module.css";
 
 export function ProviderAccessStep({

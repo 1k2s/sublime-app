@@ -2,7 +2,7 @@
 import { useEffect, useId, useState } from "react";
 import { Search } from "lucide-react";
 import { usePatients } from "@/domain/patient/api/usePatients";
-import { Input } from "@/shared/ui/Input";
+import { Input } from "@/shared/components/Input";
 import { maskCpf } from "@/shared/utils/masks";
 import styles from "@/domain/patient/components/PatientSearchInput.module.css";
 

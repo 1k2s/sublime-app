@@ -1,7 +1,7 @@
 import { Search } from "lucide-react";
 import { ROLES } from "@/domain/auth/roles";
-import { Input } from "@/shared/ui/Input";
-import { Select } from "@/shared/ui/Select";
+import { Input } from "@/shared/components/Input";
+import { Select } from "@/shared/components/Select";
 import styles from "./UserFilters.module.css";
 
 const STATUS_OPTIONS = [

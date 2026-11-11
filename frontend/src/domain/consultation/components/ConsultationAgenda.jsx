@@ -2,7 +2,7 @@
 // Ocupa só a altura que o pai der: linhas de altura fixa e animações só de transform/opacity
 import { Activity, Check, User } from "lucide-react";
 import { TechniqueIcon } from "@/domain/pricing/components/TechniqueIcon";
-import { ClockIcon } from "@/shared/ui/ClockIcon";
+import { ClockIcon } from "@/domain/consultation/components/ClockIcon";
 import { formatDate } from "@/shared/utils/date";
 import styles from "./ConsultationAgenda.module.css";
 

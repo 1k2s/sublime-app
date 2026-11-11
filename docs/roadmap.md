@@ -185,7 +185,7 @@ chamadas batem com a API real ainda não foram conferidos.**
 | `contract` | tela de contratos (filtros, tabela, formulário com seleção de paciente e preço, resumo), com fallback mockado no `contractApi.js`. **Envio no modelo antigo do contrato** (ver "Pendências") |
 | `provider` | tela de Prestadores (`/providers`, só `ADMIN`; PR #38): listagem, detalhes e cadastro/edição em wizard de 3 etapas. **Cria o usuário junto** (etapa "Conta de acesso"): a ajustar ao fluxo de telas separadas (ver "Próximos passos") |
 | `user` | tela de Configurações (`/settings`, os dois perfis): troca do e-mail e da senha com a senha atual; camada `api/` (usuários e `/me`). **Tela de Usuários** (`/users`, só `ADMIN`; 2026-11-10): listagem com busca e filtros, cadastro e alteração com senha provisória, inativar e reativar, admin padrão protegido. Ligada à API, **falta o teste manual** ([spec](specs/tela-de-usuarios.md)) |
-| `app/`, `shared/` | layout com menu lateral, router com rotas `lazy`, `apiClient`, utilitários (`money`, `date`, `masks`, `alert`, `viacep`) e componentes de `shared/ui/` |
+| `app/`, `shared/` | layout com menu lateral, router com rotas `lazy`, `apiClient`, utilitários (`money`, `date`, `masks`, `alert`, `viacep`) e componentes de `shared/components/` |
 
 - **`npm run build` funciona** desde a atualização de 2026-11-05 (as correções do PR #13
   do repositório antigo resolveram os arquivos cortados). `npm run lint`: sem erros e sem
@@ -243,6 +243,9 @@ Checklist da Fase 1 no front (herdado do guia original):
 - **Mensagem de erro da API no `PriceFormModal`:** ele lê `error.response.data.message`,
   campo que o `ProblemDetail` não tem, e sempre cai na mensagem própria. Trocar por
   `error.message`, que o interceptor do `apiClient` já preenche com o `detail` da API.
+- **Inativar ou reativar prestador sem bloqueio durante a requisição:** o `ProviderPage` não
+  passa ao modal o estado da mutation, então um clique duplo envia a requisição duas vezes
+  (a segunda volta 409).
 - **Fora das convenções** da seção "Frontend" do [`architecture.md`](architecture.md):
   `PageLoader` e `RouteError` com estilo inline.
 - **`frontend/.env` versionado:** hoje só tem `VITE_API_URL` (sem segredo). Avaliar trocar

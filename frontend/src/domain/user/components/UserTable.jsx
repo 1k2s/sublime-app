@@ -1,6 +1,6 @@
 import { getRole } from "@/domain/auth/roles";
-import { Card } from "@/shared/ui/Card";
-import { Badge } from "@/shared/ui/Badge";
+import { Card } from "@/shared/components/Card";
+import { Badge } from "@/shared/components/Badge";
 import styles from "./UserTable.module.css";
 
 export function UserTable({ users = [], isLoading = false, onViewDetails }) {

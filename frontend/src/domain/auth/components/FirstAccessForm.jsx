@@ -2,9 +2,9 @@
 import { useForm } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
 import { ShieldCheck } from "lucide-react";
-import { Button } from "@/shared/ui/Button";
-import { FormField } from "@/shared/ui/FormField";
-import { Input } from "@/shared/ui/Input";
+import { Button } from "@/shared/components/Button";
+import { FormField } from "@/shared/components/FormField";
+import { Input } from "@/shared/components/Input";
 import { firstAccessSchema } from "../schemas/firstAccessSchema";
 import styles from "./FirstAccessForm.module.css";
 

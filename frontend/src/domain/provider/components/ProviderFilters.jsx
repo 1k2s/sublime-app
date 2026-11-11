@@ -1,5 +1,6 @@
 import { Search } from "lucide-react";
-import { Input } from "@/shared/ui/Input";
+import { FilterPills } from "@/shared/components/FilterPills";
+import { Input } from "@/shared/components/Input";
 import styles from "./ProviderFilters.module.css";
 
 const STATUS_OPTIONS = [
@@ -21,23 +22,7 @@ export function ProviderFilters({ search, onSearchChange, status, onStatusChange
         />
       </div>
 
-      <div className={styles.pillsGroup}>
-        {STATUS_OPTIONS.map((opt) => {
-          const isSelected = status === opt.value;
-          return (
-            <button
-              key={opt.value}
-              type="button"
-              className={[styles.pill, isSelected && styles.pillActive]
-                .filter(Boolean)
-                .join(" ")}
-              onClick={() => onStatusChange(opt.value)}
-            >
-              {opt.label}
-            </button>
-          );
-        })}
-      </div>
+      <FilterPills options={STATUS_OPTIONS} value={status} onChange={onStatusChange} />
     </div>
   );
 }

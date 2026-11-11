@@ -1,9 +1,9 @@
 // Formulário de login. Só valida e entrega os dados: quem autentica é a page
 import { useForm } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
-import { Button } from "@/shared/ui/Button";
-import { FormField } from "@/shared/ui/FormField";
-import { Input } from "@/shared/ui/Input";
+import { Button } from "@/shared/components/Button";
+import { FormField } from "@/shared/components/FormField";
+import { Input } from "@/shared/components/Input";
 import { loginSchema } from "../schemas/loginSchema";
 import styles from "./LoginForm.module.css";
 

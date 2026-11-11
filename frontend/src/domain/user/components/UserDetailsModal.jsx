@@ -1,9 +1,9 @@
 import { useState } from "react";
 import { Pencil, UserCheck, UserX } from "lucide-react";
 import { getRole } from "@/domain/auth/roles";
-import { Badge } from "@/shared/ui/Badge";
-import { Button } from "@/shared/ui/Button";
-import { Modal } from "@/shared/ui/Modal";
+import { Badge } from "@/shared/components/Badge";
+import { Button } from "@/shared/components/Button";
+import { Modal } from "@/shared/components/Modal";
 import styles from "./UserDetailsModal.module.css";
 
 export function UserDetailsModal({ user, isTogglingStatus = false, onEdit, onToggleStatus, onClose }) {

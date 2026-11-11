@@ -1,8 +1,8 @@
 // Etapa 3 do cadastro de paciente: revisão consolidada antes de salvar
 import { ArrowLeft, Check, CheckCircle2, MapPin, User } from "lucide-react";
 import { hasAddressInput } from "@/domain/patient/schemas/patientSchema";
-import { Badge } from "@/shared/ui/Badge";
-import { Button } from "@/shared/ui/Button";
+import { Badge } from "@/shared/components/Badge";
+import { Button } from "@/shared/components/Button";
 import styles from "@/domain/patient/components/wizard/PatientWizard.module.css";
 
 export function ConfirmationStep({

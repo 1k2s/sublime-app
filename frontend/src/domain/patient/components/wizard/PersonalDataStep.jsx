@@ -1,10 +1,10 @@
 // Etapa 1 do cadastro de paciente: dados pessoais, contato (opcional) e origem do paciente
 import { useWatch } from "react-hook-form";
 import { ArrowRight, Calendar, Mail, Phone, User } from "lucide-react";
-import { Button } from "@/shared/ui/Button";
-import { FormField } from "@/shared/ui/FormField";
-import { Input } from "@/shared/ui/Input";
-import { Select } from "@/shared/ui/Select";
+import { Button } from "@/shared/components/Button";
+import { FormField } from "@/shared/components/FormField";
+import { Input } from "@/shared/components/Input";
+import { Select } from "@/shared/components/Select";
 import { maskCpf, maskDate, maskPhone } from "@/shared/utils/masks";
 import styles from "@/domain/patient/components/wizard/PatientWizard.module.css";
 

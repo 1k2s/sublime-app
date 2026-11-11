@@ -2,8 +2,8 @@ import { createBrowserRouter } from 'react-router-dom';
 import { HomeRedirect } from '@/domain/auth/components/HomeRedirect';
 import { ProtectedRoute } from '@/domain/auth/components/ProtectedRoute';
 import { ROLES } from '@/domain/auth/roles';
-import { RouteError } from '@/shared/ui/RouteError';
-import { PageLoader } from '@/shared/ui/PageLoader';
+import { RouteError } from '@/shared/components/RouteError';
+import { PageLoader } from '@/shared/components/PageLoader';
 
 const ADMIN = ROLES.ADMIN.value;
 const PROVIDER = ROLES.PROVIDER.value;

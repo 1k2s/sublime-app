@@ -1,7 +1,7 @@
 // Configurações: o próprio usuário (ADMIN ou PROVIDER) troca o e-mail e a senha
 import { useAuth } from "@/domain/auth/context/useAuth";
-import { Card } from "@/shared/ui/Card";
-import { PageHeader } from "@/shared/ui/PageHeader";
+import { Card } from "@/shared/components/Card";
+import { PageHeader } from "@/shared/components/PageHeader";
 import { showError, showSuccess } from "@/shared/utils/alert";
 import { useMe, useUpdateMe } from "../api/useMe";
 import { SettingsForm } from "../components/SettingsForm";
