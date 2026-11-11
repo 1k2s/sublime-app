@@ -72,31 +72,39 @@ feature em andamento fica na spec dela, em [`specs/`](specs/).
 
 ## Próximos passos
 
-1. **Testes automatizados no backend** (decidido em 2026-11-07, antes das telas): cada
-   feature hoje exige dezenas de casos manuais, refeitos a cada merge da `dev`, e as regras
-   mais arriscadas são financeiras (resolução de preço, comissão, repasse, saldo).
-   - Começar pelos **testes de unidade das entidades** (JUnit + AssertJ, já no
-     `spring-boot-starter-test`; sem banco nem servidor).
+1. **Telas funcionais no front** (decidido em 2026-11-11, antes dos testes): o backend está
+   pronto, mas o sistema ainda não funciona de ponta a ponta (contratos e lançamento usam
+   mocks e o modelo antigo). **Uma branch e uma spec por tela**, cada uma com o próprio PR,
+   na ordem de dependência:
+   1. **Prestadores:** o wizard passa a **vincular um usuário já existente** (decidido em
+      2026-11-07: Usuários e Prestadores em telas separadas; o `POST /api/providers` já
+      recebe o `userId`), no lugar de criar o usuário na etapa "Conta de acesso". Junto: os
+      erros por campo da API e os percentuais 40/45 fixos tirados do front (ver
+      "Pendências" do [Frontend](#frontend)). A tela de Usuários já está pronta.
+   2. **Contratos:** o envio no modelo real do contrato (`items`, um por grupo de preço),
+      sem mocks, com os erros por campo da API.
+   3. **Lançamento:** o redesenho sobre a API real. Decidido: o paciente vem do
+      `GET /api/consultations/patients`, o prestador vem do login para o `PROVIDER` e fica
+      oculto para ele, o valor aparece só depois de lançar (sem prévia de preço) e o total
+      do repasse do dia vem do backend, não da soma no front.
+2. **Testes automatizados no backend** (decidido em 2026-11-07; **pausado** em 2026-11-11
+   até as telas funcionarem): cada feature hoje exige dezenas de casos manuais, refeitos a
+   cada merge da `dev`, e as regras mais arriscadas são financeiras (resolução de preço,
+   comissão, repasse, saldo).
+   - **Feito:** o primeiro teste de unidade (`PercentageTest`: o arredondamento `HALF_UP`
+     do repasse e a recusa de mais de 2 casas).
+   - **Próximo, já levantado:** `ProviderEntity`, com 7 regras (percentual pela origem do
+     paciente: trazido por ele, da clínica e trazido por outro; padrão 40/45 no cadastro;
+     indicação nunca menor que o padrão; os dois percentuais obrigatórios na alteração;
+     reativar exige usuário ativo). Depois, as outras entidades com regra de risco.
    - Depois, **testes de integração** da API (autorização e lançamento primeiro), com o
      MySQL do **Testcontainers** (as migrations usam recursos do MySQL, então o H2 não
      serve). Os 55 casos manuais da autorização são a base.
-   - Antes do código, os conceitos explicados em partes; os primeiros testes escritos
-     juntos, comentados, como padrão para os seguintes.
-2. **CI no GitHub Actions**, logo depois dos primeiros testes: a cada PR, compilar e testar
+   - Opcional, durante as telas: ao fechar cada uma, escrever os testes de unidade das
+     regras que ela usa.
+3. **CI no GitHub Actions**, logo depois dos primeiros testes: a cada PR, compilar e testar
    o backend, build e lint do front e `node scripts/check-docs.mjs`, com o resultado no PR.
    CD (deploy automático) fica para quando houver a versão 1 no ar.
-3. **Interface gráfica** (React + Vite, em `frontend/`) e testes por ela: ver a seção
-   [Frontend](#frontend). As próximas telas já têm decisões tomadas:
-   - **Usuários e Prestadores em telas separadas** (decidido em 2026-11-07): o admin cria
-     o usuário na tela de **Usuários** e depois, na de **Prestadores**, cria o prestador
-     **vinculando um usuário já existente** (o `POST /api/providers` já recebe o
-     `userId`). A tela de Usuários também inativa e reativa acessos, e usa o
-     `defaultAdmin` da resposta para esconder "Inativar" e a troca de perfil do admin
-     padrão. **A tela de Usuários está pronta** (2026-11-11). O wizard de Prestadores atual
-     cria o usuário na etapa "Conta de acesso" e precisa ser ajustado a esse fluxo.
-   - **Redesenho do lançamento:** usa o `GET /api/consultations/patients` para escolher o
-     paciente, esconde o prestador para o `PROVIDER` (vem do login) e mostra o valor só
-     depois de lançar (sem prévia de preço).
 4. **Dashboard do prestador**, com spec própria: os
    rendimentos do próprio prestador (soma dos repasses dos atendimentos dele) no dia, na
    semana e no mês. Decidido em 2026-11-06 que o `PROVIDER` vê só os próprios rendimentos.
@@ -108,6 +116,11 @@ feature em andamento fica na spec dela, em [`specs/`](specs/).
 - **Antes da versão 1 no ar:** revisar e consolidar as migrations e voltar a regra de
   nunca editá-las ([ADR 0028](adr/0028-migrations-editaveis-ate-versao-estavel.md)); zerar
   o banco de produção.
+- **A decidir: comparação de prestadores sem `id`** (encontrado ao planejar os testes,
+  2026-11-11). O `isSameAs` da `ProviderEntity` faz `other.getId().equals(this.id)`: com o
+  prestador de origem ainda sem `id`, lança `NullPointerException`. Em produção não ocorre
+  (todo prestador vem do banco com `id`), mas `Objects.equals(other.getId(), this.id)` não
+  quebraria.
 
 Frontend: ver a seção [Frontend](#frontend).
 
@@ -202,15 +215,14 @@ chamadas batem com a API real ainda não foram conferidos.**
 
 ### Próximos passos
 
-1. **Inventário:** o que cada tela faz e se as chamadas batem com o contrato real da API
-   (Swagger). Atualizar esta seção com o resultado.
-2. **Trocar os mocks pelas chamadas reais** onde o backend já tem o endpoint (`contract`,
-   `consultation`).
-3. **Telas que faltam**, na ordem de cadastro (cada uma depende dos dados da anterior):
-   ajuste da tela de Prestadores ao fluxo de telas separadas (a de Usuários está pronta),
-   já com os erros por campo da API → ajuste dos contratos ao contrato real → lançamento ligado à API real (decisões nos
-   [Próximos passos](#próximos-passos) do projeto). Cada tela começa com uma spec em
-   [`specs/`](specs/README.md).
+1. **Telas funcionais**, uma branch e uma spec por tela ([`specs/`](specs/README.md)), na
+   ordem de cadastro (cada uma depende dos dados da anterior): Prestadores (vincular usuário
+   existente) → Contratos (contrato real, sem mocks) → Lançamento (API real). O que cada uma
+   fecha e as decisões já tomadas: item 1 dos [Próximos passos](#próximos-passos) do
+   projeto.
+2. **Inventário** das telas que não entram no item 1 (ex: catálogo de preços): o que cada
+   uma faz e se as chamadas batem com o contrato real da API (Swagger). Atualizar esta
+   seção com o resultado.
 
 Checklist da Fase 1 no front (herdado do guia original):
 - [x] Login funcionando e rotas protegidas.
