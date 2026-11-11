@@ -509,14 +509,14 @@ Regras:
 
 - `app/router.jsx`: `createBrowserRouter` com rotas `lazy`. `/login` é pública; as demais
   ficam dentro do `ProtectedRoute` + `AppLayout`, em dois grupos por papel: só `ADMIN`
-  (`/patients`, `/pricing`, `/providers`, `/contracts`) e `ADMIN` + `PROVIDER`
+  (`/patients`, `/pricing`, `/providers`, `/users`, `/contracts`) e `ADMIN` + `PROVIDER`
   (`/consultations`, `/settings`); `*` é a página de não encontrado.
 - **`ProtectedRoute`:** sem sessão, leva ao `/login` (e volta à rota pedida depois do
   login); com `roles`, quem não tem o papel vai para a tela inicial do próprio papel. É só
   experiência de uso: a proteção real é o 403 da API (princípio 3).
 - **Menu por papel** (`app/layout/navigationItems.js`, campo `roles`): o `ADMIN` vê
-  Pacientes, Contratos, Preços, Lançamentos, Prestadores e Configurações; o `PROVIDER`,
-  Lançamentos e Configurações. Itens sem tela pronta (Dashboard, Usuários) ficam
+  Pacientes, Contratos, Preços, Lançamentos, Prestadores, Usuários e Configurações; o
+  `PROVIDER`, Lançamentos e Configurações. Itens sem tela pronta (Dashboard) ficam
   desabilitados.
 - **Sessão no `localStorage`** ([ADR 0024](adr/0024-sessao-frontend-localstorage.md)): o
   `signIn` do `AuthProvider` guarda a resposta do `POST /api/auth/login` em

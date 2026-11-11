@@ -34,6 +34,11 @@ export async function deactivateUser(id) {
   await apiClient.delete(`/users/${id}`);
 }
 
+// PATCH /api/users/{id}/activate — reativa o usuário (devolve o acesso)
+export async function activateUser(id) {
+  await apiClient.patch(`/users/${id}/activate`);
+}
+
 // GET /api/users/me: o usuário logado. Devolve { id, email, role, active, defaultAdmin }
 export async function getMe() {
   const { data } = await apiClient.get("/users/me");
