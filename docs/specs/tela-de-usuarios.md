@@ -62,8 +62,8 @@ Não se aplica: os endpoints de `/api/users` já existem (todos só do `ADMIN`).
 |---|---|
 | `domain/user/api/userApi.js`, `useUsers.js` | `activateUser` e `useActivateUser` (o resto da camada já existia) |
 | `domain/user/pages/UserPage.jsx` | lista pelo `useUsers`, filtros em memória (`filterUsers`), mutations com `showError` no `onError`; o modal de detalhes lê o usuário da lista pelo id, para mostrar o estado novo depois de inativar ou reativar (como o `PatientPage`) |
-| `domain/user/components/UserTable.jsx`, `UserFilters.jsx` | tabela (e-mail, perfil, status) e filtros (busca por e-mail, perfil e status) |
-| `domain/user/components/UserDetailsModal.jsx` | detalhes, inativar e reativar com confirmação; badge e aviso do admin padrão, sem "Inativar" para ele |
+| `domain/user/components/UserTable.jsx`, `UserFilters.jsx` | tabela (e-mail, perfil, status) e filtros (busca por e-mail, perfil e status, com o `FilterPills`) |
+| `domain/user/components/UserDetailsModal.jsx` | detalhes, inativar e reativar com confirmação; badge e aviso do admin padrão, sem "Inativar" para ele. Usa o `Modal` compartilhado (`icon`, `titleExtra`, `description`, `footer`) e o `Button` (`danger` / `secondary`), como os modais de paciente e prestador |
 | `domain/user/components/UserFormModal.jsx` | cadastro e alteração (e-mail, perfil, senha provisória); perfil só para leitura no admin padrão |
 | `domain/user/schemas/userSchema.js` | formato do formulário: e-mail, perfil e senha (mínimo de 8; vazia na alteração) |
 | `app/router.jsx` | rota `/users` no grupo só `ADMIN` |

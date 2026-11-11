@@ -1,5 +1,5 @@
 import { useState } from "react";
-import { Pencil, UserCheck, UserX } from "lucide-react";
+import { Pencil, UserCheck, UserCog, UserX } from "lucide-react";
 import { getRole } from "@/domain/auth/roles";
 import { Badge } from "@/shared/components/Badge";
 import { Button } from "@/shared/components/Button";
@@ -25,14 +25,49 @@ export function UserDetailsModal({ user, isTogglingStatus = false, onEdit, onTog
     onClose?.();
   }
 
-  return (
-    <Modal title={user.email} onClose={close}>
-      <div className={styles.content}>
-        <div className={styles.badges}>
-          <Badge variant={user.active ? "active" : "inactive"}>{user.active ? "Ativo" : "Inativo"}</Badge>
-          {user.defaultAdmin && <Badge>Administrador padrão</Badge>}
-        </div>
+  const badges = (
+    <>
+      <Badge variant={user.active ? "active" : "inactive"}>{user.active ? "Ativo" : "Inativo"}</Badge>
+      {user.defaultAdmin && <Badge>Administrador padrão</Badge>}
+    </>
+  );
 
+  // Durante a confirmação, o rodapé sai: as ações ficam na caixa de confirmação
+  const footer = isConfirming ? null : (
+    <div className={styles.footer}>
+      <div>
+        {canToggleStatus &&
+          (user.active ? (
+            <Button variant="danger" onClick={() => setIsConfirming(true)} disabled={isTogglingStatus}>
+              <UserX size={16} /> Inativar usuário
+            </Button>
+          ) : (
+            <Button variant="secondary" onClick={() => setIsConfirming(true)} disabled={isTogglingStatus}>
+              <UserCheck size={16} /> Reativar usuário
+            </Button>
+          ))}
+      </div>
+      <div className={styles.actions}>
+        <Button variant="outline" onClick={close}>
+          Fechar
+        </Button>
+        <Button onClick={() => onEdit?.(user)}>
+          <Pencil size={16} /> Editar
+        </Button>
+      </div>
+    </div>
+  );
+
+  return (
+    <Modal
+      title={user.email}
+      icon={UserCog}
+      titleExtra={badges}
+      description="Detalhes do acesso do usuário"
+      footer={footer}
+      onClose={close}
+    >
+      <div className={styles.content}>
         <dl className={styles.grid}>
           <div className={styles.field}>
             <dt className={styles.label}>E-mail</dt>
@@ -49,7 +84,7 @@ export function UserDetailsModal({ user, isTogglingStatus = false, onEdit, onTog
         )}
         {!user.active && <p className={styles.note}>Usuário inativo: não acessa o sistema.</p>}
 
-        {isConfirming ? (
+        {isConfirming && (
           <div className={styles.confirmBox}>
             <p className={styles.confirmText}>
               {user.active ? (
@@ -66,46 +101,12 @@ export function UserDetailsModal({ user, isTogglingStatus = false, onEdit, onTog
               <Button variant="outline" onClick={() => setIsConfirming(false)}>
                 Cancelar
               </Button>
-              <button
-                type="button"
-                className={user.active ? styles.dangerButton : styles.reactivateButton}
+              <Button
+                variant={user.active ? "danger" : "secondary"}
                 onClick={confirmToggle}
                 disabled={isTogglingStatus}
               >
                 {user.active ? "Confirmar inativação" : "Confirmar reativação"}
-              </button>
-            </div>
-          </div>
-        ) : (
-          <div className={styles.footer}>
-            <div>
-              {canToggleStatus &&
-                (user.active ? (
-                  <button
-                    type="button"
-                    className={styles.dangerButton}
-                    onClick={() => setIsConfirming(true)}
-                    disabled={isTogglingStatus}
-                  >
-                    <UserX size={16} /> Inativar usuário
-                  </button>
-                ) : (
-                  <button
-                    type="button"
-                    className={styles.reactivateButton}
-                    onClick={() => setIsConfirming(true)}
-                    disabled={isTogglingStatus}
-                  >
-                    <UserCheck size={16} /> Reativar usuário
-                  </button>
-                ))}
-            </div>
-            <div className={styles.actions}>
-              <Button variant="outline" onClick={close}>
-                Fechar
-              </Button>
-              <Button onClick={() => onEdit?.(user)}>
-                <Pencil size={16} /> Editar
               </Button>
             </div>
           </div>

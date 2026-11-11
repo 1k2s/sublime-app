@@ -1,5 +1,6 @@
 import { Search } from "lucide-react";
 import { ROLES } from "@/domain/auth/roles";
+import { FilterPills } from "@/shared/components/FilterPills";
 import { Input } from "@/shared/components/Input";
 import { Select } from "@/shared/components/Select";
 import styles from "./UserFilters.module.css";
@@ -34,18 +35,7 @@ export function UserFilters({ search, onSearchChange, role, onRoleChange, status
         </Select>
       </div>
 
-      <div className={styles.pillsGroup}>
-        {STATUS_OPTIONS.map((option) => (
-          <button
-            key={option.value}
-            type="button"
-            className={[styles.pill, status === option.value && styles.pillActive].filter(Boolean).join(" ")}
-            onClick={() => onStatusChange(option.value)}
-          >
-            {option.label}
-          </button>
-        ))}
-      </div>
+      <FilterPills options={STATUS_OPTIONS} value={status} onChange={onStatusChange} />
     </div>
   );
 }
