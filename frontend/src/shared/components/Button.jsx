@@ -1,4 +1,4 @@
-// Botão padrão. Com loading, fica desabilitado e troca o texto. variant: "primary", "secondary" ou "outline"
+// Botão padrão. Com loading, fica desabilitado e troca o texto. variant: "primary", "secondary", "outline" ou "danger"
 import styles from "./Button.module.css";
 
 export function Button({

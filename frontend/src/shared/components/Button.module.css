@@ -45,6 +45,12 @@
   background: #f9fafb;
 }
 
+.danger {
+  border-color: var(--color-danger);
+  background: var(--color-surface);
+  color: var(--color-danger);
+}
+
 .button:focus-visible {
   outline: 2px solid #3f6fb5;
   outline-offset: 2px;

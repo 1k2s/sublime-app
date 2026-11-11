@@ -1,7 +1,7 @@
 // Painel lateral de prévia em tempo real do cadastro de paciente
 import { Calendar, Eye, FileText, Info, Phone, User, UserCheck } from "lucide-react";
-import { Badge } from "@/shared/ui/Badge";
-import { Card } from "@/shared/ui/Card";
+import { Badge } from "@/shared/components/Badge";
+import { Card } from "@/shared/components/Card";
 import styles from "@/domain/patient/components/wizard/PatientPreviewCard.module.css";
 
 export function PatientPreviewCard({

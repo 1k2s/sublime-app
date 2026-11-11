@@ -1,5 +1,6 @@
 import { Search } from "lucide-react";
-import { Input } from "@/shared/ui/Input";
+import { FilterPills } from "@/shared/components/FilterPills";
+import { Input } from "@/shared/components/Input";
 import styles from "./ContractFilters.module.css";
 
 const STATUS_OPTIONS = [
@@ -20,21 +21,7 @@ export function ContractFilters({ search, onSearchChange, status, onStatusChange
         onChange={(event) => onSearchChange(event.target.value)}
       />
 
-      <div className={styles["filters-pills"]}>
-        {STATUS_OPTIONS.map((option) => (
-          <button
-            key={option.value}
-            type="button"
-            aria-pressed={status === option.value}
-            className={[styles["filters-pill"], status === option.value && styles["filters-pill-active"]]
-              .filter(Boolean)
-              .join(" ")}
-            onClick={() => onStatusChange(option.value)}
-          >
-            {option.label}
-          </button>
-        ))}
-      </div>
+      <FilterPills options={STATUS_OPTIONS} value={status} onChange={onStatusChange} />
     </div>
   );
 }

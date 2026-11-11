@@ -14,8 +14,8 @@ import { PatientDetailsModal } from "@/domain/patient/components/PatientDetailsM
 import { PatientFilters } from "@/domain/patient/components/PatientFilters";
 import { PatientTable } from "@/domain/patient/components/PatientTable";
 import { PatientWizard } from "@/domain/patient/components/wizard/PatientWizard";
-import { Button } from "@/shared/ui/Button";
-import { PageHeader } from "@/shared/ui/PageHeader";
+import { Button } from "@/shared/components/Button";
+import { PageHeader } from "@/shared/components/PageHeader";
 import { showError } from "@/shared/utils/alert";
 import styles from "@/domain/patient/pages/PatientPage.module.css";
 

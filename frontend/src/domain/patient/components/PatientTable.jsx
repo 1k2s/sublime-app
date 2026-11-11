@@ -1,6 +1,6 @@
 import { Pencil } from "lucide-react";
-import { Badge } from "@/shared/ui/Badge";
-import { Card } from "@/shared/ui/Card";
+import { Badge } from "@/shared/components/Badge";
+import { Card } from "@/shared/components/Card";
 import { maskCpf, maskPhone } from "@/shared/utils/masks";
 import styles from "@/domain/patient/components/PatientTable.module.css";
 

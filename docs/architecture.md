@@ -17,6 +17,7 @@
   - [Mapa de módulos e regras de dependência](#mapa-de-módulos-e-regras-de-dependência)
   - [Camada `api/`](#camada-api)
   - [Estado](#estado)
+  - [Quando criar um componente](#quando-criar-um-componente)
   - [Componentes: tamanho e layout](#componentes-tamanho-e-layout)
   - [Estilo](#estilo)
   - [Rotas e sessão](#rotas-e-sessão)
@@ -361,8 +362,8 @@ frontend/src/
 ├── shared/                  # genérico, sem regra de negócio
 │   ├── http/apiClient.js    # axios: baseURL, token, 401
 │   ├── utils/               # money, date, masks, alert (SweetAlert2), viacep
-│   └── ui/                  # Button, Card, Input, Select, FormField, Modal,
-│                            # Stepper, Badge, PageHeader, PageLoader, RouteError...
+│   └── components/          # Button, Card, Input, Select, FormField, Modal,
+│                            # FilterPills, Stepper, Badge, PageHeader, PageLoader, RouteError...
 └── domain/                  # um módulo por módulo do backend
     ├── auth/                # sessão, login, ProtectedRoute, roles.js (transversal)
     ├── user/
@@ -387,7 +388,7 @@ Dentro de cada módulo, só as pastas que ele usa:
 | Onde | O quê |
 |---|---|
 | `domain/<módulo>/components/` | usado num módulo só |
-| `shared/ui/` | genérico e sem regra de negócio, usado por vários módulos |
+| `shared/components/` | genérico e sem regra de negócio, usado por vários módulos |
 | `app/layout/` | menu lateral e layout geral |
 
 ### Mapa de módulos e regras de dependência
@@ -485,6 +486,18 @@ Regras:
   lista entre componentes.
 - Provider global fica no `AppProviders`; o `main.jsx` não monta providers. Provider que
   serve a uma tela só é montado em volta dela.
+
+### Quando criar um componente
+
+- **Seção da tela com responsabilidade clara** (ex: `PatientTable`, `PatientFilters`) vira
+  componente do módulo, mesmo usada uma vez só: a page busca os dados e monta as seções, e
+  cada uma fica no seu arquivo.
+- **Trecho pequeno, usado uma vez e sem estado próprio** fica na page ou no componente que o
+  usa.
+- **Peça que se repete em dois ou mais módulos** vai para `shared/components/`, em vez de ser
+  copiada. Ela é genérica e recebe tudo por props (ex: `FilterPills` recebe as opções de
+  cada tela). Uma variação visual de algo que já existe vira variante (ex:
+  `Button variant="danger"`), não CSS próprio no módulo.
 
 ### Componentes: tamanho e layout
 

@@ -3,9 +3,9 @@
 // resetPasswords, para a page limpar as senhas só depois que a API confirmar
 import { useForm } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
-import { Button } from "@/shared/ui/Button";
-import { FormField } from "@/shared/ui/FormField";
-import { Input } from "@/shared/ui/Input";
+import { Button } from "@/shared/components/Button";
+import { FormField } from "@/shared/components/FormField";
+import { Input } from "@/shared/components/Input";
 import { settingsSchema } from "../schemas/settingsSchema";
 import styles from "./SettingsForm.module.css";
 

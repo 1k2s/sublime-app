@@ -2,10 +2,10 @@
 import { useRef } from "react";
 import { PatientSearchInput } from "@/domain/patient/components/PatientSearchInput";
 import { TechniqueSearchInput } from "@/domain/pricing/components/TechniqueSearchInput";
-import { Button } from "@/shared/ui/Button";
-import { Card } from "@/shared/ui/Card";
-import { FormField } from "@/shared/ui/FormField";
-import { Input } from "@/shared/ui/Input";
+import { Button } from "@/shared/components/Button";
+import { Card } from "@/shared/components/Card";
+import { FormField } from "@/shared/components/FormField";
+import { Input } from "@/shared/components/Input";
 import { maskCpf } from "@/shared/utils/masks";
 import { ConsultationAgenda } from "./ConsultationAgenda";
 import styles from "./ConsultationForm.module.css";
