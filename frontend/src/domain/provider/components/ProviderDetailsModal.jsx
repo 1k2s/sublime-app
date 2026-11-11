@@ -21,6 +21,7 @@ function getRoleLabel(roleValue) {
 
 export function ProviderDetailsModal({
   provider,
+  isTogglingStatus = false,
   onClose,
   onEdit,
   onToggleStatus,
@@ -45,6 +46,7 @@ export function ProviderDetailsModal({
             <Button
               variant="danger"
               onClick={() => setShowConfirm(true)}
+              disabled={isTogglingStatus}
               title="Desativar prestador"
             >
               <UserX size={16} /> Desativar prestador
@@ -53,6 +55,7 @@ export function ProviderDetailsModal({
             <Button
               variant="secondary"
               onClick={() => setShowConfirm(true)}
+              disabled={isTogglingStatus}
               title="Reativar prestador"
             >
               <UserCheck size={16} /> Reativar prestador
@@ -153,6 +156,7 @@ export function ProviderDetailsModal({
               <Button
                 variant={isAtivo ? "danger" : "secondary"}
                 onClick={handleConfirmToggle}
+                disabled={isTogglingStatus}
               >
                 {isAtivo ? "Confirmar desativação" : "Confirmar reativação"}
               </Button>

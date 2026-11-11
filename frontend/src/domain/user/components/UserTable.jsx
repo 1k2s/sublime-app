@@ -1,24 +1,21 @@
+import { Pencil } from "lucide-react";
 import { getRole } from "@/domain/auth/roles";
 import { Card } from "@/shared/components/Card";
 import { Badge } from "@/shared/components/Badge";
+import { ListMessage } from "@/shared/components/ListMessage";
 import styles from "./UserTable.module.css";
 
-export function UserTable({ users = [], isLoading = false, onViewDetails }) {
-  if (isLoading) {
-    return (
-      <Card className={styles.messageCard}>
-        <span className={styles.messageText}>Carregando usuários...</span>
-      </Card>
-    );
-  }
+const MESSAGES = {
+  loading: "Carregando usuários...",
+  error: "Não foi possível carregar os usuários",
+  filtered: "Nenhum usuário encontrado",
+  empty: "Nenhum usuário cadastrado",
+  emptyHint: "Clique em Novo usuário para começar.",
+};
 
-  if (users.length === 0) {
-    return (
-      <Card className={styles.messageCard}>
-        <p className={styles.messageTitle}>Nenhum usuário encontrado</p>
-        <span className={styles.messageText}>Tente ajustar os filtros ou cadastrar um novo usuário.</span>
-      </Card>
-    );
+export function UserTable({ users = [], isLoading = false, isError = false, hasRecords = false, onViewDetails }) {
+  if (isLoading || isError || users.length === 0) {
+    return <ListMessage isLoading={isLoading} isError={isError} hasRecords={hasRecords} messages={MESSAGES} />;
   }
 
   return (
@@ -41,8 +38,14 @@ export function UserTable({ users = [], isLoading = false, onViewDetails }) {
                 <Badge variant={user.active ? "active" : "inactive"}>{user.active ? "Ativo" : "Inativo"}</Badge>
               </td>
               <td className={styles.actionColumn}>
-                <button type="button" className={styles.actionButton} onClick={() => onViewDetails?.(user)}>
-                  Ver / Editar
+                <button
+                  type="button"
+                  className={styles.actionButton}
+                  onClick={() => onViewDetails?.(user)}
+                  aria-label={`Ver ou editar ${user.email}`}
+                  title="Ver / Editar"
+                >
+                  <Pencil size={16} />
                 </button>
               </td>
             </tr>

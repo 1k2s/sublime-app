@@ -1,6 +1,5 @@
-// Hooks de leitura (com cache e filtro em memória) e escrita (com invalidação) do módulo patient
+// Hooks de leitura (com cache) e escrita (com invalidação) do módulo patient
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
-import { onlyDigits } from "@/shared/utils/masks";
 import {
   activatePatient,
   createPatient,
@@ -10,28 +9,12 @@ import {
   updatePatient,
 } from "@/domain/patient/api/patientApi";
 
-// status: "ALL", "ACTIVE" ou "INACTIVE". search procura no nome ou nos dígitos do CPF
-function filterPatients(patients, { search, status }) {
-  const term = search.trim().toLowerCase();
-  const digits = onlyDigits(term);
-
-  return patients.filter((patient) => {
-    if (status === "ACTIVE" && !patient.active) return false;
-    if (status === "INACTIVE" && patient.active) return false;
-    if (!term) return true;
-
-    const matchName = patient.name?.toLowerCase().includes(term);
-    const matchCpf = digits ? onlyDigits(patient.cpf).includes(digits) : false;
-    return matchName || matchCpf;
-  });
-}
-
-// Uma requisição só: os filtros rodam em memória no select sobre o cache ["patients"]
-export function usePatients({ search = "", status = "ALL" } = {}, { enabled = true } = {}) {
+// A lista inteira, numa requisição só (cache ["patients"]). Quem lista filtra com o
+// filterPatients: a lista inteira continua disponível (ex: o modal lê o paciente dela)
+export function usePatients({ enabled = true } = {}) {
   return useQuery({
     queryKey: ["patients"],
     queryFn: listPatients,
-    select: (patients) => filterPatients(patients, { search, status }),
     enabled,
   });
 }

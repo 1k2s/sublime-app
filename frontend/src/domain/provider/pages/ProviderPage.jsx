@@ -1,78 +1,54 @@
-import { useState, useTransition } from "react";
-import { Navigate } from "react-router-dom";
+import { useState } from "react";
 import { Plus } from "lucide-react";
-import { useAuth } from "@/domain/auth/context/useAuth";
-import { getHomePath, ROLES } from "@/domain/auth/roles";
 import { PageHeader } from "@/shared/components/PageHeader";
 import { Button } from "@/shared/components/Button";
 import { showError } from "@/shared/utils/alert";
-import { useProviders, useToggleProviderStatus } from "../api/useProviders";
+import { useActivateProvider, useDeactivateProvider, useProviders } from "../api/useProviders";
 import { ProviderFilters } from "../components/ProviderFilters";
 import { ProviderTable } from "../components/ProviderTable";
 import { ProviderDetailsModal } from "../components/ProviderDetailsModal";
 import { ProviderWizard } from "../components/wizard/ProviderWizard";
+import { filterProviders } from "../filterProviders";
 import styles from "./ProviderPage.module.css";
 
 export function ProviderPage() {
-  const { user } = useAuth();
-  const isAdmin = user?.role === ROLES.ADMIN.value;
-
   const [view, setView] = useState("list");
   const [search, setSearch] = useState("");
   const [status, setStatus] = useState("ACTIVE");
-  const [selectedProvider, setSelectedProvider] = useState(null);
+  const [selectedProviderId, setSelectedProviderId] = useState(null);
   const [editingProvider, setEditingProvider] = useState(null);
-  const [, startTransition] = useTransition();
 
-  const { data: providers = [], isLoading } = useProviders({ search, status });
-  const toggleStatusMutation = useToggleProviderStatus();
+  const { data: providers = [], isLoading, isError } = useProviders();
+  const deactivateProviderMutation = useDeactivateProvider();
+  const activateProviderMutation = useActivateProvider();
 
-  // Acesso exclusivo aos administradores: redireciona prestador para sua tela inicial
-  if (!isAdmin) {
-    return <Navigate to={getHomePath(user?.role)} replace />;
-  }
-
+  const visibleProviders = filterProviders(providers, { search, status });
+  // Lido da lista inteira: depois de inativar ou reativar, o modal mostra o estado novo
+  const selectedProvider = providers.find((provider) => provider.id === selectedProviderId) ?? null;
   const isFormMode = view === "create" || view === "edit";
   const isEditing = view === "edit";
+  const isTogglingStatus = deactivateProviderMutation.isPending || activateProviderMutation.isPending;
 
-  const handleToggleStatus = async (provider, nextStatus) => {
-    try {
-      await toggleStatusMutation.mutateAsync({ provider, nextStatus });
-      setSelectedProvider((prev) =>
-        prev
-          ? {
-              ...prev,
-              status: nextStatus,
-              active: nextStatus === "ACTIVE",
-            }
-          : null
-      );
-    } catch (error) {
-      showError(error.message);
-    }
-  };
+  function handleToggleStatus(provider) {
+    const mutation = provider.active ? deactivateProviderMutation : activateProviderMutation;
+    mutation.mutate(provider.id, { onError: (error) => showError(error.message) });
+  }
 
-  const handleSearchChange = (val) => {
-    startTransition(() => {
-      setSearch(val);
-    });
-  };
-
-  const handleStartCreate = () => {
+  function handleStartCreate() {
     setEditingProvider(null);
     setView("create");
-  };
+  }
 
-  const handleStartEdit = (provider) => {
-    setSelectedProvider(null);
+  function handleStartEdit(provider) {
+    setSelectedProviderId(null);
     setEditingProvider(provider);
     setView("edit");
-  };
+  }
 
-  const handleBackToList = () => {
+  function handleBackToList() {
     setEditingProvider(null);
     setView("list");
-  };
+  }
 
   return (
     <div className={styles.pageContainer}>
@@ -91,20 +67,23 @@ export function ProviderPage() {
 
           <ProviderFilters
             search={search}
-            onSearchChange={handleSearchChange}
+            onSearchChange={setSearch}
             status={status}
             onStatusChange={setStatus}
           />
 
           <ProviderTable
-            providers={providers}
+            providers={visibleProviders}
             isLoading={isLoading}
-            onViewDetails={(provider) => setSelectedProvider(provider)}
+            isError={isError}
+            hasRecords={providers.length > 0}
+            onViewDetails={(provider) => setSelectedProviderId(provider.id)}
           />
 
           <ProviderDetailsModal
             provider={selectedProvider}
-            onClose={() => setSelectedProvider(null)}
+            isTogglingStatus={isTogglingStatus}
+            onClose={() => setSelectedProviderId(null)}
             onEdit={handleStartEdit}
             onToggleStatus={handleToggleStatus}
           />

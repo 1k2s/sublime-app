@@ -14,18 +14,8 @@ import { UserFilters } from "../components/UserFilters";
 import { UserTable } from "../components/UserTable";
 import { UserFormModal } from "../components/UserFormModal";
 import { UserDetailsModal } from "../components/UserDetailsModal";
+import { filterUsers } from "../filterUsers";
 import styles from "./UserPage.module.css";
-
-// A lista é pequena e vem inteira: busca e filtros rodam em memória
-function filterUsers(users, { search, role, status }) {
-  const term = search.trim().toLowerCase();
-  return users.filter((user) => {
-    if (role !== "ALL" && user.role !== role) return false;
-    if (status === "ACTIVE" && !user.active) return false;
-    if (status === "INACTIVE" && user.active) return false;
-    return !term || user.email.toLowerCase().includes(term);
-  });
-}
 
 export function UserPage() {
   const [search, setSearch] = useState("");
@@ -35,7 +25,7 @@ export function UserPage() {
   // null = fechado; { user: null } = cadastro; { user } = edição
   const [form, setForm] = useState(null);
 
-  const { data: users = [], isLoading } = useUsers();
+  const { data: users = [], isLoading, isError } = useUsers();
   const createUserMutation = useCreateUser();
   const updateUserMutation = useUpdateUser();
   const deactivateUserMutation = useDeactivateUser();
@@ -52,10 +42,13 @@ export function UserPage() {
     setForm({ user });
   }
 
-  function handleSave(payload) {
+  function handleSave(payload, { applyApiErrors }) {
     const options = {
       onSuccess: () => setForm(null),
-      onError: (error) => showError(error.message),
+      onError: (error) => {
+        applyApiErrors?.(error);
+        showError(error.message);
+      },
     };
 
     if (form?.user) {
@@ -95,6 +88,8 @@ export function UserPage() {
       <UserTable
         users={visibleUsers}
         isLoading={isLoading}
+        isError={isError}
+        hasRecords={users.length > 0}
         onViewDetails={(user) => setSelectedUserId(user.id)}
       />
 

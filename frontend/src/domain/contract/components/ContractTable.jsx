@@ -1,6 +1,7 @@
 import { Pencil } from "lucide-react";
 import { Card } from "@/shared/components/Card";
 import { Badge } from "@/shared/components/Badge";
+import { ListMessage } from "@/shared/components/ListMessage";
 import { formatPriceAxis } from "@/domain/pricing/priceAxis";
 import { formatDate } from "@/shared/utils/date";
 import styles from "./ContractTable.module.css";
@@ -17,30 +18,33 @@ function formatValidity(contract) {
   return `${formatDate(contract.validFrom)} – ${end}`;
 }
 
-function getEmptyMessage({ isLoading, isError, isFiltered }) {
-  if (isLoading) return { text: "Carregando contratos..." };
-  if (isError) return { title: "Não foi possível carregar os contratos", text: "Tente novamente em instantes." };
-  if (isFiltered) return { title: "Nenhum contrato encontrado", text: "Tente ajustar os filtros." };
-  return { title: "Nenhum contrato cadastrado", text: "Clique em Novo contrato para começar." };
-}
+const MESSAGES = {
+  loading: "Carregando contratos...",
+  error: "Não foi possível carregar os contratos",
+  filtered: "Nenhum contrato encontrado",
+  empty: "Nenhum contrato cadastrado",
+  emptyHint: "Clique em Novo contrato para começar.",
+};
 
 export function ContractTable({
   contracts = [],
   isLoading = false,
   isError = false,
-  isFiltered = false,
+  hasRecords = false,
   onEdit,
   className,
 }) {
   const cardClass = (name) => [styles[name], className].filter(Boolean).join(" ");
 
   if (isLoading || isError || contracts.length === 0) {
-    const message = getEmptyMessage({ isLoading, isError, isFiltered });
     return (
-      <Card className={cardClass("table-message")}>
-        {message.title && <p className={styles["table-message-title"]}>{message.title}</p>}
-        <span className={styles["table-message-text"]}>{message.text}</span>
-      </Card>
+      <ListMessage
+        isLoading={isLoading}
+        isError={isError}
+        hasRecords={hasRecords}
+        messages={MESSAGES}
+        className={className}
+      />
     );
   }
 

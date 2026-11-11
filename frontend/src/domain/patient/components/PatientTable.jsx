@@ -1,6 +1,7 @@
 import { Pencil } from "lucide-react";
 import { Badge } from "@/shared/components/Badge";
 import { Card } from "@/shared/components/Card";
+import { ListMessage } from "@/shared/components/ListMessage";
 import { maskCpf, maskPhone } from "@/shared/utils/masks";
 import styles from "@/domain/patient/components/PatientTable.module.css";
 
@@ -11,29 +12,23 @@ function getInitials(name = "") {
   return (parts[0][0] + parts[1][0]).toUpperCase();
 }
 
+const MESSAGES = {
+  loading: "Carregando pacientes...",
+  error: "Não foi possível carregar os pacientes",
+  filtered: "Nenhum paciente encontrado",
+  empty: "Nenhum paciente cadastrado",
+  emptyHint: "Clique em Novo paciente para começar.",
+};
+
 export function PatientTable({
   patients = [],
   isLoading = false,
-  isAdmin = false,
+  isError = false,
+  hasRecords = false,
   onViewDetails,
 }) {
-  if (isLoading) {
-    return (
-      <Card className={styles.loadingCard}>
-        <span className={styles.emptyText}>Carregando pacientes...</span>
-      </Card>
-    );
-  }
-
-  if (patients.length === 0) {
-    return (
-      <Card className={styles.emptyCard}>
-        <p className={styles.emptyTitle}>Nenhum paciente encontrado</p>
-        <span className={styles.emptyText}>
-          Tente ajustar os filtros ou cadastrar um novo paciente.
-        </span>
-      </Card>
-    );
+  if (isLoading || isError || patients.length === 0) {
+    return <ListMessage isLoading={isLoading} isError={isError} hasRecords={hasRecords} messages={MESSAGES} />;
   }
 
   return (
@@ -84,8 +79,8 @@ export function PatientTable({
                   type="button"
                   className={styles.actionButton}
                   onClick={() => onViewDetails?.(patient)}
-                  aria-label={isAdmin ? `Ver ou editar ${patient.name}` : `Ver ${patient.name}`}
-                  title={isAdmin ? "Ver / Editar" : "Ver"}
+                  aria-label={`Ver ou editar ${patient.name}`}
+                  title="Ver / Editar"
                 >
                   <Pencil size={16} />
                 </button>

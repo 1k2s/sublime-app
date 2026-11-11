@@ -6,8 +6,12 @@ import { FormField } from "@/shared/components/FormField";
 import { Input } from "@/shared/components/Input";
 import { Modal } from "@/shared/components/Modal";
 import { Select } from "@/shared/components/Select";
+import { applyApiFieldErrors } from "@/shared/http/apiFieldErrors";
 import { createUserSchema, updateUserSchema } from "../schemas/userSchema";
 import styles from "./UserFormModal.module.css";
+
+// A validação da senha opcional (@AssertTrue isPasswordValid) chega como "passwordValid"
+const API_FIELDS = { passwordValid: "password" };
 
 // user nulo = cadastro; preenchido = edição
 export function UserFormModal({ user = null, isSubmitting = false, onSubmit, onClose }) {
@@ -19,6 +23,7 @@ export function UserFormModal({ user = null, isSubmitting = false, onSubmit, onC
   const {
     register,
     handleSubmit,
+    setError,
     formState: { errors },
   } = useForm({
     resolver: zodResolver(isEditing ? updateUserSchema : createUserSchema),
@@ -29,13 +34,21 @@ export function UserFormModal({ user = null, isSubmitting = false, onSubmit, onC
     },
   });
 
+  // Erro da API: a page chama no onError, para cada erro por campo aparecer no campo
+  function applyApiErrors(error) {
+    applyApiFieldErrors(error, setError, (apiField) => API_FIELDS[apiField] ?? apiField);
+  }
+
   // Entrega no formato do UserRequestDTO / UserUpdateRequestDTO (senha nula = manter a atual)
   function submit(values) {
-    onSubmit?.({
-      email: values.email.trim(),
-      role: values.role,
-      password: values.password === "" ? null : values.password,
-    });
+    onSubmit?.(
+      {
+        email: values.email.trim(),
+        role: values.role,
+        password: values.password === "" ? null : values.password,
+      },
+      { applyApiErrors }
+    );
   }
 
   return (

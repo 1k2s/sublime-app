@@ -62,6 +62,13 @@ Ao escrever:
   técnica parte de como os módulos existentes já resolvem o mesmo caso (cite o
   precedente em arquivo:linha) e dos princípios do `architecture.md`. Se for caso
   novo, sem precedente, diga isso.
+- **A documentação não é dogma: busque sempre a melhor forma.** O objetivo é um software
+  robusto e rápido. Avalie cada solução pelo mérito (estrutura, desempenho, robustez,
+  simplicidade de manter), não só por estar documentada ou por ser o que o código já faz.
+  Ao encontrar uma forma melhor, mesmo contrária ao `architecture.md` ou a um precedente,
+  **analise e sugira** (o que muda, por quê, o custo), com uma recomendação. Aprovada a
+  sugestão, a documentação é atualizada no mesmo passo. Se várias telas ou módulos resolvem
+  o mesmo caso de jeitos diferentes, compare e proponha o melhor de cada um como padrão.
 - **Validação de entidade em método privado com nome descritivo** (`validateX`,
   `requireX`), nunca `if` direto no corpo do construtor ou da fábrica (princípio 7).
 - **Mensagens ao usuário em português**; nomes de código em inglês (convenção de

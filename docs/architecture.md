@@ -18,6 +18,7 @@
   - [Camada `api/`](#camada-api)
   - [Estado](#estado)
   - [Quando criar um componente](#quando-criar-um-componente)
+  - [Telas de listagem](#telas-de-listagem)
   - [Componentes: tamanho e layout](#componentes-tamanho-e-layout)
   - [Estilo](#estilo)
   - [Rotas e sessão](#rotas-e-sessão)
@@ -360,10 +361,10 @@ frontend/src/
 │   ├── NotFoundPage.jsx     # página de rota inexistente (*)
 │   └── layout/              # AppLayout, AppSidebar, navigationItems.js
 ├── shared/                  # genérico, sem regra de negócio
-│   ├── http/apiClient.js    # axios: baseURL, token, 401
+│   ├── http/                # apiClient.js (axios: baseURL, token, 401) e apiFieldErrors.js
 │   ├── utils/               # money, date, masks, alert (SweetAlert2), viacep
-│   └── components/          # Button, Card, Input, Select, FormField, Modal,
-│                            # FilterPills, Stepper, Badge, PageHeader, PageLoader, RouteError...
+│   └── components/          # Button, Card, Input, Select, FormField, Modal, FilterPills,
+│                            # ListMessage, Stepper, Badge, PageHeader, PageLoader, RouteError...
 └── domain/                  # um módulo por módulo do backend
     ├── auth/                # sessão, login, ProtectedRoute, roles.js (transversal)
     ├── user/
@@ -384,6 +385,7 @@ Dentro de cada módulo, só as pastas que ele usa:
 | `schemas/` | schemas Zod dos formulários |
 | `hooks/` | estado de uma tela ou fluxo (ex: `useConsultationCart`) |
 | `context/` | só no `auth` (sessão) |
+| arquivo na raiz do módulo | funções puras do módulo, sem React (ex: `roles.js`, `priceAxis.js`, `filterPatients.js`) |
 
 | Onde | O quê |
 |---|---|
@@ -461,16 +463,23 @@ Regras:
 - **Toda mutation chama `invalidateQueries`** com a chave do módulo no `onSuccess`. Depois
   de salvar, a lista já está montada e a janela já tem foco, então nenhum dos gatilhos
   acima acontece: sem a invalidação, a tela não atualiza.
-- **Listas pequenas vêm inteiras** numa requisição, e a busca e os filtros da tela rodam
-  em memória, no `select` do `useQuery` (ex: contratos). Filtro no backend só quando a
-  lista precisar de paginação.
+- **Listas pequenas vêm inteiras** numa requisição, e o hook devolve a lista inteira (sem
+  `select`). A busca e os filtros da tela rodam em memória **na page**, por uma função pura
+  do módulo (`filterXxx.js`, ver "Telas de listagem"). *Por que não no `select`:* o `select`
+  entrega à page só a lista filtrada, e o item aberto no modal some dela ao mudar de
+  estado (ex: inativado com o filtro "Ativos"). Filtro no backend só quando a lista
+  precisar de paginação.
 - Erro da API: a page mostra `showError(error.message)` (`shared/utils/alert.js`) no
   `onError` do `mutate`. Components não chamam o alerta. O `error.message` já chega com a
   mensagem da API: o interceptor de resposta do `apiClient` troca o texto técnico do Axios
   pelo `detail` do `ProblemDetail` ou, quando não houve resposta ou ela veio sem `detail`,
-  por uma mensagem de reserva. Os erros por campo da API (`errors` do `ProblemDetail`, ver
-  "Formato dos erros" acima) **não são lidos** pelo front: um 400 de validação aparece só
-  como a mensagem geral. Os erros por campo que o `FormField` mostra são os do Zod.
+  por uma mensagem de reserva.
+- **Erros por campo da API** (`errors` do `ProblemDetail`, ver "Formato dos erros" acima):
+  o formulário entrega à page, junto com os dados, uma função `applyApiErrors`, e a page a
+  chama no `onError`. Ela usa o `applyApiFieldErrors` (`shared/http/apiFieldErrors.js`), que
+  marca cada erro no seu campo (o `FormField` mostra), traduzindo o nome da API quando
+  difere (`address.cep` → `cep`; `@AssertTrue` como `passwordValid` → `password`). Num wizard,
+  ela também volta para a primeira etapa com erro.
 - Sucesso numa tela que não fecha nem navega depois de salvar (ex: Configurações): a page
   mostra `showSuccess(mensagem)` (`shared/utils/alert.js`).
 
@@ -498,6 +507,30 @@ Regras:
   copiada. Ela é genérica e recebe tudo por props (ex: `FilterPills` recebe as opções de
   cada tela). Uma variação visual de algo que já existe vira variante (ex:
   `Button variant="danger"`), não CSS próprio no módulo.
+
+### Telas de listagem
+
+Padrão das telas que listam e editam um cadastro (Usuários, Pacientes, Prestadores,
+Contratos), escolhido em 2026-11-11 a partir do que cada uma fazia melhor:
+
+- **O hook busca a lista inteira; a page filtra.** `const { data = [], isLoading, isError }
+  = useXxx()` e `filterXxx(data, { search, status })`, função pura na raiz do módulo.
+- **O modal guarda só o `id`** do item e o lê da lista inteira
+  (`items.find((item) => item.id === selectedId)`): depois de inativar ou reativar, a
+  invalidação traz a lista nova e o modal já mostra o estado novo, sem correção à mão.
+- **Permissão só no router** (`ProtectedRoute` com `roles`): a page não confere o papel nem
+  redireciona.
+- **Estados da tabela pelo `ListMessage`** (`shared/components`): carregando, erro da API, o
+  filtro escondeu todos (`hasRecords`: a lista inteira não está vazia) ou nada cadastrado.
+  Cada tabela passa só os textos com o nome do que lista.
+- **Inativar e reativar:** um hook por endpoint (`useDeactivateXxx`, `useActivateXxx`), com
+  `mutate(id, { onError })` na page e o `isPending` dos dois passado ao modal
+  (`isTogglingStatus`), que desabilita os botões durante a requisição (evita o clique
+  duplo).
+- **Cadastro e edição:** formulário curto (poucos campos, uma etapa) em **modal** (ex:
+  Usuários); formulário longo ou em etapas em **página inteira com wizard** (ex: Pacientes,
+  Prestadores).
+- **Busca sem `useTransition`:** com listas pequenas, filtrar a cada tecla é imediato.
 
 ### Componentes: tamanho e layout
 

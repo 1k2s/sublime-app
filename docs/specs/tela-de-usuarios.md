@@ -18,7 +18,10 @@ senha provisória e perfil), sobre a API de `User` que já existe.
 
 ## 1. Status
 
-- **Tela implementada e ligada à API (2026-11-10); falta o teste manual** pela interface.
+- **Tela implementada e ligada à API (2026-11-10).** Em 2026-11-11, a branch também
+  padronizou as quatro telas de listagem (seção 2). Teste manual: cadastro, inativação,
+  reativação e redefinição de senha de Usuários passaram **antes** da padronização; **falta
+  refazer** nas quatro telas depois dela (seção 7).
 - Branch: `feature/user-page`, criada a partir da `dev` (depois do PR #39, da
   autorização). Base do PR: `dev`.
 
@@ -32,10 +35,19 @@ para os papéis).
 **Entra:** listagem com busca e filtros, cadastro, alteração (com redefinição opcional da
 senha), inativação e reativação, e as proteções do admin padrão na tela.
 
+**Entrou também (decidido em 2026-11-11): padronização das telas de listagem.** Usuários,
+Pacientes, Prestadores e Contratos resolviam os mesmos casos de jeitos diferentes; ficou o
+melhor de cada uma (ver "Telas de listagem" no [`architecture.md`](../architecture.md)):
+filtro na page por uma função pura (de Usuários; o `select` foi abandonado), modal pelo
+`id` (Usuários), permissão só no router (Usuários), estados da tabela pelo `ListMessage`
+(de Contratos, com `hasRecords` no lugar do "algum filtro ligado"), um hook por endpoint
+com `mutate` + `onError` (Pacientes e Usuários) e erros por campo da API no formulário
+(de Pacientes, levado a Usuários).
+
 **Fica para depois:**
 - o ajuste do wizard de Prestadores para vincular um usuário existente, em vez de criar o
-  usuário junto (spec própria);
-- os erros por campo da API no formulário (pendência geral do front, no roadmap).
+  usuário junto (spec própria), já com os erros por campo da API;
+- os erros por campo no formulário de Contratos, no redesenho do contrato.
 
 ## 3. Regras
 
@@ -68,6 +80,10 @@ Não se aplica: os endpoints de `/api/users` já existem (todos só do `ADMIN`).
 | `domain/user/schemas/userSchema.js` | formato do formulário: e-mail, perfil e senha (mínimo de 8; vazia na alteração) |
 | `app/router.jsx` | rota `/users` no grupo só `ADMIN` |
 | `app/layout/navigationItems.js` | item "Usuários" habilitado |
+| `domain/user/filterUsers.js` (novo) | busca e filtros, função pura (saiu da page) |
+| `shared/components/ListMessage.jsx` (novo) | estados da tabela: carregando, erro, filtro sem resultado, nada cadastrado |
+| `shared/http/apiFieldErrors.js` (novo) | `applyApiFieldErrors`: erros por campo da API no formulário (usado por Usuários e Pacientes) |
+| **Padronização:** `domain/patient/`, `domain/provider/`, `domain/contract/` | hooks `usePatients`, `useProviders` e `useContracts` sem `select`; `filterPatients.js`, `filterProviders.js` e `filterContracts.js` na raiz do módulo; pages filtram e leem o modal pelo `id`, sem `isAdmin`, redirect e `useTransition`; tabelas com o `ListMessage`; Prestadores com `useDeactivateProvider` / `useActivateProvider` (sai o `useToggleProviderStatus`) e o `isTogglingStatus` no modal (resolve o clique duplo); o `PatientWizard` usa o `applyApiFieldErrors` |
 
 ## 6. Tarefas
 
@@ -77,7 +93,9 @@ Não se aplica: os endpoints de `/api/users` já existem (todos só do `ADMIN`).
 - [x] Textos da senha provisória.
 - [x] Rota e menu.
 - [x] `npm run build` e `npm run lint`.
-- [ ] Teste manual pela interface (seção 7).
+- [x] Componentes compartilhados (`FilterPills`, `Modal`, `Button`) na tela de Usuários.
+- [x] Padronização das telas de listagem (seção 2).
+- [ ] Teste manual pela interface (seção 7), nas quatro telas, depois da padronização.
 - [ ] Conclusão (seção 9).
 
 ## 7. Casos de teste
@@ -104,7 +122,10 @@ Não se aplica: os endpoints de `/api/users` já existem (todos só do `ADMIN`).
 
 ## 8. Pendências e pontos abertos
 
-Nenhum.
+- ~~Onde rodam os filtros em memória~~: **resolvido em 2026-11-11.** As outras três telas
+  filtravam no `select`; pelo mérito, a page é melhor (o `select` tira da page o item aberto
+  no modal). A convenção do `architecture.md` foi corrigida, e as quatro telas seguem o mesmo
+  padrão (seção 2).
 
 ## 9. Documentação ao concluir
 

@@ -64,33 +64,22 @@
 }
 
 .actionButton {
-  background: none;
-  border: none;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 32px;
+  height: 32px;
   padding: 0;
-  font: inherit;
-  font-size: 13px;
-  font-weight: 500;
-  color: var(--color-accent);
+  border: none;
+  border-radius: 8px;
+  background: none;
+  color: var(--color-text);
   cursor: pointer;
+  transition: background-color 0.15s ease, opacity 0.2s ease;
 }
 
 .actionButton:hover {
-  text-decoration: underline;
+  background: var(--color-primary-soft);
+  color: var(--color-primary);
 }
 
-.messageCard {
-  padding: 48px;
-  text-align: center;
-}
-
-.messageTitle {
-  margin: 0 0 6px 0;
-  font-size: 16px;
-  font-weight: 600;
-  color: var(--color-text);
-}
-
-.messageText {
-  font-size: 14px;
-  color: var(--color-muted);
-}
