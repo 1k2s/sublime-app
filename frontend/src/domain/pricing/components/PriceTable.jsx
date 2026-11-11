@@ -1,6 +1,6 @@
 // Tabela de preços vigentes de um grupo. Mostra duração ou frequência conforme o pricingModel
 import { Pencil } from "lucide-react";
-import { Badge } from "@/shared/ui/Badge";
+import { Badge } from "@/shared/components/Badge";
 import { formatCurrency } from "@/shared/utils/money";
 import { formatPriceAxis, getPriceAxisLabel } from "../priceAxis";
 import styles from "./PriceTable.module.css";

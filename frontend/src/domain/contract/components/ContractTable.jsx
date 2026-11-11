@@ -1,6 +1,6 @@
 import { Pencil } from "lucide-react";
-import { Card } from "@/shared/ui/Card";
-import { Badge } from "@/shared/ui/Badge";
+import { Card } from "@/shared/components/Card";
+import { Badge } from "@/shared/components/Badge";
 import { formatPriceAxis } from "@/domain/pricing/priceAxis";
 import { formatDate } from "@/shared/utils/date";
 import styles from "./ContractTable.module.css";

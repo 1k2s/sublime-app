@@ -1,6 +1,6 @@
 // Busca de paciente que, depois de escolhido, vira uma linha com o nome e o botão de trocar
 import { PatientSearchInput } from "@/domain/patient/components/PatientSearchInput";
-import { Button } from "@/shared/ui/Button";
+import { Button } from "@/shared/components/Button";
 import { maskCpf } from "@/shared/utils/masks";
 import styles from "./PatientPicker.module.css";
 

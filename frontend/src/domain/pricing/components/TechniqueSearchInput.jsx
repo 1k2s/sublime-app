@@ -1,6 +1,6 @@
 import { useEffect, useId, useState } from "react";
 import { Search } from "lucide-react";
-import { Input } from "@/shared/ui/Input";
+import { Input } from "@/shared/components/Input";
 import { useTechniques } from "../api/usePricing";
 import styles from "./TechniqueSearchInput.module.css";
 

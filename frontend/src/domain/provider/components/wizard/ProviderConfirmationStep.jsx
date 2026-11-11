@@ -1,6 +1,6 @@
 import { CheckCircle2, ArrowLeft, Check, User, KeyRound } from "lucide-react";
-import { Button } from "@/shared/ui/Button";
-import { Badge } from "@/shared/ui/Badge";
+import { Button } from "@/shared/components/Button";
+import { Badge } from "@/shared/components/Badge";
 import { ROLES } from "@/domain/auth/roles";
 import styles from "./ProviderWizard.module.css";
 

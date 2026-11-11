@@ -1,5 +1,5 @@
 // Card de uma seção do formulário: ícone, título e descrição no topo, conteúdo ocupando o resto da altura
-import { Card } from "@/shared/ui/Card";
+import { Card } from "@/shared/components/Card";
 import styles from "./ContractSection.module.css";
 
 export function ContractSection({ icon: Icon, title, description, className, children }) {

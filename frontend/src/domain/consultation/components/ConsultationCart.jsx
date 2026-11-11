@@ -2,8 +2,8 @@
 // Mostra sempre CART_SLOTS vagas: as que sobram viram placeholders. Passando disso, só a lista rola
 import { useEffect, useRef } from "react";
 import { CircleCheck, Trash2 } from "lucide-react";
-import { Button } from "@/shared/ui/Button";
-import { Card } from "@/shared/ui/Card";
+import { Button } from "@/shared/components/Button";
+import { Card } from "@/shared/components/Card";
 import { formatDateTime } from "@/shared/utils/date";
 import { formatCurrency } from "@/shared/utils/money";
 import styles from "./ConsultationCart.module.css";

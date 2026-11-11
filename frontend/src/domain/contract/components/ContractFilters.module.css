@@ -7,38 +7,3 @@
 .filters-search {
   width: 320px;
 }
-
-.filters-pills {
-  display: flex;
-  align-items: center;
-  gap: 8px;
-}
-
-.filters-pill {
-  display: inline-flex;
-  align-items: center;
-  justify-content: center;
-  height: 40px;
-  padding: 0 16px;
-  border: 1px solid #e5e0d5;
-  border-radius: 9999px;
-  background: #ffffff;
-  color: #6b7280;
-  font: inherit;
-  font-size: 13px;
-  font-weight: 500;
-  cursor: pointer;
-  transition: all 0.2s ease;
-}
-
-.filters-pill:hover:not(.filters-pill-active) {
-  border-color: #6b7280;
-  color: #374151;
-}
-
-.filters-pill-active {
-  border-color: transparent;
-  background: #eef4ee;
-  color: #3b6e3f;
-  font-weight: 600;
-}
