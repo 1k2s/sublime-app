@@ -12,12 +12,9 @@ import {
 import { Badge } from "@/shared/components/Badge";
 import { Button } from "@/shared/components/Button";
 import { Modal } from "@/shared/components/Modal";
-import { ROLES } from "@/domain/auth/roles";
+import { getRole } from "@/domain/auth/roles";
+import { formatPercentage } from "@/shared/utils/money";
 import styles from "./ProviderDetailsModal.module.css";
-
-function getRoleLabel(roleValue) {
-  return ROLES[roleValue]?.label || roleValue || "Prestador";
-}
 
 export function ProviderDetailsModal({
   provider,
@@ -30,12 +27,18 @@ export function ProviderDetailsModal({
 
   if (!provider) return null;
 
-  const isAtivo = provider.status === "ACTIVE";
+  const isAtivo = provider.active;
 
   const handleConfirmToggle = () => {
-    const nextStatus = isAtivo ? "INACTIVE" : "ACTIVE";
-    onToggleStatus?.(provider, nextStatus);
+    onToggleStatus?.(provider);
     setShowConfirm(false);
+  };
+
+  // O componente continua montado com o modal fechado: sem zerar, a confirmação
+  // reapareceria aberta no próximo prestador
+  const close = () => {
+    setShowConfirm(false);
+    onClose?.();
   };
 
   const footer = (
@@ -65,7 +68,7 @@ export function ProviderDetailsModal({
       </div>
 
       <div className={styles.footerActions}>
-        <Button variant="outline" onClick={onClose}>
+        <Button variant="outline" onClick={close}>
           Fechar
         </Button>
 
@@ -85,7 +88,7 @@ export function ProviderDetailsModal({
       titleExtra={<Badge variant={isAtivo ? "active" : "inactive"}>{isAtivo ? "Ativo" : "Inativo"}</Badge>}
       description="Detalhes do cadastro do prestador"
       footer={footer}
-      onClose={onClose}
+      onClose={close}
     >
       <div className={styles.content}>
         {/* Seção 1: Dados do Prestador e Comissões */}
@@ -97,7 +100,7 @@ export function ProviderDetailsModal({
                 <Percent size={14} /> Comissão Padrão (Clínica)
               </span>
               <span className={styles.fieldValue}>
-                {provider.commissionPercentage}%
+                {formatPercentage(provider.commissionPercentage)}
               </span>
             </div>
             <div className={styles.field}>
@@ -105,7 +108,7 @@ export function ProviderDetailsModal({
                 <Percent size={14} /> Comissão por Indicação
               </span>
               <span className={styles.fieldValue}>
-                {provider.referralCommissionPercentage}%
+                {formatPercentage(provider.referralCommissionPercentage)}
               </span>
             </div>
           </div>
@@ -126,10 +129,27 @@ export function ProviderDetailsModal({
                 <Shield size={14} /> Perfil de Acesso
               </span>
               <span className={styles.fieldValue}>
-                {getRoleLabel(provider.role)}
+                {getRole(provider.role)?.label ?? "--"}
+              </span>
+            </div>
+            <div className={styles.field}>
+              <span className={styles.fieldLabel}>
+                <User size={14} /> Status do Usuário
+              </span>
+              <span className={styles.fieldValue}>
+                <Badge variant={provider.userActive ? "active" : "inactive"}>
+                  {provider.userActive ? "Ativo" : "Inativo"}
+                </Badge>
               </span>
             </div>
           </div>
+          {/* Reativar o prestador exige usuário ativo (ver Provider, no domain-model) */}
+          {!provider.userActive && (
+            <p className={styles.note}>
+              Usuário inativo: o prestador não acessa o sistema. Para reativar o prestador,
+              reative antes o usuário na tela de Usuários.
+            </p>
+          )}
         </div>
 
         {/* Caixa de Confirmação de Desativação / Reativação */}

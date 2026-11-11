@@ -3,7 +3,8 @@
 Uma spec por feature em andamento: `docs/specs/<feature>.md`. Ela é o "contrato" da
 feature enquanto ela não está pronta.
 
-**Em andamento:** nenhuma. As próximas estão nos "Próximos passos" do
+**Em andamento:** [`provider-page.md`](provider-page.md) (tela de Prestadores vinculando
+um usuário existente). As próximas estão nos "Próximos passos" do
 [`roadmap.md`](../roadmap.md).
 
 ## Modelo
