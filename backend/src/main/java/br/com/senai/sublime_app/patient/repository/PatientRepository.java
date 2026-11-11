@@ -1,5 +1,7 @@
 package br.com.senai.sublime_app.patient.repository;
 
+import java.util.List;
+
 import org.springframework.data.jpa.repository.JpaRepository;
 
 import br.com.senai.sublime_app.patient.domain.PatientEntity;
@@ -13,4 +15,7 @@ public interface PatientRepository extends JpaRepository<PatientEntity, Long> {
     // Mesma checagem na atualização, ignorando o próprio paciente (senão editar
     // sem trocar o CPF seria rejeitado).
     boolean existsByCpfAndIdNot(String cpf, Long id);
+
+    // Pacientes que podem ser atendidos (tela de lançamento), por nome
+    List<PatientEntity> findByActiveTrueOrderByNameAsc();
 }

@@ -30,11 +30,8 @@ import jakarta.validation.Valid;
 @RestController
 @RequestMapping("/api/providers")
 @Tag(name = "Prestadores", description = """
-        Cadastro dos prestadores que realizam os atendimentos. Cada prestador é vinculado a
-        exatamente um usuário (que pode ter role `PROVIDER` ou `ADMIN`), e o vínculo é fixo.
-        Cada prestador tem dois percentuais de comissão (nenhum varia por técnica): o
-        **padrão** (pacientes da clínica ou de outros prestadores) e o de **pacientes que ele
-        trouxe** — vale este quando o titular do contrato do atendimento foi trazido por ele.
+        Cadastro dos prestadores, cada um vinculado a um usuário. Regras: "Provider" no
+        `docs/domain-model.md`.
         """)
 public class ProviderController {
 
@@ -45,20 +42,13 @@ public class ProviderController {
     }
 
     @Operation(summary = "Cadastrar prestador", description = """
-            Cria um prestador ativo vinculado a um usuário existente e **ativo**. Um usuário
-            só pode ter um prestador. Para remover o acesso de um prestador, inative o
-            usuário dele (`DELETE /api/users/{id}`).
-
-            **Percentuais** (formato 0–100, ex: `35.00` = 35%, no máximo 2 casas decimais — mais
-            casas são rejeitadas, nunca arredondadas), os dois **opcionais**:
-            - `commissionPercentage` — padrão; vazio = **40%**;
-            - `referralCommissionPercentage` — pacientes que ele trouxe; vazio = **45%**.
-            O de pacientes trazidos nunca pode ser menor que o padrão. Informe os valores só
-            para exceções (ex: estagiário).
+            Vincula a um usuário existente e ativo (`userId`). Percentuais de 0 a 100, com até
+            2 casas, opcionais: `commissionPercentage` (vazio = 40) e
+            `referralCommissionPercentage`, dos pacientes que ele trouxe (vazio = 45).
             """)
     @ApiResponses({
             @ApiResponse(responseCode = "201", description = "Prestador criado", content = @Content(schema = @Schema(implementation = ProviderResponseDTO.class))),
-            @ApiResponse(responseCode = "400", description = "Dados inválidos (incl. percentual fora de 0–100, com mais de 2 casas ou de pacientes trazidos menor que o padrão) ou usuário inativo", content = @Content),
+            @ApiResponse(responseCode = "400", description = "Dados inválidos, percentual inválido ou usuário inativo (o `detail` diz qual)", content = @Content),
             @ApiResponse(responseCode = "404", description = "Usuário não encontrado", content = @Content),
             @ApiResponse(responseCode = "409", description = "O usuário já está vinculado a um prestador", content = @Content)
     })
@@ -88,13 +78,8 @@ public class ProviderController {
     }
 
     @Operation(summary = "Atualizar prestador", description = """
-            Atualiza o nome e os dois percentuais de comissão — **ambos obrigatórios** aqui (o
-            padrão da clínica só vale no cadastro). O de pacientes trazidos nunca pode ser
-            menor que o padrão. O usuário vinculado **não pode ser alterado** e por isso não
-            é enviado.
-
-            A nova comissão vale para os próximos atendimentos: os já lançados guardam a
-            comissão aplicada no momento do lançamento.
+            Nome e os dois percentuais, obrigatórios aqui. O usuário vinculado não muda. Vale
+            para os próximos atendimentos.
             """)
     @ApiResponses({
             @ApiResponse(responseCode = "200", description = "Prestador atualizado", content = @Content(schema = @Schema(implementation = ProviderResponseDTO.class))),
@@ -109,8 +94,7 @@ public class ProviderController {
     }
 
     @Operation(summary = "Inativar prestador", description = """
-            Realiza o **soft delete** do prestador: ele é marcado como inativo, mas os
-            atendimentos já lançados continuam apontando para ele.
+            Soft delete: o prestador não recebe lançamentos novos.
             """)
     @ApiResponses({
             @ApiResponse(responseCode = "204", description = "Prestador inativado com sucesso"),
@@ -125,12 +109,11 @@ public class ProviderController {
     }
 
     @Operation(summary = "Reativar prestador", description = """
-            Desfaz a inativação: o prestador volta a poder receber lançamentos de atendimento
-            (ex: prestador que volta a atender). Os percentuais e o usuário vinculado não mudam.
-            Não exige usuário ativo: o lançamento informa o prestador explicitamente.
+            Desfaz a inativação. Exige o usuário vinculado ativo (reative-o antes, se preciso).
             """)
     @ApiResponses({
             @ApiResponse(responseCode = "204", description = "Prestador reativado com sucesso"),
+            @ApiResponse(responseCode = "400", description = "O usuário vinculado ao prestador está inativo", content = @Content),
             @ApiResponse(responseCode = "404", description = "Prestador não encontrado", content = @Content),
             @ApiResponse(responseCode = "409", description = "O prestador já está ativo", content = @Content)
     })

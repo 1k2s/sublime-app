@@ -22,8 +22,7 @@ import br.com.senai.sublime_app.auth.security.ActiveUserTokenValidator;
 import br.com.senai.sublime_app.auth.service.TokenService;
 
 // Geração e leitura do token com uma única chave secreta (HMAC SHA-256): o próprio
-// sistema emite e valida, então não precisa de par de chaves (RSA). Ver a spec de
-// autenticação.
+// sistema emite e valida, então não precisa de par de chaves (RSA). Ver o ADR 0023.
 @Configuration
 @EnableConfigurationProperties(JwtProperties.class)
 public class JwtConfig {

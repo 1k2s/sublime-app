@@ -5,7 +5,6 @@ import java.util.Optional;
 import org.springframework.data.jpa.repository.JpaRepository;
 
 import br.com.senai.sublime_app.user.domain.UserEntity;
-import br.com.senai.sublime_app.user.enums.Role;
 
 public interface UserRepository extends JpaRepository<UserEntity, Long> {
 
@@ -20,7 +19,7 @@ public interface UserRepository extends JpaRepository<UserEntity, Long> {
     // Login: busca o usuário pelo e-mail (a collation do MySQL ignora maiúsculas)
     Optional<UserEntity> findByEmail(String email);
 
-    // Existe algum usuário ativo com este perfil? Usado ao subir a aplicação, para criar
-    // o primeiro ADMIN só quando não houver nenhum
-    boolean existsByRoleAndActiveTrue(Role role);
+    // O admin padrão já foi criado? Usado ao subir a aplicação: as variáveis ADMIN_EMAIL e
+    // ADMIN_PASSWORD só valem na primeira subida
+    boolean existsByDefaultAdminTrue();
 }

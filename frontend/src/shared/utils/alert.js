@@ -15,6 +15,11 @@ export function showWarning(message) {
   return Swal.fire({
     icon: "warning",
     title: "Atenção",
+// Confirmação de que a ação deu certo, para telas que não fecham nem navegam depois de salvar
+export function showSuccess(message) {
+  return Swal.fire({
+    icon: "success",
+    title: "Tudo certo",
     text: message,
     confirmButtonText: "Ok",
     confirmButtonColor: "#5f7a58",

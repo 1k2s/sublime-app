@@ -67,8 +67,8 @@ O backend lê três valores que **não ficam no git**:
 | Variável | Para que serve | Obrigatória? |
 |---|---|---|
 | `JWT_SECRET` | segredo da assinatura do token de login, com **pelo menos 32 caracteres** | **sim**: sem ela, a aplicação não sobe |
-| `ADMIN_EMAIL` | e-mail do primeiro admin (e-mail válido) | só enquanto não existir nenhum `ADMIN` ativo no banco |
-| `ADMIN_PASSWORD` | senha do primeiro admin (8 caracteres ou mais) | idem |
+| `ADMIN_EMAIL` | e-mail do admin padrão (e-mail válido) | só na **primeira subida** (banco ainda sem admin padrão) |
+| `ADMIN_PASSWORD` | senha do admin padrão (8 caracteres ou mais) | idem |
 
 **Onde ficam:** no arquivo **`backend/.env`**, um por pessoa, ignorado pelo
 `backend/.gitignore`. Para criar, copie o modelo versionado `backend/.env.example` e troque
@@ -85,11 +85,13 @@ Copy-Item backend/.env.example backend/.env   # depois edite o backend/.env
 - **Nunca commite o `.env`.** Uma variável nova entra também no `.env.example`, com um
   valor de exemplo.
 
-**Primeiro admin:** ao subir, se não houver nenhum `ADMIN` ativo, a aplicação cria um com
-`ADMIN_EMAIL` e `ADMIN_PASSWORD`. Se já houver, as duas são ignoradas, e trocá-las no `.env`
-**não muda** o admin existente: para isso, altere o usuário pela API
-(`PUT /api/users/{id}`) ou zere o banco. Sem as duas e sem admin, a aplicação sobe, mas
-ninguém consegue logar (um aviso aparece no log).
+**Admin padrão:** na primeira subida (banco sem admin padrão), a aplicação cria um `ADMIN`
+com `ADMIN_EMAIL` e `ADMIN_PASSWORD`, já com senha definitiva (sem primeiro acesso). Ele
+não pode ser inativado nem mudar de perfil (ver `User` no
+[`domain-model.md`](domain-model.md)). **Depois disso as duas variáveis são ignoradas:**
+trocá-las no `.env` **não muda** o admin existente. Para trocar o e-mail ou a senha dele,
+use a tela de Configurações (`PUT /api/users/me`) ou zere o banco. Sem as duas e sem admin
+padrão, a aplicação sobe, mas ninguém consegue logar (um aviso aparece no log).
 
 **Usuários criados antes da autenticação** (senha gravada em texto puro) não conseguem
 logar: troque a senha pela API ou recrie o usuário.
@@ -146,16 +148,19 @@ O schema é criado e alterado **só pelas migrations do Flyway**
 ### Criando uma migration
 
 1. Mude a entidade (ex: um campo novo).
-2. Crie o arquivo seguinte: `V4__descricao_em_ingles.sql` (dois sublinhados; o
+2. Crie o arquivo seguinte: `V5__descricao_em_ingles.sql` (dois sublinhados; o
    número define a ordem de execução).
 3. Escreva o SQL (`ALTER TABLE ...`) e suba a aplicação: o Flyway aplica, e o
    `validate` confere se a entidade e o banco ficaram iguais.
 
 Regras:
-- **Uma migration já aplicada nunca é editada.** O Flyway guarda um checksum de
-  cada arquivo e recusa subir se ele mudar. Corrigir = um arquivo novo. Antes do
-  merge, enquanto ninguém mais aplicou, ainda dá para ajustar o arquivo e zerar o
-  banco local.
+- **Até a versão estável (a versão 1 no ar), as migrations podem ser editadas**
+  ([ADR 0028](adr/0028-migrations-editaveis-ate-versao-estavel.md)): o Flyway guarda um
+  checksum de cada arquivo e recusa subir se ele mudar, então **quem puxar uma migration
+  editada zera o banco local** (`docker compose down -v` e `up -d`); a `V4` recarrega o
+  catálogo e o admin padrão é recriado. Quem editar avisa o time no PR.
+- **Depois da versão estável, uma migration já aplicada nunca é editada**
+  ([ADR 0021](adr/0021-schema-versionado-flyway.md)): corrigir = um arquivo novo.
 - Enum novo ou valor novo num enum **não exige migration**: as colunas de enum são
   `varchar(30)`, e quem valida o valor é o enum Java.
 
@@ -255,8 +260,9 @@ genérico ("conflito de integridade"); a causa exata aparece no log da aplicaç�
   1. ~~grupos, técnicas, planos, de-para e preços~~: já criados pela `V4` (falta só
      o preço da Evolução Familiar no Individual Especializado e no Em Dupla, ainda
      não definido);
-  2. usuários;
-  3. prestadores;
+  2. usuários: nascem com **senha provisória**, então cada um faz o primeiro acesso (no
+     login da tela, ou `POST /api/auth/first-access`) antes de usar o sistema;
+  3. prestadores, vinculando um usuário já existente e ativo;
   4. pacientes (com a origem, se houver);
   5. contratos.
 

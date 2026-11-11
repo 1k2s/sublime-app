@@ -26,10 +26,6 @@ import lombok.NoArgsConstructor;
 @EqualsAndHashCode(onlyExplicitlyIncluded = true)
 public class UserEntity {
 
-    // Prefixo aplicado ao hash BCrypt quando a senha é provisória e exige troca no
-    // primeiro login, sem adicionar nova coluna/atributo na entidade (ADR 0025)
-    public static final String FIRST_ACCESS_PREFIX = "FIRST_ACCESS:";
-
     @Id
     @GeneratedValue(strategy = GenerationType.IDENTITY)
     @EqualsAndHashCode.Include
@@ -38,10 +34,14 @@ public class UserEntity {
     @Column(nullable = false, unique = true)
     private String email;
 
-    // Sempre o hash (BCrypt), nunca a senha digitada: quem faz o hash é o UserService.
-    // Quando provisória, começa com FIRST_ACCESS_PREFIX (ADR 0025).
+    // Sempre o hash (BCrypt), nunca a senha digitada: quem faz o hash é o UserService
     @Column(nullable = false)
     private String password;
+
+    // Senha provisória (criada ou redefinida pelo admin): o login não emite token até o
+    // próprio usuário definir a senha dele no primeiro acesso (ADR 0025)
+    @Column(name = "password_change_required", nullable = false)
+    private boolean passwordChangeRequired = false;
 
     // varchar, não o enum nativo do MySQL: valor novo no enum não exige migration (ADR 0021)
     @Enumerated(EnumType.STRING)
@@ -52,7 +52,13 @@ public class UserEntity {
     @Column(nullable = false)
     private boolean active = true;
 
-    // Construtor público para criar um usuário com senha já definitiva (ex: AdminInitializer).
+    // Admin criado na primeira subida (ADMIN_EMAIL/ADMIN_PASSWORD): não pode ser inativado
+    // nem mudar de perfil, então sempre existe um admin ativo. Marcado só pela fábrica
+    // defaultAdmin, nunca pelo request.
+    @Column(name = "default_admin", nullable = false)
+    private boolean defaultAdmin = false;
+
+    // Construtor público para criar um usuário com senha já definitiva (ex: admin padrão).
     // Recebe a senha já com hash (encodedPassword).
     public UserEntity(String email, String encodedPassword, Role role) {
         validateEmailAndRole(email, role);
@@ -63,58 +69,95 @@ public class UserEntity {
         this.active = true;
     }
 
+    // Fábrica do admin padrão: mesmas regras de qualquer usuário, com a marca e a senha
+    // definitiva
+    public static UserEntity defaultAdmin(String email, String encodedPassword) {
+        UserEntity user = new UserEntity(email, encodedPassword, Role.ADMIN);
+        user.defaultAdmin = true;
+        return user;
+    }
+
     // Fábrica para usuários criados pelo administrador (POST /api/users), que nascem com
     // senha provisória e precisam definir a própria senha no primeiro acesso (ADR 0025).
     public static UserEntity withProvisionalPassword(String email, String encodedPassword, Role role) {
-        validateEmailAndRole(email, role);
-        validateEncodedPassword(encodedPassword);
-        return new UserEntity(email, FIRST_ACCESS_PREFIX + encodedPassword, role);
+        UserEntity user = new UserEntity(email, encodedPassword, role);
+        user.passwordChangeRequired = true;
+        return user;
     }
 
     // Alteração dos dados de acesso, sem a senha (ver changePassword)
     public void update(String email, Role role) {
         validateEmailAndRole(email, role);
+        requireRoleUnchangedIfDefaultAdmin(role);
         this.email = email;
         this.role = role;
     }
 
-    // Troca para uma senha definitiva (conclusão do primeiro acesso pelo próprio usuário)
+    // Troca só do e-mail (Configurações do próprio usuário): o perfil não muda por aqui
+    public void changeEmail(String email) {
+        validateEmailAndRole(email, role);
+        this.email = email;
+    }
+
+    // Troca para uma senha definitiva, feita pelo próprio usuário: conclusão do primeiro
+    // acesso ou Configurações (/me)
     public void changePassword(String encodedPassword) {
         validateEncodedPassword(encodedPassword);
         this.password = encodedPassword;
+        this.passwordChangeRequired = false;
     }
 
     // Redefinição de senha pelo administrador (PUT /api/users/{id}): grava como provisória
     // para que o usuário defina sua própria senha pessoal no próximo login (ADR 0025)
     public void changeToProvisionalPassword(String encodedPassword) {
         validateEncodedPassword(encodedPassword);
-        this.password = FIRST_ACCESS_PREFIX + encodedPassword;
+        this.password = encodedPassword;
+        this.passwordChangeRequired = true;
     }
 
     // Indica se o usuário ainda está com senha provisória pendente de troca
     public boolean isFirstAccessPending() {
-        return password != null && password.startsWith(FIRST_ACCESS_PREFIX);
-    }
-
-    // Devolve apenas o hash BCrypt puro (sem o prefixo FIRST_ACCESS:), para conferência
-    // pelo PasswordEncoder
-    public String extractPasswordHash() {
-        return isFirstAccessPending()
-                ? password.substring(FIRST_ACCESS_PREFIX.length())
-                : password;
+        return passwordChangeRequired;
     }
 
     // Soft delete: o usuário pode estar vinculado a um prestador com atendimentos
     // lançados, então nunca é removido do banco
     public void deactivate() {
+        requireNotDefaultAdmin();
         requireActive();
         this.active = false;
+    }
+
+    // Reativação: devolve o acesso ao sistema (o usuário volta a fazer login)
+    public void activate() {
+        requireInactive();
+        this.active = true;
+    }
+
+    private void requireInactive() {
+        if (active) {
+            throw new ConflictException("O usuário já está ativo.");
+        }
     }
 
     // Inativar duas vezes não é uma operação válida: 409 avisa que o estado já era esse
     private void requireActive() {
         if (!active) {
             throw new ConflictException("O usuário já está inativo.");
+        }
+    }
+
+    private void requireNotDefaultAdmin() {
+        if (defaultAdmin) {
+            throw new ConflictException("O administrador padrão não pode ser inativado.");
+        }
+    }
+
+    // Só recusa se o perfil MUDAR: o PUT manda o estado completo, e corrigir o e-mail do
+    // admin padrão (mantendo ADMIN) precisa continuar funcionando
+    private void requireRoleUnchangedIfDefaultAdmin(Role newRole) {
+        if (defaultAdmin && newRole != role) {
+            throw new ConflictException("O perfil do administrador padrão não pode ser alterado.");
         }
     }
 

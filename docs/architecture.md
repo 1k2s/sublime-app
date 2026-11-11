@@ -88,7 +88,9 @@ pricing          user          ← módulos de base, sem dependência
   `PricingGroup`, `SessionDurationPrice`, `SessionFrequencyPrice`). Ficam juntos porque
   mudam sempre em conjunto e nenhum outro módulo deve conhecer a fiação interna
   entre eles.
-- `user`: usuários de acesso ao sistema (`User`: e-mail, senha com hash, perfil).
+- `user`: usuários de acesso ao sistema (`User`: e-mail, senha com hash, perfil) e o
+  `CurrentUser` (quem está logado), que os módulos de negócio recebem sem conhecer o
+  token (ver "Segurança").
 - `auth`: login, emissão e validação do token e as regras de acesso da API (ver
   "Segurança"), referencia `user`. O `user` não importa nada do `auth`: recebe só o
   `PasswordEncoder`, que é uma interface do Spring Security.
@@ -234,15 +236,18 @@ português:
 | Login recusado (`AuthenticationException` no `POST /api/auth/login` ou `POST /api/auth/first-access`) | 401 | `detail`: "E-mail ou senha inválidos." (o mesmo para e-mail inexistente, senha errada e usuário inativo) |
 | Primeiro acesso pendente (`FirstAccessRequiredException` no `POST /api/auth/login` quando a senha provisória está correta) | 403 | `detail`: "Primeiro acesso pendente. Defina sua nova senha para continuar." + propriedade `firstAccessRequired: true` |
 | Rota protegida sem token, com token inválido ou vencido, ou de usuário inativado / com perfil alterado | 401 | `detail`: "Sessão inválida ou expirada. Faça login novamente." + header `WWW-Authenticate: Bearer` |
-| Sem permissão para o recurso (com a autorização por perfil, ainda não usada) | 403 | `detail`: "Você não tem permissão para acessar este recurso." |
+| Endpoint fora do perfil (`SecurityConfig`, ver "Segurança") | 403 | `detail`: "Você não tem permissão para acessar este recurso." |
+| `ForbiddenException` (regra de acesso aos dados, no service: ex. `PROVIDER` lançando para outro prestador ou sem prestador vinculado) | 403 | `detail` |
 
 Os 401/403 de rota protegida acontecem nos filtros de segurança, antes do Spring MVC:
 quem os escreve é o `auth` (`ProblemDetailAuthenticationEntryPoint`,
 `ProblemDetailAccessDeniedHandler`, pelo `ProblemDetailResponseWriter`), no mesmo formato
-`ProblemDetail`.
+`ProblemDetail`. O 403 do `ForbiddenException` não: sai do service, pelo
+`GlobalExceptionHandler`.
 
-Ordem em que os erros acontecem: token (401) → leitura do JSON → DTO (todos os erros
-de uma vez) → service (404/409, um por vez) → entidade (400, um por vez) → banco. O
+Ordem em que os erros acontecem: token (401) → perfil (403) → leitura do JSON → DTO
+(todos os erros de uma vez) → service (403/404/409, um por vez) → entidade (400, um por
+vez) → banco. O
 frontend trata `errors` como erro de formulário (por campo) e `detail` como
 mensagem geral.
 
@@ -256,9 +261,10 @@ módulo `auth`.
   `AuthenticationManager` (`DaoAuthenticationProvider` + `DatabaseUserDetailsService`)
   confere se o usuário existe e está ativo, e a senha contra o hash BCrypt.
 - **Primeiro acesso ([ADR 0025](adr/0025-primeiro-acesso-com-senha-provisoria.md)):** se o
-  usuário autenticado no login estiver com senha provisória (`FIRST_ACCESS:` no campo
-  `password`), o `AuthService` não emite o token e lança `FirstAccessRequiredException`
-  (`403` com `firstAccessRequired: true`). A troca é concluída no endpoint público
+  usuário autenticado no login estiver com senha provisória (`passwordChangeRequired`,
+  [ADR 0029](adr/0029-senha-provisoria-por-coluna.md)), o `AuthService` não emite o token e
+  lança `FirstAccessRequiredException` (`403` com `firstAccessRequired: true`). A troca é
+  concluída no endpoint público
   `POST /api/auth/first-access` (`{ email, provisionalPassword, newPassword }`), que exige
   nova senha diferente da provisória, grava o hash BCrypt definitivo e devolve
   `{ token, expiresAt, user }`.
@@ -266,11 +272,27 @@ módulo `auth`.
   (`jwt.expiration`), sem refresh token. Claims: `iss` = `sublime-app`, `sub` = e-mail,
   `userId`, `roles` (lista, ex: `["ADMIN"]`), `iat`, `exp`. Gerado pelo `TokenService`.
 - **Em cada requisição** o `JwtDecoder` confere a assinatura, a validade e o emissor e, por
-  fim, o `ActiveUserTokenValidator`: o usuário do token precisa existir, estar ativo e ter
-  o mesmo perfil do token (uma consulta por chave primária). Se não, 401.
-- **Perfis:** a claim `roles` vira as autoridades `ROLE_ADMIN` / `ROLE_PROVIDER`, prontas
-  para o `hasRole(...)` da autorização por perfil (ainda não aplicada: hoje qualquer
-  usuário logado acessa todos os endpoints).
+  fim, o `ActiveUserTokenValidator`: o usuário do token precisa existir, estar ativo, sem
+  primeiro acesso pendente e com o mesmo perfil do token (uma consulta por chave
+  primária). Se não, 401: inativar, mudar o perfil ou redefinir a senha corta a sessão.
+- **Perfis:** a claim `roles` vira as autoridades `ROLE_ADMIN` / `ROLE_PROVIDER`, usadas
+  pelo `hasRole(...)` / `hasAnyRole(...)` do `SecurityConfig`.
+- **Autorização por perfil ([ADR 0026](adr/0026-acesso-por-perfil-centralizado.md)),** em
+  duas camadas:
+  - **Endpoint (`SecurityConfig`):** uma tabela única, rota a rota e sem curinga (o
+    `{id}` só numérico), com os endpoints que o `PROVIDER` usa (`hasAnyRole`). No fim,
+    `anyRequest().hasRole("ADMIN")`: **endpoint novo nasce restrito ao ADMIN**, e esquecer
+    de configurar nega o acesso, nunca o abre. Quais endpoints o `PROVIDER` acessa:
+    "Acesso ao sistema", em `User`, no [`domain-model.md`](domain-model.md).
+  - **Dados (service):** o que depende do registro (o `PROVIDER` só vê, lança e inativa os
+    próprios lançamentos) fica no service, que lança o `ForbiddenException`
+    (`shared/exception`), e não o `AccessDeniedException` do Spring, para os módulos de
+    negócio não dependerem do Spring Security. O service recebe o
+    **`CurrentUser(userId, role)`**. O
+    record mora no `user` e é montado a partir do token pelo `CurrentUserArgumentResolver`
+    (`auth`, registrado pelo `CurrentUserWebConfig`): os controllers o recebem como
+    parâmetro, e nenhum módulo de negócio importa o `auth`. As regras de cada endpoint
+    estão no [`domain-model.md`](domain-model.md) (`Consultation` e `User`).
 - **Rotas públicas** (`SecurityConfig`, em `auth/config`): `POST /api/auth/login`, `POST /api/auth/first-access`, o
   Swagger (`/swagger-ui.html`, `/swagger-ui/**`, `/api-docs/**`) e o `/error` interno.
   Todo o resto exige `Authorization: Bearer <token>`.
@@ -445,8 +467,11 @@ Regras:
   `onError` do `mutate`. Components não chamam o alerta. O `error.message` já chega com a
   mensagem da API: o interceptor de resposta do `apiClient` troca o texto técnico do Axios
   pelo `detail` do `ProblemDetail` ou, quando não houve resposta ou ela veio sem `detail`,
-  por uma mensagem de reserva. Erros por campo (`errors` do `ProblemDetail`,
-  ver "Formato dos erros" acima) aparecem no `FormField`.
+  por uma mensagem de reserva. Os erros por campo da API (`errors` do `ProblemDetail`, ver
+  "Formato dos erros" acima) **não são lidos** pelo front: um 400 de validação aparece só
+  como a mensagem geral. Os erros por campo que o `FormField` mostra são os do Zod.
+- Sucesso numa tela que não fecha nem navega depois de salvar (ex: Configurações): a page
+  mostra `showSuccess(mensagem)` (`shared/utils/alert.js`).
 
 ### Estado
 
@@ -483,9 +508,16 @@ Regras:
 ### Rotas e sessão
 
 - `app/router.jsx`: `createBrowserRouter` com rotas `lazy`. `/login` é pública; as demais
-  ficam dentro do `ProtectedRoute` + `AppLayout` (`/patients`, `/pricing`, `/providers`,
-  `/contracts`, `/consultations`); `*` é a página de não encontrado.
-- `ProtectedRoute` só confere se há sessão (não bloqueia por papel; ver o princípio 3).
+  ficam dentro do `ProtectedRoute` + `AppLayout`, em dois grupos por papel: só `ADMIN`
+  (`/patients`, `/pricing`, `/providers`, `/contracts`) e `ADMIN` + `PROVIDER`
+  (`/consultations`, `/settings`); `*` é a página de não encontrado.
+- **`ProtectedRoute`:** sem sessão, leva ao `/login` (e volta à rota pedida depois do
+  login); com `roles`, quem não tem o papel vai para a tela inicial do próprio papel. É só
+  experiência de uso: a proteção real é o 403 da API (princípio 3).
+- **Menu por papel** (`app/layout/navigationItems.js`, campo `roles`): o `ADMIN` vê
+  Pacientes, Contratos, Preços, Lançamentos, Prestadores e Configurações; o `PROVIDER`,
+  Lançamentos e Configurações. Itens sem tela pronta (Dashboard, Usuários) ficam
+  desabilitados.
 - **Sessão no `localStorage`** ([ADR 0024](adr/0024-sessao-frontend-localstorage.md)): o
   `signIn` do `AuthProvider` guarda a resposta do `POST /api/auth/login` em
   `sublime.authToken`, `sublime.authUser` e `sublime.authExpiresAt`.
@@ -500,10 +532,15 @@ Regras:
   `PROVIDER` a `/consultations` (`homePath` de cada papel, lido pelo `getHomePath`).
 - Os papéis ficam em `domain/auth/roles.js` (`ADMIN` e `PROVIDER`); o valor de cada um
   precisa ser idêntico ao enum `Role` do backend.
-- A tela de login tem só e-mail e senha: não há "criar conta" nem botão manual de primeiro acesso. Usuários são criados por
-  quem já está logado, pelo `POST /api/users`, com senha provisória; ao logar pela primeira vez com a senha provisória, a tela de login transiciona automaticamente para o formulário de definição de senha pessoal (`POST /api/auth/first-access`, [ADR 0025](adr/0025-primeiro-acesso-com-senha-provisoria.md)).
-- A tela de prestadores (`/providers`) aparece no menu lateral e permite acesso somente ao perfil `ADMIN`.
-
+- A tela de login tem só e-mail e senha: não há "criar conta" nem botão manual de
+  primeiro acesso. Usuários são criados pelo admin (`POST /api/users`), com senha
+  provisória; no login com a senha provisória, a tela troca sozinha para o formulário de
+  definição da senha pessoal (`POST /api/auth/first-access`,
+  [ADR 0025](adr/0025-primeiro-acesso-com-senha-provisoria.md)), que já entra logado.
+- **Configurações** (`/settings`, `domain/user`): o próprio usuário troca o e-mail e a
+  senha pelo `PUT /api/users/me`, confirmando a senha atual. Depois de salvar, o
+  `updateUser` do `AuthProvider` atualiza o usuário guardado, e o menu mostra o e-mail
+  novo.
 - O menu mostra o e-mail do usuário: a resposta do login não traz nome.
 
 ### Convenções de nomes

@@ -25,11 +25,8 @@ import java.util.List;
 @RestController
 @RequestMapping("/api/contracts")
 @Tag(name = "Contratos", description = """
-        Contratos entre paciente e clínica. Um contrato tem um **cabeçalho** (titular,
-        beneficiário, plano único, início, fim calculado, forma de pagamento) e **itens** —
-        um por grupo de preço contratado, cada um travando a sua linha de preço.
-        Contratos são versionados: alterações geram uma nova versão (aditivo), nunca
-        editam o registro existente.
+        Contratos entre paciente e clínica: cabeçalho e um item por grupo de preço, versionados
+        por aditivos. Regras: "Contract e ContractItem" no `docs/domain-model.md`.
         """)
 public class ContractController {
 
@@ -40,28 +37,16 @@ public class ContractController {
     }
 
     @Operation(summary = "Criar contrato", description = """
-            Cria um contrato com um plano único e um ou mais itens (um por grupo de preço).
+            Cria um contrato com um plano e um item por grupo de preço. Cada item informa a
+            técnica e uma linha de preço vigente (`GET /api/techniques/{id}/prices`): por
+            duração, `sessionDurationPriceId` + `frequency`; Pilates em Grupo,
+            `sessionFrequencyPriceId`. O fim é calculado (ver `term-preview`).
 
-            **Itens:** cada item informa a técnica (só informativa — aparece no contrato
-            impresso) e **exatamente uma** linha de preço vigente (obtida em
-            `GET /api/techniques/{id}/prices`):
-            - `sessionDurationPriceId` + `frequency` → grupos por duração. A linha precisa ser
-              **do plano do contrato**; a frequência define o prazo do item.
-            - `sessionFrequencyPriceId` (sem `frequency`) → Pilates em Grupo. O plano do item
-              vem das opções de `GET /api/contracts/term-preview`.
-
-            **Fim calculado:** não é enviado. É o início + o maior prazo entre os itens por
-            duração (sessões do plano ÷ ritmo, em semanas, até 52) − 1 dia. Contrato só com
-            Pilates em Grupo usa um plano de mensalidade e o prazo dele.
-
-            **Restrições:**
-            - O titular não pode ter outro contrato **vigente** (ativo e com fim >= hoje).
-            - Titular, beneficiário, plano e técnicas devem estar ativos; o plano nunca é o avulso.
-            - Um item por grupo de preço; contrato de pacote precisa de pelo menos um item por duração.
+            Regras: "Contract e ContractItem" no `docs/domain-model.md`.
             """)
     @ApiResponses({
             @ApiResponse(responseCode = "201", description = "Contrato criado com sucesso", content = @Content(schema = @Schema(implementation = ContractResponseDTO.class))),
-            @ApiResponse(responseCode = "400", description = "Requisição inválida — formato dos itens, preço não vigente ou de outro plano, técnica fora do grupo, frequência acima do prazo máximo, plano do Grupo fora das opções, cadastros inativos ou plano avulso", content = @Content),
+            @ApiResponse(responseCode = "400", description = "Dados inválidos ou regra do contrato violada (o `detail` diz qual)", content = @Content),
             @ApiResponse(responseCode = "404", description = "Paciente, plano, técnica ou preço não encontrado", content = @Content),
             @ApiResponse(responseCode = "409", description = "Paciente já possui um contrato vigente, ou o beneficiário já está em outro contrato vigente", content = @Content)
     })
@@ -92,15 +77,9 @@ public class ContractController {
     }
 
     @Operation(summary = "Prévia da vigência (tela de criação)", description = """
-            Calcula, sem gravar nada, a vigência do contrato e as opções do plano do item do
-            Pilates em Grupo — a mesma conta usada na criação.
-
-            Informe o plano, o início e a frequência de **cada item por duração** (ex:
-            `frequencies=ONCE_A_WEEK,BIWEEKLY`). Plano de mensalidade (contrato só com Grupo)
-            não precisa de frequências.
-
-            Opções do Grupo: mensalidades até a primeira que cubra a vigência; a sugestão é o
-            equivalente do plano do contrato (de-para).
+            Calcula, sem gravar, a vigência e as opções do plano do Pilates em Grupo. Informe
+            o plano, o início e a frequência de cada item por duração (ex:
+            `frequencies=ONCE_A_WEEK,BIWEEKLY`; mensalidade não precisa).
             """)
     @ApiResponses({
             @ApiResponse(responseCode = "200", description = "Prévia calculada", content = @Content(schema = @Schema(implementation = ContractTermPreviewResponseDTO.class))),
@@ -117,8 +96,8 @@ public class ContractController {
     }
 
     @Operation(summary = "Opções do plano do Grupo (aditivo)", description = """
-            Opções do plano do item do Pilates em Grupo para um aditivo, pela vigência atual
-            do contrato (nada é gravado).
+            Opções do plano do Pilates em Grupo para um aditivo, pela vigência atual (sem
+            gravar).
             """)
     @ApiResponses({
             @ApiResponse(responseCode = "200", description = "Opções calculadas", content = @Content(schema = @Schema(implementation = ContractTermPreviewResponseDTO.class))),
@@ -131,30 +110,18 @@ public class ContractController {
     }
 
     @Operation(summary = "Alterar contrato (aditivo)", description = """
-            O contrato **nunca é editado no lugar**. Cada alteração gera uma **nova versão**
-            (novo registro, com `previousContractId` apontando para a versão atual), e a
-            versão atual é inativada. Responde com a nova versão.
+            Gera uma nova versão do contrato (a atual é inativada) e responde com ela. Envie o
+            **estado completo**: beneficiário, forma de pagamento e todos os itens (item que não
+            vier é removido). Titular, plano e início são copiados. `endDate` (opcional) só
+            estende o fim.
 
-            **Estado completo:** envie o beneficiário, a forma de pagamento e **todos** os itens
-            da nova versão (o frontend abre o formulário preenchido com a versão atual). Item
-            que não vier é removido; item de grupo novo é incluído.
-
-            **Nunca mudam** (são copiados): titular, plano e início. Trocar o plano = encerrar o
-            contrato e fazer outro.
-
-            **O que é igual à versão atual é aceito como está:** manter a mesma linha de preço
-            é permitido mesmo após um reajuste; trocar de linha exige uma linha vigente. O mesmo
-            vale para técnica e beneficiário inativos.
-
-            **Fim:** mantido por padrão. `endDate` (opcional) só estende — prorrogação, depois do
-            fim atual. Incluir um item por duração pode estender o fim (prazo do item contado a
-            partir de hoje). Remover item ou mudar frequência não muda o fim.
+            Regras: "Versionamento (aditivos)" no `docs/domain-model.md`.
             """)
     @ApiResponses({
             @ApiResponse(responseCode = "201", description = "Nova versão criada; a versão anterior foi inativada", content = @Content(schema = @Schema(implementation = ContractResponseDTO.class))),
-            @ApiResponse(responseCode = "400", description = "Requisição inválida — mesmas regras da criação, fim pedido não posterior ao atual, ou item por duração em contrato de mensalidade", content = @Content),
+            @ApiResponse(responseCode = "400", description = "Dados inválidos ou regra do aditivo violada (o `detail` diz qual)", content = @Content),
             @ApiResponse(responseCode = "404", description = "Contrato, técnica, beneficiário ou preço não encontrado", content = @Content),
-            @ApiResponse(responseCode = "409", description = "Contrato inativo (já substituído ou encerrado), alterado simultaneamente, ou beneficiário novo que já está em outro contrato vigente", content = @Content)
+            @ApiResponse(responseCode = "409", description = "Versão inativa, aditivo simultâneo ou beneficiário em outro contrato vigente", content = @Content)
     })
     @PostMapping("/{id}/amendments")
     public ResponseEntity<ContractResponseDTO> amend(
@@ -165,9 +132,7 @@ public class ContractController {
     }
 
     @Operation(summary = "Inativar contrato", description = """
-            Realiza o **soft delete** do contrato: o registro é marcado como `active = false`
-            e preservado no histórico para fins de rastreabilidade e auditoria.
-            O contrato não é removido fisicamente do banco de dados.
+            Soft delete: o contrato fica no histórico.
             """)
     @ApiResponses({
             @ApiResponse(responseCode = "204", description = "Contrato inativado com sucesso"),

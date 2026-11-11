@@ -20,7 +20,8 @@ public record ConsultationRequestDTO(
         // vazio só quando o paciente não tem contrato vinculado (Avulso).
         Long contractId,
 
-        @NotNull(message = "O prestador é obrigatório.")
+        // Quem atendeu. ADMIN: obrigatório (conferido no service). PROVIDER: opcional, o
+        // prestador vem do login; informado, precisa ser o dele.
         Long providerId,
 
         @NotNull(message = "A técnica é obrigatória.")
