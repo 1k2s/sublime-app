@@ -92,9 +92,8 @@ feature em andamento fica na spec dela, em [`specs/`](specs/).
      **vinculando um usuário já existente** (o `POST /api/providers` já recebe o
      `userId`). A tela de Usuários também inativa e reativa acessos, e usa o
      `defaultAdmin` da resposta para esconder "Inativar" e a troca de perfil do admin
-     padrão. A tela de Usuários já existe (falta o teste manual; ver a
-     [spec](specs/tela-de-usuarios.md)). O wizard de Prestadores atual cria o usuário na
-     etapa "Conta de acesso" e precisa ser ajustado a esse fluxo.
+     padrão. **A tela de Usuários está pronta** (2026-11-11). O wizard de Prestadores atual
+     cria o usuário na etapa "Conta de acesso" e precisa ser ajustado a esse fluxo.
    - **Redesenho do lançamento:** usa o `GET /api/consultations/patients` para escolher o
      paciente, esconde o prestador para o `PROVIDER` (vem do login) e mostra o valor só
      depois de lançar (sem prévia de preço).
@@ -184,13 +183,16 @@ chamadas batem com a API real ainda não foram conferidos.**
 | `consultation` | tela de lançamento (formulário, agenda, carrinho, total). `consultationApi.js` com trechos mockados |
 | `contract` | tela de contratos (filtros, tabela, formulário com seleção de paciente e preço, resumo), com fallback mockado no `contractApi.js`. **Envio no modelo antigo do contrato** (ver "Pendências") |
 | `provider` | tela de Prestadores (`/providers`, só `ADMIN`; PR #38): listagem, detalhes e cadastro/edição em wizard de 3 etapas. **Cria o usuário junto** (etapa "Conta de acesso"): a ajustar ao fluxo de telas separadas (ver "Próximos passos") |
-| `user` | tela de Configurações (`/settings`, os dois perfis): troca do e-mail e da senha com a senha atual; camada `api/` (usuários e `/me`). **Tela de Usuários** (`/users`, só `ADMIN`; 2026-11-10): listagem com busca e filtros, cadastro e alteração com senha provisória, inativar e reativar, admin padrão protegido. Ligada à API, **falta o teste manual** ([spec](specs/tela-de-usuarios.md)) |
+| `user` | tela de Configurações (`/settings`, os dois perfis): troca do e-mail e da senha com a senha atual; camada `api/` (usuários e `/me`). **Tela de Usuários** (`/users`, só `ADMIN`; 2026-11-10): listagem com busca e filtros, cadastro e alteração com senha provisória, inativar e reativar, admin padrão protegido. Ligada à API e **testada pela tela** (2026-11-11) |
 | `app/`, `shared/` | layout com menu lateral, router com rotas `lazy`, `apiClient`, utilitários (`money`, `date`, `masks`, `alert`, `viacep`) e componentes de `shared/components/` |
 
 - **Telas de listagem padronizadas** (2026-11-11): Usuários, Pacientes, Prestadores e
   Contratos seguem o mesmo padrão (filtro na page, modal pelo `id`, permissão só no router,
   `ListMessage` com os quatro estados, um hook por endpoint para inativar e reativar). Ver
-  "Telas de listagem" no [`architecture.md`](architecture.md).
+  "Telas de listagem" no [`architecture.md`](architecture.md). **Teste manual pela tela**
+  (2026-11-11), depois da padronização: filtros, inativar e reativar com o modal aberto,
+  mensagens da tabela, cadastro e edição nas quatro telas, busca de paciente no contrato e
+  no lançamento, e Configurações; tudo funcionou como esperado.
 - **`npm run build` funciona** desde a atualização de 2026-11-05 (as correções do PR #13
   do repositório antigo resolveram os arquivos cortados). `npm run lint`: sem erros e sem
   avisos (2026-11-07).
@@ -205,10 +207,8 @@ chamadas batem com a API real ainda não foram conferidos.**
 2. **Trocar os mocks pelas chamadas reais** onde o backend já tem o endpoint (`contract`,
    `consultation`).
 3. **Telas que faltam**, na ordem de cadastro (cada uma depende dos dados da anterior):
-   tela de Usuários (implementada, falta o teste manual: ver a
-   [spec](specs/tela-de-usuarios.md)) e ajuste da de Prestadores ao fluxo de telas
-   separadas → ajuste dos
-   contratos ao contrato real → lançamento ligado à API real (decisões nos
+   ajuste da tela de Prestadores ao fluxo de telas separadas (a de Usuários está pronta),
+   já com os erros por campo da API → ajuste dos contratos ao contrato real → lançamento ligado à API real (decisões nos
    [Próximos passos](#próximos-passos) do projeto). Cada tela começa com uma spec em
    [`specs/`](specs/README.md).
 

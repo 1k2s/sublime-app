@@ -3,13 +3,8 @@
 Uma spec por feature em andamento: `docs/specs/<feature>.md`. Ela é o "contrato" da
 feature enquanto ela não está pronta.
 
-**Em andamento:**
-
-| Spec | Feature |
-|---|---|
-| [`tela-de-usuarios.md`](tela-de-usuarios.md) | tela do `ADMIN` para criar, alterar, inativar e reativar usuários (falta o teste manual) |
-
-As próximas estão nos "Próximos passos" do [`roadmap.md`](../roadmap.md).
+**Em andamento:** nenhuma. As próximas estão nos "Próximos passos" do
+[`roadmap.md`](../roadmap.md).
 
 ## Modelo
 
