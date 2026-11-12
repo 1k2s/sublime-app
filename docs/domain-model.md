@@ -666,6 +666,8 @@ guarda nem valida isso).
 - **Beneficiário não é obrigatório, nem no Pilates em Dupla:** nada impede o
   paciente de contratar a dupla e usar sozinho. O sistema não exige nem proíbe
   beneficiário em nenhum plano.
+- **O beneficiário é outro paciente** (400 "O beneficiário deve ser outro paciente.", na
+  criação e no aditivo): o titular não pode ser beneficiário do próprio contrato.
 - **Um contrato vigente como titular e um como beneficiário, no máximo:** ser
   beneficiário de um contrato não impede de ser titular de outro, mas o paciente
   não pode ser beneficiário de dois contratos vigentes (409 na criação e no aditivo,
@@ -779,10 +781,8 @@ apenas um contrato vigente como titular:** só um contrato vigente bloqueia a
 criação de outro (409). Um contrato ativo porém vencido não bloqueia — por isso um
 paciente pode ter, temporariamente, mais de um contrato ativo.
 
-**Contrato vencido** continua ativo até o administrador decidir. Hoje a ação
-disponível é **prorrogar** (aditivo com novo `endDate`, abaixo); o encerramento com
-o valor restante indo para o saldo do paciente ainda não existe (ver
-[`roadmap.md`](roadmap.md)).
+**Contrato vencido** continua ativo até o administrador decidir. A ação disponível é
+**prorrogar** (aditivo com novo `endDate`, abaixo).
 
 **Prorrogação:** o admin informa o novo fim **livremente**, desde que depois do
 fim atual.
@@ -853,7 +853,7 @@ fica preservado ([ADR 0011](adr/0011-contrato-versionado-por-aditivos.md)). Regr
 - **Inativar o usuário ou mudar o perfil dele corta o acesso na hora:** o token que ele
   já tinha deixa de valer na próxima requisição, e ele faz login de novo.
 - **Perfis** ([ADR 0026](adr/0026-acesso-por-perfil-centralizado.md)): o `ADMIN` acessa
-  tudo. O `PROVIDER` usa só as telas Dashboard, Lançamentos e Configurações, e na API acessa
+  tudo. O `PROVIDER` usa só as telas Lançamentos e Configurações, e na API acessa
   só `POST`, `GET` e `DELETE` de `/api/consultations` (só os próprios lançamentos; ver
   "Quem lança" e "Leituras" em `Consultation`), os apoios do lançamento
   (`eligible-contracts`, `session-balance`, `patients`), `GET /api/techniques` (ativas) e
@@ -966,7 +966,8 @@ a comissão é conceito do prestador. `applyTo(BigDecimal)` aplica o percentual 
 valor, arredondando para 2 casas com `HALF_UP` (ver "Repasse" em `Consultation`).
 
 **Sobre o `User` vinculado:** todo prestador tem exatamente um usuário (1:1, fixo
-após a criação; [ADR 0013](adr/0013-prestador-com-usuario.md)). O usuário pode ter
+após a criação; [ADR 0013](adr/0013-prestador-com-usuario.md), revisto no
+[ADR 0031](adr/0031-prestador-com-usuario-revisto.md)). O usuário pode ter
 `role` `PROVIDER` **ou `ADMIN`** — um administrador da clínica que também atende é
 um prestador válido. Por ser fixo, a alteração do prestador (`PUT`) nem recebe
 `userId`.
@@ -977,7 +978,8 @@ um prestador válido. Por ser fixo, a alteração do prestador (`PUT`) nem receb
   banco.
 - Um prestador que não está atendendo é inativado, sem desvincular o usuário.
 - **Reativar o prestador também exige usuário ativo** (400 "O usuário está inativo.", a
-  mesma regra da criação): sem usuário ativo, o prestador não faz login para lançar. Para
+  mesma regra da criação): o prestador usa o sistema em nome próprio, mesmo com o admin
+  podendo lançar por ele ([ADR 0031](adr/0031-prestador-com-usuario-revisto.md)). Para
   reativar os dois, reativa-se primeiro o usuário (`PATCH /api/users/{id}/activate`).
 
 ---

@@ -56,6 +56,12 @@
   color: var(--color-text);
 }
 
+.note {
+  margin: 0;
+  font-size: 13px;
+  color: var(--color-muted);
+}
+
 .footer {
   display: flex;
   align-items: center;

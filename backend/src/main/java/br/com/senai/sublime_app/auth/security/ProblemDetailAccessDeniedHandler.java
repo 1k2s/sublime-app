@@ -10,8 +10,8 @@ import org.springframework.stereotype.Component;
 import jakarta.servlet.http.HttpServletRequest;
 import jakarta.servlet.http.HttpServletResponse;
 
-// 403: logado, mas sem permissão para o recurso. Só passa a acontecer com a autorização
-// por perfil (feature seguinte); o tratamento já fica pronto.
+// 403: logado, mas sem permissão para o recurso (endpoint fora do perfil, pela tabela do
+// SecurityConfig; ver o ADR 0026).
 @Component
 public class ProblemDetailAccessDeniedHandler implements AccessDeniedHandler {
 

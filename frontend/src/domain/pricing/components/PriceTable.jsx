@@ -1,6 +1,6 @@
 // Tabela de preços vigentes de um grupo. Mostra duração ou frequência conforme o pricingModel
 import { Pencil } from "lucide-react";
-import { Badge } from "@/shared/components/Badge";
+import { formatDate } from "@/shared/utils/date";
 import { formatCurrency } from "@/shared/utils/money";
 import { formatPriceAxis, getPriceAxisLabel } from "../priceAxis";
 import styles from "./PriceTable.module.css";
@@ -27,12 +27,8 @@ export function PriceTable({ prices, pricingModel, onEdit }) {
               <td>{formatPriceAxis(price)}</td>
               <td className={styles.value}>{formatCurrency(price.sessionValue)}</td>
               <td>
-                {/* validTo nulo = vigente; preenchido = encerrada por reajuste (validTo é exclusivo: valeu até o dia anterior) */}
-                {price.validTo == null ? (
-                  <Badge variant="active">Vigente</Badge>
-                ) : (
-                  <Badge variant="inactive">Encerrado</Badge>
-                )}
+                {/* O endpoint só devolve linhas vigentes: a vigência mostra desde quando o valor vale */}
+                Desde {formatDate(price.validFrom)}
               </td>
               <td>
                 <button

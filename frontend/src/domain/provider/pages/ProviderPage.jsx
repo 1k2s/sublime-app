@@ -3,110 +3,118 @@ import { Plus } from "lucide-react";
 import { PageHeader } from "@/shared/components/PageHeader";
 import { Button } from "@/shared/components/Button";
 import { showError } from "@/shared/utils/alert";
-import { useActivateProvider, useDeactivateProvider, useProviders } from "../api/useProviders";
+import { useUsers } from "@/domain/user/api/useUsers";
+import {
+  useActivateProvider,
+  useCreateProvider,
+  useDeactivateProvider,
+  useProviders,
+  useUpdateProvider,
+} from "../api/useProviders";
 import { ProviderFilters } from "../components/ProviderFilters";
 import { ProviderTable } from "../components/ProviderTable";
 import { ProviderDetailsModal } from "../components/ProviderDetailsModal";
-import { ProviderWizard } from "../components/wizard/ProviderWizard";
+import { ProviderFormModal } from "../components/ProviderFormModal";
 import { filterProviders } from "../filterProviders";
+import { getAvailableUsers, withLinkedUser } from "../providerUsers";
 import styles from "./ProviderPage.module.css";
 
 export function ProviderPage() {
-  const [view, setView] = useState("list");
   const [search, setSearch] = useState("");
   const [status, setStatus] = useState("ACTIVE");
   const [selectedProviderId, setSelectedProviderId] = useState(null);
-  const [editingProvider, setEditingProvider] = useState(null);
+  // null = fechado; { provider: null } = cadastro; { provider } = edição
+  const [form, setForm] = useState(null);
 
-  const { data: providers = [], isLoading, isError } = useProviders();
+  const providersQuery = useProviders();
+  const usersQuery = useUsers();
+  const createProviderMutation = useCreateProvider();
+  const updateProviderMutation = useUpdateProvider();
   const deactivateProviderMutation = useDeactivateProvider();
   const activateProviderMutation = useActivateProvider();
 
+  const rawProviders = providersQuery.data ?? [];
+  const users = usersQuery.data ?? [];
+  // E-mail, perfil e status do usuário vêm da lista de usuários (o mesmo cache da tela de Usuários)
+  const providers = withLinkedUser(rawProviders, users);
   const visibleProviders = filterProviders(providers, { search, status });
   // Lido da lista inteira: depois de inativar ou reativar, o modal mostra o estado novo
   const selectedProvider = providers.find((provider) => provider.id === selectedProviderId) ?? null;
-  const isFormMode = view === "create" || view === "edit";
-  const isEditing = view === "edit";
+  const isLoading = providersQuery.isLoading || usersQuery.isLoading;
+  const isError = providersQuery.isError || usersQuery.isError;
+  const isSubmitting = createProviderMutation.isPending || updateProviderMutation.isPending;
   const isTogglingStatus = deactivateProviderMutation.isPending || activateProviderMutation.isPending;
+
+  function openEdit(provider) {
+    setSelectedProviderId(null);
+    setForm({ provider });
+  }
+
+  function handleSave(payload, { applyApiErrors }) {
+    const options = {
+      onSuccess: () => setForm(null),
+      onError: (error) => {
+        applyApiErrors?.(error);
+        showError(error.message);
+      },
+    };
+
+    if (form?.provider) {
+      updateProviderMutation.mutate({ id: form.provider.id, data: payload }, options);
+    } else {
+      createProviderMutation.mutate(payload, options);
+    }
+  }
 
   function handleToggleStatus(provider) {
     const mutation = provider.active ? deactivateProviderMutation : activateProviderMutation;
     mutation.mutate(provider.id, { onError: (error) => showError(error.message) });
   }
 
-  function handleStartCreate() {
-    setEditingProvider(null);
-    setView("create");
-  }
-
-  function handleStartEdit(provider) {
-    setSelectedProviderId(null);
-    setEditingProvider(provider);
-    setView("edit");
-  }
-
-  function handleBackToList() {
-    setEditingProvider(null);
-    setView("list");
-  }
-
   return (
     <div className={styles.pageContainer}>
-      {!isFormMode ? (
-        <>
-          <PageHeader
-            className={styles.pageHeader}
-            title="Prestadores"
-            description="Gerencie os prestadores da clínica, comissões e contas de acesso."
-            action={
-              <Button onClick={handleStartCreate}>
-                <Plus size={18} /> Novo prestador
-              </Button>
-            }
-          />
+      <PageHeader
+        className={styles.pageHeader}
+        title="Prestadores"
+        description="Gerencie os prestadores da clínica e os percentuais de comissão."
+        action={
+          <Button onClick={() => setForm({ provider: null })}>
+            <Plus size={18} /> Novo prestador
+          </Button>
+        }
+      />
 
-          <ProviderFilters
-            search={search}
-            onSearchChange={setSearch}
-            status={status}
-            onStatusChange={setStatus}
-          />
+      <ProviderFilters
+        search={search}
+        onSearchChange={setSearch}
+        status={status}
+        onStatusChange={setStatus}
+      />
 
-          <ProviderTable
-            providers={visibleProviders}
-            isLoading={isLoading}
-            isError={isError}
-            hasRecords={providers.length > 0}
-            onViewDetails={(provider) => setSelectedProviderId(provider.id)}
-          />
+      <ProviderTable
+        providers={visibleProviders}
+        isLoading={isLoading}
+        isError={isError}
+        hasRecords={providers.length > 0}
+        onViewDetails={(provider) => setSelectedProviderId(provider.id)}
+      />
 
-          <ProviderDetailsModal
-            provider={selectedProvider}
-            isTogglingStatus={isTogglingStatus}
-            onClose={() => setSelectedProviderId(null)}
-            onEdit={handleStartEdit}
-            onToggleStatus={handleToggleStatus}
-          />
-        </>
-      ) : (
-        <>
-          <PageHeader
-            className={styles.pageHeader}
-            title={isEditing ? "Editar prestador" : "Novo prestador"}
-            description={
-              isEditing
-                ? "Atualize os dados do prestador, comissões ou credenciais de acesso."
-                : "Cadastre o prestador e sua conta de acesso em etapas."
-            }
-            onBack={handleBackToList}
-          />
+      <ProviderDetailsModal
+        provider={selectedProvider}
+        isTogglingStatus={isTogglingStatus}
+        onClose={() => setSelectedProviderId(null)}
+        onEdit={openEdit}
+        onToggleStatus={handleToggleStatus}
+      />
 
-          <ProviderWizard
-            initialData={editingProvider}
-            onCancel={handleBackToList}
-            onSuccess={handleBackToList}
-          />
-        </>
+      {form && (
+        <ProviderFormModal
+          provider={form.provider}
+          availableUsers={getAvailableUsers(users, rawProviders)}
+          isSubmitting={isSubmitting}
+          onSubmit={handleSave}
+          onClose={() => setForm(null)}
+        />
       )}
     </div>
   );

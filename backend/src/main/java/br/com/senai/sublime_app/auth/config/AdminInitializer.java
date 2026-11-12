@@ -22,8 +22,8 @@ import jakarta.validation.Validator;
 // ADMIN_EMAIL e ADMIN_PASSWORD, pelo UserService (mesmas regras do cadastro: hash, e-mail
 // único), marcado como admin padrão (não pode ser inativado nem mudar de perfil) e já com
 // senha definitiva (sem exigir primeiro acesso). Depois disso as variáveis são ignoradas
-// (o banco é a fonte da verdade). Ver o "Primeiro admin" no domain-model (seção User) e os
-// ADRs 0023 e 0025.
+// (o banco é a fonte da verdade). Ver o "Admin padrão" no domain-model (seção User) e os
+// ADRs 0023, 0025 e 0027.
 @Component
 @EnableConfigurationProperties(AdminProperties.class)
 public class AdminInitializer implements ApplicationRunner {

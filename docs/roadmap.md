@@ -35,9 +35,9 @@ feature em andamento fica na spec dela, em [`specs/`](specs/).
 | `patient` | implementado: incl. origem do paciente (`referringProvider`), soft delete e reativação com 409 |
 | `user` | implementado: soft delete e reativação, e-mail único (409), senha com hash BCrypt (mínimo 8), senha opcional na alteração, senha provisória com troca obrigatória no primeiro acesso (coluna `password_change_required`; [ADR 0025](adr/0025-primeiro-acesso-com-senha-provisoria.md), [ADR 0029](adr/0029-senha-provisoria-por-coluna.md)), admin padrão protegido ([ADR 0027](adr/0027-admin-padrao-protegido.md)), Configurações do próprio usuário (`/api/users/me`) |
 | `auth` | implementado no backend e no front: login com JWT, rotas protegidas (exceto login, primeiro acesso e Swagger), corte imediato do acesso ao inativar, mudar o perfil ou redefinir a senha, Swagger com "Authorize" ([ADR 0023](adr/0023-autenticacao-jwt-resource-server.md), [ADR 0024](adr/0024-sessao-frontend-localstorage.md)); **autorização por perfil** (2026-11-07): tabela de acesso no `SecurityConfig` com o `ADMIN` como padrão e o `CurrentUser` para as regras de dados ([ADR 0026](adr/0026-acesso-por-perfil-centralizado.md)) |
-| `provider` | implementado: dois percentuais (padrão 40/45), usuário ativo obrigatório na criação e na reativação |
+| `provider` | implementado: dois percentuais (padrão 40/45), usuário ativo obrigatório na criação e na reativação ([ADR 0031](adr/0031-prestador-com-usuario-revisto.md)) |
 | `pricing` | implementado: grupos, técnicas (com reativação), planos (`PlanType`, `termWeeks`, de-para), preços com reajuste historizado |
-| `contract` | implementado: cabeçalho + `ContractItem`, vigência calculada (`SessionFrequency`), aditivos, opções do plano do Grupo, endpoints de apoio, beneficiário de no máximo um contrato vigente |
+| `contract` | implementado: cabeçalho + `ContractItem`, vigência calculada (`SessionFrequency`), aditivos, opções do plano do Grupo, endpoints de apoio, beneficiário de no máximo um contrato vigente e diferente do titular |
 | `consultation` | implementado: lançamento com contratos vinculados e escolha livre, resolução de preço (casos 1 a 3), `pricingSource`, comissão pela origem, repasse `HALF_UP`, saldo pela cadeia de versões, soft delete sem `PUT`, endpoints de apoio (`eligible-contracts`, `session-balance`, `patients`); prestador do login para o `PROVIDER`, que só vê e inativa os próprios lançamentos; `launchedByUserId` |
 | **frontend** | **em andamento**: ver a seção [Frontend](#frontend) |
 
@@ -75,15 +75,10 @@ feature em andamento fica na spec dela, em [`specs/`](specs/).
 1. **Telas funcionais no front** (decidido em 2026-11-11, antes dos testes): o backend está
    pronto, mas o sistema ainda não funciona de ponta a ponta (contratos e lançamento usam
    mocks e o modelo antigo). **Uma branch e uma spec por tela**, cada uma com o próprio PR,
-   na ordem de dependência:
-   1. **Prestadores:** o wizard passa a **vincular um usuário já existente** (decidido em
-      2026-11-07: Usuários e Prestadores em telas separadas; o `POST /api/providers` já
-      recebe o `userId`), no lugar de criar o usuário na etapa "Conta de acesso". Junto: os
-      erros por campo da API e os percentuais 40/45 fixos tirados do front (ver
-      "Pendências" do [Frontend](#frontend)). A tela de Usuários já está pronta.
-   2. **Contratos:** o envio no modelo real do contrato (`items`, um por grupo de preço),
+   na ordem de dependência (as telas de Usuários e de Prestadores já estão prontas):
+   1. **Contratos:** o envio no modelo real do contrato (`items`, um por grupo de preço),
       sem mocks, com os erros por campo da API.
-   3. **Lançamento:** o redesenho sobre a API real. Decidido: o paciente vem do
+   2. **Lançamento:** o redesenho sobre a API real. Decidido: o paciente vem do
       `GET /api/consultations/patients`, o prestador vem do login para o `PROVIDER` e fica
       oculto para ele, o valor aparece só depois de lançar (sem prévia de preço) e o total
       do repasse do dia vem do backend, não da soma no front.
@@ -121,6 +116,19 @@ feature em andamento fica na spec dela, em [`specs/`](specs/).
   prestador de origem ainda sem `id`, lança `NullPointerException`. Em produção não ocorre
   (todo prestador vem do banco com `id`), mas `Objects.equals(other.getId(), this.id)` não
   quebraria.
+- **N+1 nas listagens de contratos e pacientes** (revisão de 2026-11-11; numa branch
+  própria, junto com o item seguinte). O `ContractRepository` não sobrescreve o `findAll` com
+  `@EntityGraph`: o `GET /api/contracts` faz uma consulta de itens por contrato, mais uma por
+  linha de preço, técnica, grupo e plano distintos. O `GET /api/patients` faz uma por
+  prestador de origem distinto. É desvio do padrão "Consulta com relação" do
+  [`architecture.md`](architecture.md#padrão-de-construção-todos-os-módulos-implementados-seguem);
+  seguir o precedente do `PlanRepository.findAll`.
+- **Buscas de preço vigente fora do `pricing`** (revisão de 2026-11-11; na mesma branch do
+  N+1). O `ContractService` e o `ConsultationService` montam as buscas direto nos
+  repositórios do `pricing` (linha vigente por grupo + plano + eixo + `validTo` nulo, o único
+  Avulso ativo, as mensalidades por prazo), contra o "nenhum outro módulo deve conhecer a
+  fiação interna" do [`architecture.md`](architecture.md#mapa-de-módulos-fase-1). Levar as
+  buscas para o `PricingService` antes do reajuste agendado, que muda o que é "vigente".
 
 Frontend: ver a seção [Frontend](#frontend).
 
@@ -195,7 +203,7 @@ chamadas batem com a API real ainda não foram conferidos.**
 | `pricing` | catálogo de preços (tabela, busca de técnica, modal de preço) |
 | `consultation` | tela de lançamento (formulário, agenda, carrinho, total). `consultationApi.js` com trechos mockados |
 | `contract` | tela de contratos (filtros, tabela, formulário com seleção de paciente e preço, resumo), com fallback mockado no `contractApi.js`. **Envio no modelo antigo do contrato** (ver "Pendências") |
-| `provider` | tela de Prestadores (`/providers`, só `ADMIN`; PR #38): listagem, detalhes e cadastro/edição em wizard de 3 etapas. **Cria o usuário junto** (etapa "Conta de acesso"): a ajustar ao fluxo de telas separadas (ver "Próximos passos") |
+| `provider` | tela de Prestadores (`/providers`, só `ADMIN`; 2026-11-11): listagem, detalhes (com o status do usuário vinculado) e cadastro/edição em **modal**. O cadastro **vincula um usuário existente** (ativo e sem prestador); percentual vazio usa o padrão do backend; erros por campo da API. Ligada à API; os casos de teste da tela ainda não foram rodados |
 | `user` | tela de Configurações (`/settings`, os dois perfis): troca do e-mail e da senha com a senha atual; camada `api/` (usuários e `/me`). **Tela de Usuários** (`/users`, só `ADMIN`; 2026-11-10): listagem com busca e filtros, cadastro e alteração com senha provisória, inativar e reativar, admin padrão protegido. Ligada à API e **testada pela tela** (2026-11-11) |
 | `app/`, `shared/` | layout com menu lateral, router com rotas `lazy`, `apiClient`, utilitários (`money`, `date`, `masks`, `alert`, `viacep`) e componentes de `shared/components/` |
 
@@ -216,10 +224,9 @@ chamadas batem com a API real ainda não foram conferidos.**
 ### Próximos passos
 
 1. **Telas funcionais**, uma branch e uma spec por tela ([`specs/`](specs/README.md)), na
-   ordem de cadastro (cada uma depende dos dados da anterior): Prestadores (vincular usuário
-   existente) → Contratos (contrato real, sem mocks) → Lançamento (API real). O que cada uma
-   fecha e as decisões já tomadas: item 1 dos [Próximos passos](#próximos-passos) do
-   projeto.
+   ordem de cadastro (cada uma depende dos dados da anterior): Contratos (contrato real, sem
+   mocks) → Lançamento (API real); Prestadores já está pronta. O que cada uma fecha e as
+   decisões já tomadas: item 1 dos [Próximos passos](#próximos-passos) do projeto.
 2. **Inventário** das telas que não entram no item 1 (ex: catálogo de preços): o que cada
    uma faz e se as chamadas batem com o contrato real da API (Swagger). Atualizar esta
    seção com o resultado.
@@ -231,18 +238,17 @@ Checklist da Fase 1 no front (herdado do guia original):
 - [ ] Cadastro de `provider` e `contract`.
 - [ ] Fluxo completo de lançamento.
 - [ ] Histórico de atendimentos com filtro por período.
-- [ ] Valores monetários sempre como string, formatados só na exibição.
+- [ ] Valores monetários enviados como texto, formatados só na exibição, sem cálculo no front.
 - [x] `npm run lint` sem erros e `npm run build` gerando o bundle.
 
 ### Pendências
 
 - **7 vulnerabilidades nas dependências** (4 moderadas, 3 altas), acusadas pelo `npm ci`
   em 2026-11-06: avaliar com `npm audit` e atualizar o que for seguro.
-- **Erros por campo da API em dois formulários:** Pacientes e Usuários já marcam o `errors`
-  do `ProblemDetail` nos campos (`applyApiFieldErrors`; ver "Camada `api/`" no
-  [`architecture.md`](architecture.md)). Faltam o wizard de Prestadores e o formulário de
-  Contratos, que serão refeitos (vincular usuário existente; contrato real): aplicar junto
-  com essas mudanças. Até lá, um 400 de validação aparece só no alerta.
+- **Erros por campo da API no formulário de Contratos:** Pacientes, Usuários e Prestadores já
+  marcam o `errors` do `ProblemDetail` nos campos (`applyApiFieldErrors`; ver "Camada `api/`"
+  no [`architecture.md`](architecture.md)). Falta o formulário de Contratos, que será refeito
+  (contrato real): aplicar junto. Até lá, um 400 de validação aparece só no alerta.
 - **Regra de negócio no front** (levantado em 2026-11-11; o backend é a fonte da verdade,
   princípio 1 da seção "Frontend" do [`architecture.md`](architecture.md)):
   - **Total de repasse do dia calculado no front:** o `ConsultationTotal.jsx` soma o
@@ -252,15 +258,14 @@ Checklist da Fase 1 no front (herdado do guia original):
     soma dados mockados.
   - **Prévia do valor antes de lançar:** o `previewConsultation` (`consultationApi.js`,
     mockado) mostra o valor e o repasse antes do lançamento, o que contradiz a decisão "sem
-    prévia de preço: o valor aparece só depois de lançar". Os endpoints previstos no
-    comentário (`/consultations/preview`, `/consultations/batch`) não existem. Resolver no
-    redesenho do lançamento.
-  - **Percentuais padrão fixos no front:** o `mapProviderViewModel` (`providerApi.js`) usa
-    `"40"` e `"45"` como reserva, que são as constantes do `ProviderEntity` no backend. Usar
-    só o que a API devolve (ela sempre devolve os dois percentuais).
-  - **Invariante do `Provider` no Zod:** o `providerSchema` confere "comissão por indicação
-    maior ou igual à padrão", que é regra de negócio (o backend responde 400), não formato.
-    Tirar do schema.
+    prévia de preço: o valor aparece só depois de lançar". Os endpoints previstos nos
+    comentários (`/consultations/preview`, `/consultations/batch`) não existem, e o do topo do
+    arquivo diz que o `/consultations` não existe (existe). Resolver no redesenho do
+    lançamento.
+  - **Titular como beneficiário no Zod:** o `contractSchema` recusa o titular como
+    beneficiário (`refine`), regra que agora está no backend (`ContractEntity`, 400 "O
+    beneficiário deve ser outro paciente."). Na tela nova de Contratos, decidir se o `refine`
+    sai, com a busca do beneficiário deixando de oferecer o titular.
 - **Tela de lançamento planejada em conflito com a API.** O guia original dizia que o
   front envia só `patientId` e `arrivalTime` e que o prestador vem do login. O
   `POST /api/consultations` espera `patientId`, `contractId` (escolhido entre os
@@ -274,8 +279,9 @@ Checklist da Fase 1 no front (herdado do guia original):
   espera `items`: um por grupo de preço, cada um com `techniqueId`,
   `sessionDurationPriceId` **ou** `sessionFrequencyPriceId` e, nos por duração,
   `frequency` (ver `Contract e ContractItem` no [`domain-model.md`](domain-model.md) e o
-  [ADR 0008](adr/0008-contrato-com-itens.md)). Refazer o envio sobre o contrato real,
-  com spec.
+  [ADR 0008](adr/0008-contrato-com-itens.md)). O formulário também não oferece o boleto
+  (`BANK_SLIP`, do enum `PaymentMethod`), e o comentário do `contractApi.js` diz que o
+  backend não expõe `/contracts` (expõe). Refazer o envio sobre o contrato real, com spec.
 - **Mensagem de erro da API no `PriceFormModal`:** ele lê `error.response.data.message`,
   campo que o `ProblemDetail` não tem, e sempre cai na mensagem própria. Trocar por
   `error.message`, que o interceptor do `apiClient` já preenche com o `detail` da API.

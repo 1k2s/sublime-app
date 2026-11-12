@@ -1,4 +1,4 @@
-// Formatação de valores monetários (chegam da API como string)
+// Formatação de valores monetários e percentuais. Aceita número (como a API devolve) ou texto (como o formulário guarda)
 import Decimal from "decimal.js";
 
 const currencyFormatter = new Intl.NumberFormat("pt-BR", {

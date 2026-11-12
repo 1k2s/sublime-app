@@ -1,6 +1,6 @@
 # 0013 — Prestador sempre com usuário
 
-- **Status:** aceito
+- **Status:** aceito (em parte substituído por [0031](0031-prestador-com-usuario-revisto.md): o motivo)
 - **Data:** 2026-10-20 (registro retroativo)
 
 ## Contexto

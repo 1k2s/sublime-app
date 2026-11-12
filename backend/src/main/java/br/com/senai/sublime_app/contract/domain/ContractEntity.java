@@ -8,10 +8,26 @@ import br.com.senai.sublime_app.pricing.domain.PricingGroupEntity;
 import br.com.senai.sublime_app.pricing.enums.PlanType;
 import br.com.senai.sublime_app.shared.exception.BusinessRuleException;
 import br.com.senai.sublime_app.shared.exception.ConflictException;
-import jakarta.persistence.*;
+import jakarta.persistence.CascadeType;
+import jakarta.persistence.Column;
+import jakarta.persistence.Entity;
+import jakarta.persistence.EnumType;
+import jakarta.persistence.Enumerated;
+import jakarta.persistence.FetchType;
+import jakarta.persistence.GeneratedValue;
+import jakarta.persistence.GenerationType;
+import jakarta.persistence.Id;
+import jakarta.persistence.JoinColumn;
+import jakarta.persistence.ManyToOne;
+import jakarta.persistence.OneToMany;
+import jakarta.persistence.OneToOne;
+import jakarta.persistence.Table;
 import org.hibernate.annotations.JdbcTypeCode;
 import org.hibernate.type.SqlTypes;
-import lombok.*;
+import lombok.AccessLevel;
+import lombok.EqualsAndHashCode;
+import lombok.Getter;
+import lombok.NoArgsConstructor;
 
 import java.time.LocalDate;
 import java.time.temporal.ChronoUnit;
@@ -154,6 +170,7 @@ public class ContractEntity {
     private ContractEntity(ContractEntity previous, PatientEntity patient, PatientEntity beneficiary,
             PlanEntity plan, LocalDate startDate, PaymentMethod paymentMethod) {
         validateParties(previous, patient, beneficiary);
+        validateBeneficiaryIsNotHolder(patient, beneficiary);
         validatePlan(previous, plan);
         this.previousContract = previous;
         this.patient = patient;
@@ -267,6 +284,15 @@ public class ContractEntity {
                 ? previous.beneficiary.getId() : null;
         if (beneficiary != null && !beneficiary.isActive() && !beneficiary.getId().equals(previousBeneficiaryId)) {
             throw new BusinessRuleException("O beneficiário está inativo.");
+        }
+    }
+
+    // O beneficiário é outra pessoa (o acompanhante da dupla, o familiar): o titular não pode
+    // ser beneficiário do próprio contrato. Vale na criação e no aditivo. Compara ids: relação
+    // LAZY pode vir como proxy do Hibernate.
+    private static void validateBeneficiaryIsNotHolder(PatientEntity patient, PatientEntity beneficiary) {
+        if (beneficiary != null && beneficiary.getId().equals(patient.getId())) {
+            throw new BusinessRuleException("O beneficiário deve ser outro paciente.");
         }
     }
 

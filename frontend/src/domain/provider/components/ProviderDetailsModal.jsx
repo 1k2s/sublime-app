@@ -12,12 +12,9 @@ import {
 import { Badge } from "@/shared/components/Badge";
 import { Button } from "@/shared/components/Button";
 import { Modal } from "@/shared/components/Modal";
-import { ROLES } from "@/domain/auth/roles";
+import { getRole } from "@/domain/auth/roles";
+import { formatPercentage } from "@/shared/utils/money";
 import styles from "./ProviderDetailsModal.module.css";
-
-function getRoleLabel(roleValue) {
-  return ROLES[roleValue]?.label || roleValue || "Prestador";
-}
 
 export function ProviderDetailsModal({
   provider,
@@ -30,26 +27,32 @@ export function ProviderDetailsModal({
 
   if (!provider) return null;
 
-  const isAtivo = provider.status === "ACTIVE";
+  const isActive = provider.active;
 
   const handleConfirmToggle = () => {
-    const nextStatus = isAtivo ? "INACTIVE" : "ACTIVE";
-    onToggleStatus?.(provider, nextStatus);
+    onToggleStatus?.(provider);
     setShowConfirm(false);
+  };
+
+  // O componente continua montado com o modal fechado: sem zerar, a confirmação
+  // reapareceria aberta no próximo prestador
+  const close = () => {
+    setShowConfirm(false);
+    onClose?.();
   };
 
   const footer = (
     <div className={styles.footer}>
       <div>
         {onToggleStatus && !showConfirm && (
-          isAtivo ? (
+          isActive ? (
             <Button
               variant="danger"
               onClick={() => setShowConfirm(true)}
               disabled={isTogglingStatus}
-              title="Desativar prestador"
+              title="Inativar prestador"
             >
-              <UserX size={16} /> Desativar prestador
+              <UserX size={16} /> Inativar prestador
             </Button>
           ) : (
             <Button
@@ -65,7 +68,7 @@ export function ProviderDetailsModal({
       </div>
 
       <div className={styles.footerActions}>
-        <Button variant="outline" onClick={onClose}>
+        <Button variant="outline" onClick={close}>
           Fechar
         </Button>
 
@@ -82,10 +85,10 @@ export function ProviderDetailsModal({
     <Modal
       title={provider.name}
       icon={User}
-      titleExtra={<Badge variant={isAtivo ? "active" : "inactive"}>{isAtivo ? "Ativo" : "Inativo"}</Badge>}
+      titleExtra={<Badge variant={isActive ? "active" : "inactive"}>{isActive ? "Ativo" : "Inativo"}</Badge>}
       description="Detalhes do cadastro do prestador"
       footer={footer}
-      onClose={onClose}
+      onClose={close}
     >
       <div className={styles.content}>
         {/* Seção 1: Dados do Prestador e Comissões */}
@@ -94,18 +97,18 @@ export function ProviderDetailsModal({
           <div className={styles.grid}>
             <div className={styles.field}>
               <span className={styles.fieldLabel}>
-                <Percent size={14} /> Comissão Padrão (Clínica)
+                <Percent size={14} /> Comissão Padrão
               </span>
               <span className={styles.fieldValue}>
-                {provider.commissionPercentage}%
+                {formatPercentage(provider.commissionPercentage)}
               </span>
             </div>
             <div className={styles.field}>
               <span className={styles.fieldLabel}>
-                <Percent size={14} /> Comissão por Indicação
+                <Percent size={14} /> Comissão de Pacientes que Trouxe
               </span>
               <span className={styles.fieldValue}>
-                {provider.referralCommissionPercentage}%
+                {formatPercentage(provider.referralCommissionPercentage)}
               </span>
             </div>
           </div>
@@ -126,17 +129,34 @@ export function ProviderDetailsModal({
                 <Shield size={14} /> Perfil de Acesso
               </span>
               <span className={styles.fieldValue}>
-                {getRoleLabel(provider.role)}
+                {getRole(provider.role)?.label ?? "--"}
+              </span>
+            </div>
+            <div className={styles.field}>
+              <span className={styles.fieldLabel}>
+                <User size={14} /> Status do Usuário
+              </span>
+              <span className={styles.fieldValue}>
+                <Badge variant={provider.userActive ? "active" : "inactive"}>
+                  {provider.userActive ? "Ativo" : "Inativo"}
+                </Badge>
               </span>
             </div>
           </div>
+          {/* Reativar o prestador exige usuário ativo (ver Provider, no domain-model) */}
+          {!provider.userActive && (
+            <p className={styles.note}>
+              Usuário inativo: o prestador não acessa o sistema. Para reativar o prestador,
+              reative antes o usuário na tela de Usuários.
+            </p>
+          )}
         </div>
 
-        {/* Caixa de Confirmação de Desativação / Reativação */}
+        {/* Caixa de Confirmação de Inativação / Reativação */}
         {showConfirm && (
           <div className={styles.confirmBox}>
             <h4 className={styles.confirmTitle}>
-              Deseja realmente {isAtivo ? "desativar" : "reativar"} o prestador{" "}
+              Deseja realmente {isActive ? "inativar" : "reativar"} o prestador{" "}
               <strong>{provider.name}</strong>?
             </h4>
 
@@ -154,11 +174,11 @@ export function ProviderDetailsModal({
                 Cancelar
               </Button>
               <Button
-                variant={isAtivo ? "danger" : "secondary"}
+                variant={isActive ? "danger" : "secondary"}
                 onClick={handleConfirmToggle}
                 disabled={isTogglingStatus}
               >
-                {isAtivo ? "Confirmar desativação" : "Confirmar reativação"}
+                {isActive ? "Confirmar inativação" : "Confirmar reativação"}
               </Button>
             </div>
           </div>

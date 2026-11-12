@@ -58,7 +58,7 @@ discussões que estavam no `domain-model.md` e no `architecture.md`.
 | [0010](0010-plano-do-item-do-grupo.md) | Opções do plano do item do Grupo | aceito |
 | [0011](0011-contrato-versionado-por-aditivos.md) | Contrato versionado por aditivos | aceito |
 | [0012](0012-comissao-pela-origem-do-paciente.md) | Comissão pela origem do paciente | aceito |
-| [0013](0013-prestador-com-usuario.md) | Prestador sempre com usuário | aceito |
+| [0013](0013-prestador-com-usuario.md) | Prestador sempre com usuário | aceito (em parte substituído por 0031: o motivo) |
 | [0014](0014-tres-status-cobrados.md) | Só três status de atendimento, todos cobrados | aceito |
 | [0015](0015-contrato-do-atendimento.md) | Contrato do atendimento: vínculo na data e escolha livre | aceito |
 | [0016](0016-resolucao-de-preco-no-lancamento.md) | Resolução de preço no lançamento pelo sistema | aceito |
@@ -66,7 +66,7 @@ discussões que estavam no `domain-model.md` e no `architecture.md`.
 | [0018](0018-saldo-esgotado-aceita-lancamento.md) | Saldo esgotado aceita o lançamento | aceito |
 | [0019](0019-repasse-com-half-up.md) | Repasse arredondado com `HALF_UP` | aceito |
 | [0020](0020-lancamento-imutavel.md) | Lançamento de atendimento imutável | aceito |
-| [0021](0021-schema-versionado-flyway.md) | Schema versionado pelo Flyway, com `validate`, e enums como `varchar` | aceito (em parte substituído por 0028, até a versão estável) |
+| [0021](0021-schema-versionado-flyway.md) | Schema versionado pelo Flyway, com `validate`, e enums como `varchar` | aceito (em parte substituído por 0028, até a versão estável, e por 0030: o catálogo) |
 | [0022](0022-monorepo.md) | Monorepo: backend e frontend no mesmo repositório | aceito |
 | [0023](0023-autenticacao-jwt-resource-server.md) | Autenticação por JWT próprio, validado pelo resource server do Spring | aceito (em parte substituído por 0027: o primeiro admin) |
 | [0024](0024-sessao-frontend-localstorage.md) | Sessão do frontend no `localStorage`, encerrada pela `expiresAt` e pelo 401 | aceito |
@@ -75,3 +75,5 @@ discussões que estavam no `domain-model.md` e no `architecture.md`.
 | [0027](0027-admin-padrao-protegido.md) | Admin padrão protegido por uma marca no usuário | aceito |
 | [0028](0028-migrations-editaveis-ate-versao-estavel.md) | Migrations editáveis até a versão estável | aceito |
 | [0029](0029-senha-provisoria-por-coluna.md) | Senha provisória marcada por uma coluna, não por prefixo no hash | aceito |
+| [0030](0030-seed-do-catalogo-por-migration.md) | Seed do catálogo de preços por migration | aceito |
+| [0031](0031-prestador-com-usuario-revisto.md) | Prestador continua sempre com usuário, com o admin lançando por ele | aceito |

@@ -19,10 +19,10 @@ import lombok.Getter;
 import lombok.NoArgsConstructor;
 
 // Regra de unicidade: só uma linha vigente (validTo = null) por (pricingGroup, durationMinutes, plan).
-// MySQL não suporta unique index parcial (com WHERE), então a garantia no banco virá na
-// migration via coluna gerada: current_flag = IF(valid_to IS NULL, 1, NULL) + UNIQUE
-// (pricing_group_id, plan_id, duration_minutes, current_flag) — linhas históricas têm
-// current_flag NULL e ficam fora da regra. Até lá, garantir no service, na hora do reajuste.
+// O service confere antes de criar, e o banco garante (migration V3): o MySQL não suporta unique
+// index parcial (com WHERE), então a coluna gerada current_flag = IF(valid_to IS NULL, 1, NULL)
+// entra no UNIQUE (pricing_group_id, plan_id, duration_minutes, current_flag) — linhas
+// históricas têm current_flag NULL e ficam fora da regra.
 @Entity
 @Table(name = "session_duration_price")
 @Getter

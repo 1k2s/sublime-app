@@ -63,8 +63,9 @@ public class GlobalExceptionHandler {
         return problem;
     }
 
-    // Última barreira: constraint do banco violada (unique, FK) que escapou das
-    // checagens prévias dos services. Ex: excluir um usuário ainda vinculado a um prestador.
+    // Última barreira: constraint do banco violada (unique, FK, check) que escapou das
+    // checagens prévias dos services. Ex: dois reajustes simultâneos da mesma combinação de
+    // preço, que passam os dois pela checagem do service (uk_duration_price_current, V3).
     @ExceptionHandler(DataIntegrityViolationException.class)
     public ProblemDetail handleDataIntegrity(DataIntegrityViolationException ex) {
         return ProblemDetail.forStatusAndDetail(HttpStatus.CONFLICT,

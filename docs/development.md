@@ -41,7 +41,7 @@ Monorepo ([ADR 0022](adr/0022-monorepo.md)):
 | `backend/` | API Spring Boot (Maven) | `backend/` (`./mvnw ...`) |
 | `frontend/` | interface React + Vite (npm) | `frontend/` (`npm ...`) |
 | `docs/` | documentação do produto (vale para os dois) | — |
-| raiz | `docker-compose.yml`, `CLAUDE.md`, `README.md`, `.github` | `docker compose ...` |
+| raiz | `docker-compose.yml`, `CLAUDE.md`, `README.md` | `docker compose ...` |
 
 ## Rodando localmente
 
@@ -143,7 +143,7 @@ O schema é criado e alterado **só pelas migrations do Flyway**
 | `V1__initial_schema.sql` | todas as tabelas, com constraints de nomes legíveis |
 | `V2__price_exclusive_arc_check.sql` | `CHECK` do exclusive arc em `contract_item` e `consultation` |
 | `V3__single_current_price.sql` | uma linha de preço vigente por combinação (`current_flag` + `UNIQUE`) |
-| `V4__seed_pricing_catalog.sql` | seed do catálogo atual da clínica: grupos, técnicas, planos, de-para e preços vigentes (pula o que já existe) |
+| `V4__seed_pricing_catalog.sql` | seed do catálogo atual da clínica: grupos, técnicas, planos, de-para e preços vigentes (pula o que já existe; [ADR 0030](adr/0030-seed-do-catalogo-por-migration.md)) |
 
 ### Criando uma migration
 

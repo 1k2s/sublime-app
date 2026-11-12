@@ -1,10 +1,10 @@
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import {
   activateProvider,
-  createProviderWithUser,
+  createProvider,
   deactivateProvider,
-  listProvidersWithUsers,
-  updateProviderWithUser,
+  listProviders,
+  updateProvider,
 } from "./providerApi";
 
 // A lista inteira, numa requisição só (cache ["providers"]). Quem lista filtra com o
@@ -12,30 +12,26 @@ import {
 export function useProviders() {
   return useQuery({
     queryKey: ["providers"],
-    queryFn: listProvidersWithUsers,
+    queryFn: listProviders,
   });
 }
 
 export function useCreateProvider() {
   const queryClient = useQueryClient();
-
   return useMutation({
-    mutationFn: createProviderWithUser,
+    mutationFn: createProvider,
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ["providers"] });
-      queryClient.invalidateQueries({ queryKey: ["users"] });
     },
   });
 }
 
 export function useUpdateProvider() {
   const queryClient = useQueryClient();
-
   return useMutation({
-    mutationFn: updateProviderWithUser,
+    mutationFn: ({ id, data }) => updateProvider(id, data),
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ["providers"] });
-      queryClient.invalidateQueries({ queryKey: ["users"] });
     },
   });
 }
@@ -43,7 +39,6 @@ export function useUpdateProvider() {
 // Um hook por endpoint (DELETE e PATCH .../activate), como em pacientes e usuários
 export function useDeactivateProvider() {
   const queryClient = useQueryClient();
-
   return useMutation({
     mutationFn: deactivateProvider,
     onSuccess: () => {
@@ -54,7 +49,6 @@ export function useDeactivateProvider() {
 
 export function useActivateProvider() {
   const queryClient = useQueryClient();
-
   return useMutation({
     mutationFn: activateProvider,
     onSuccess: () => {
