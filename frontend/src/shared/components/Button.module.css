@@ -35,7 +35,7 @@
 }
 
 .outline {
-  border-color: #e5e0d5;
+  border-color: var(--color-border);
   background: #ffffff;
   color: #374151;
 }

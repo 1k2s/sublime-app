@@ -219,7 +219,7 @@ de propor mudanças de schema.
 | Unicidade | `unique = true` na coluna (garantia real) + `existsBy...` no service (409 com mensagem clara). Collation do MySQL ignora maiúsculas/acentos | `PatientRepository.existsByCpf` |
 | Consulta com relação | `@EntityGraph` quando a resposta usa a relação (evita N+1) | `TechniqueRepository.findByActiveTrue`, `PlanRepository.findAll`, `ConsultationRepository.search` |
 | Consulta que o nome do método não expressa | `@Query` (JPQL) com `@Param`, só quando o método derivado não dá conta (ex: "ou" com `left join`, filtros opcionais `(:x is null or ...)`); senão, método derivado | `ContractRepository.findActiveCoveringDateByHolderOrBeneficiary`, `ConsultationRepository.search` |
-| Endpoint de apoio à tela | leitura que expõe uma regra do backend para o frontend não repetir | `GET /api/techniques/{id}/prices`, `GET /api/contracts/term-preview` |
+| Endpoint de apoio à tela | leitura que expõe uma regra do backend para o frontend não repetir | `GET /api/techniques/{id}/prices`, `POST /api/contracts/preview` |
 
 ## Formato dos erros
 
@@ -366,8 +366,8 @@ frontend/src/
 ├── shared/                  # genérico, sem regra de negócio
 │   ├── http/                # apiClient.js (axios: baseURL, token, 401) e apiFieldErrors.js
 │   ├── utils/               # money, date, masks, alert (SweetAlert2), viacep
-│   └── components/          # Button, Card, Input, Select, FormField, Modal, FilterPills,
-│                            # ListMessage, Stepper, Badge, PageHeader, PageLoader, RouteError...
+│   └── components/          # Button, Card, Input, Select, RichSelect, FormField, Modal,
+│                            # FilterPills, ListMessage, Stepper, Badge, PageHeader, PageLoader...
 └── domain/                  # um módulo por módulo do backend
     ├── auth/                # sessão, login, ProtectedRoute, roles.js (transversal)
     ├── user/
@@ -522,7 +522,9 @@ Contratos), escolhido em 2026-11-11 a partir do que cada uma fazia melhor:
   Prestadores): a page usa o hook de cada módulo (`useProviders` e `useUsers`) e cruza as duas
   listas numa função pura do módulo (`providerUsers.js`), em vez de juntar na `queryFn`. Cada
   lista fica no cache do módulo dono, então uma edição na tela de Usuários aparece em
-  Prestadores; a mesma função dá as opções do formulário (usuários sem prestador).
+  Prestadores; a mesma função dá as opções do formulário (usuários sem prestador). Em
+  Contratos, o nome do titular e o do beneficiário vêm da lista de pacientes
+  (`contractPatients.js`).
 - **O modal guarda só o `id`** do item e o lê da lista inteira
   (`items.find((item) => item.id === selectedId)`): depois de inativar ou reativar, a
   invalidação traz a lista nova e o modal já mostra o estado novo, sem correção à mão.
@@ -536,8 +538,12 @@ Contratos), escolhido em 2026-11-11 a partir do que cada uma fazia melhor:
   (`isTogglingStatus`), que desabilita os botões durante a requisição (evita o clique
   duplo).
 - **Cadastro e edição:** formulário curto (poucos campos, uma etapa) em **modal** (ex:
-  Usuários, Prestadores); formulário longo ou em etapas em **página inteira com wizard** (ex:
-  Pacientes).
+  Usuários, Prestadores); formulário longo em etapas independentes em **página inteira com
+  wizard** (ex: Pacientes); formulário longo em que uma escolha muda o resultado das outras
+  (ex: Contratos: o plano muda o valor dos itens, o fim e as parcelas) em **modal grande**
+  (`Modal size="large"`) com o conteúdo rolando e um **rodapé fixo** com o resultado e os
+  botões, sempre à vista. O modal grande não fecha pelo clique no fundo
+  (`closeOnBackdrop={false}`): um clique sem querer perderia o formulário.
 - **Busca sem `useTransition`:** com listas pequenas, filtrar a cada tecla é imediato.
 
 ### Componentes: tamanho e layout
@@ -556,8 +562,11 @@ Contratos), escolhido em 2026-11-11 a partir do que cada uma fazia melhor:
 - CSS Modules: um `.module.css` ao lado de cada componente.
 - Paleta e medidas globais em variáveis CSS no `index.css` (`--color-bg`, `--color-surface`,
   `--color-primary`, `--color-primary-soft`, `--color-accent`, `--color-danger`,
-  `--color-border`, `--color-text`, `--color-muted`, `--radius`). Os componentes usam as
-  variáveis (`var(--color-primary)`), para a paleta mudar num lugar só.
+  `--color-border`, `--color-text`, `--color-title`, `--color-muted`, `--radius`,
+  `--shadow-card`). Os componentes usam as variáveis (`var(--color-primary)`), para a paleta
+  mudar num lugar só.
+- **Cards se destacam do fundo pela sombra (`--shadow-card`), não pela borda.** A borda fica
+  para separações dentro do card (linhas da tabela, itens de uma lista, campos).
 
 ### Rotas e sessão
 

@@ -132,6 +132,8 @@ CREATE TABLE contract (
     id                   BIGINT      NOT NULL AUTO_INCREMENT,
     active               BIT(1)      NOT NULL,
     end_date             DATE        NOT NULL,
+    -- número de parcelas: de 1 até os meses do contrato (regra na entidade); 12 no máximo
+    installments         INT         NOT NULL,
     payment_method       VARCHAR(30) NOT NULL,
     start_date           DATE        NOT NULL,
     beneficiary_id       BIGINT      NULL,
@@ -141,6 +143,7 @@ CREATE TABLE contract (
     CONSTRAINT pk_contract PRIMARY KEY (id),
     -- cada versão tem no máximo uma sucessora (aditivo)
     CONSTRAINT uk_contract_previous_contract UNIQUE (previous_contract_id),
+    CONSTRAINT ck_contract_installments CHECK (installments BETWEEN 1 AND 12),
     CONSTRAINT fk_contract_patient FOREIGN KEY (patient_id) REFERENCES patient (id),
     CONSTRAINT fk_contract_beneficiary FOREIGN KEY (beneficiary_id) REFERENCES patient (id),
     CONSTRAINT fk_contract_plan FOREIGN KEY (plan_id) REFERENCES plan (id),

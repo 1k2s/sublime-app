@@ -1,0 +1,52 @@
+.picker {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+}
+
+/* O rótulo do campo à esquerda e o alternador Individual | Familiar à direita */
+.header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+}
+
+.label {
+  color: var(--color-text);
+  font-size: 14px;
+  font-weight: 500;
+}
+
+.modes {
+  display: inline-flex;
+  padding: 3px;
+  border: 1px solid var(--color-border);
+  border-radius: 9999px;
+  background: var(--color-bg);
+}
+
+.mode {
+  padding: 4px 14px;
+  border: none;
+  border-radius: 9999px;
+  background: transparent;
+  color: var(--color-muted);
+  font-size: 13px;
+  font-weight: 500;
+  cursor: pointer;
+  transition:
+    background-color 0.15s ease,
+    color 0.15s ease;
+}
+
+.mode:hover {
+  color: var(--color-text);
+}
+
+.mode-active {
+  background: var(--color-surface);
+  color: var(--color-primary);
+  font-weight: 600;
+  box-shadow: 0 1px 3px rgb(0 0 0 / 0.12);
+}

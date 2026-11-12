@@ -1,11 +1,12 @@
-// Busca de paciente que, depois de escolhido, vira uma linha com o nome e o botão de trocar
+// Busca de paciente que, depois de escolhido, vira uma linha com o nome e o botão de trocar.
+// excludeIds: pacientes que a busca não oferece (o titular, na busca do beneficiário)
 import { PatientSearchInput } from "@/domain/patient/components/PatientSearchInput";
 import { Button } from "@/shared/components/Button";
 import { maskCpf } from "@/shared/utils/masks";
 import styles from "./PatientPicker.module.css";
 
-export function PatientPicker({ id, value, onChange, invalid = false }) {
-  if (!value) return <PatientSearchInput id={id} onSelect={onChange} invalid={invalid} />;
+export function PatientPicker({ id, value, onChange, invalid = false, excludeIds }) {
+  if (!value) return <PatientSearchInput id={id} onSelect={onChange} invalid={invalid} excludeIds={excludeIds} />;
 
   return (
     <div className={styles.picker}>

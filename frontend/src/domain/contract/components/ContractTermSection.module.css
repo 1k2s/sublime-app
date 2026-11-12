@@ -1,0 +1,28 @@
+.term {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+}
+
+.term-fields {
+  display: grid;
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+  gap: 16px;
+}
+
+.term-note {
+  margin: 0;
+  padding: 10px 12px;
+  border: 1px solid #fef3c7;
+  border-radius: 8px;
+  background: #fffbeb;
+  color: #92400e;
+  font-size: 13px;
+  line-height: 18px;
+}
+
+@media (max-width: 760px) {
+  .term-fields {
+    grid-template-columns: minmax(0, 1fr);
+  }
+}

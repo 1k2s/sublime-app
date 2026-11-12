@@ -1,21 +1,24 @@
 :root {
-  --color-bg: #faf7f0;
+  --color-bg: #f9fbfa;
   --color-surface: #ffffff;
   --color-primary: #5f7a58;
   --color-primary-soft: #dfe8dc;
   --color-accent: #3f6fb5;
   --color-danger: #b42318;
-  --color-border: #e5e0d5;
+  --color-border: #e4e9e6;
   --color-text: #374151;
+  --color-title: #1f2937;
   --color-muted: #6b7280;
   --radius: 12px;
+  /* Cards se destacam do fundo pela sombra, não pela borda */
+  --shadow-card: 0 1px 2px rgb(16 24 40 / 0.04), 0 4px 16px rgb(16 24 40 / 0.06);
 }
 
 * { box-sizing: border-box; }
 
 body {
   margin: 0;
-  background: #faf7f0;
-  color: #374151;
+  background: var(--color-bg);
+  color: var(--color-text);
   font-family: system-ui, sans-serif;
 }

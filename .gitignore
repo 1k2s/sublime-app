@@ -2,6 +2,11 @@
 .vscode/
 .idea/
 
+### Claude Code ###
+# As permissões aprovadas em cada máquina (pessoais). O .claude/settings.json, com os
+# comandos de consulta liberados para o time, vai para o repositório
+.claude/settings.local.json
+
 ### Build ###
 # Proteção: o build do Maven fica em backend/target/ (ignorado pelo backend/.gitignore),
 # mas a extensão Java do VS Code pode recriar um target/ na raiz depois da mudança para

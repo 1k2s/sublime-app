@@ -1,60 +1,63 @@
-/* Alturas fixas, calculadas pelo conteúdo: padding 48 + cabeçalho 44 + gap 20 + campos (88 cada, gap 12) */
+/* O formulário ocupa o corpo do modal grande: o conteúdo rola e o rodapé (ContractResultBar)
+   fica fixo embaixo */
 .form {
-  --block-width: 460px;
-  display: grid;
-  grid-template-columns: repeat(2, var(--block-width));
-  gap: 24px;
-}
-
-.form-patient,
-.form-validity {
-  height: 300px;
-}
-
-.form-plan {
-  grid-column: 1 / -1;
-  height: 200px;
-}
-
-.form-summary {
-  grid-column: 1 / -1;
-  height: 208px;
-}
-
-.form-footer {
   display: flex;
-  grid-column: 1 / -1;
-  justify-content: flex-end;
+  flex: 1;
+  flex-direction: column;
+  min-width: 0;
+  min-height: 0;
+}
+
+.form-content {
+  display: flex;
+  flex: 1;
+  flex-direction: column;
+  gap: 20px;
+  min-height: 0;
+  padding: 24px 28px;
+  overflow-y: auto;
+}
+
+/* Primeira linha: Paciente | Plano */
+.form-top {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 20px;
+  align-items: stretch;
+}
+
+/* Titular e beneficiário lado a lado: o card Paciente fica da altura do card Plano */
+.form-pair {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
   gap: 12px;
 }
 
-.form-stack {
+.form-items {
   display: flex;
   flex-direction: column;
-  gap: 12px;
 }
 
-.form-row {
-  display: grid;
-  grid-template-columns: repeat(4, minmax(0, 1fr));
-  gap: 16px;
+.form-add {
+  padding-top: 12px;
+  border-top: 1px solid var(--color-border);
 }
 
-@media (max-width: 1259px) {
-  .form {
-    grid-template-columns: minmax(0, var(--block-width));
-  }
+.form-hint {
+  margin: 0 0 12px;
+  color: var(--color-muted);
+  font-size: 14px;
+}
 
-  .form-row {
-    grid-template-columns: repeat(2, minmax(0, 1fr));
-    row-gap: 12px;
-  }
+.form-error {
+  margin: 8px 0;
+  color: var(--color-danger);
+  font-size: 13px;
+}
 
-  .form-plan {
-    height: 300px;
-  }
-
-  .form-summary {
-    height: 320px;
+@media (max-width: 860px) {
+  .form-top,
+  .form-pair {
+    grid-template-columns: minmax(0, 1fr);
   }
 }

@@ -42,6 +42,11 @@ public record ContractItemDraft(
         return durationPrice != null;
     }
 
+    // Sessões e valor do item, pela linha (a mesma conta do item salvo; usada na prévia)
+    public ContractItemValue value() {
+        return ContractItemValue.of(durationPrice, frequencyPrice);
+    }
+
     private static void validateExclusiveArc(SessionDurationPriceEntity durationPrice,
             SessionFrequencyPriceEntity frequencyPrice) {
         if ((durationPrice == null) == (frequencyPrice == null)) {

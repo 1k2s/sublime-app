@@ -10,7 +10,7 @@
 }
 
 .table-head-row {
-  border-bottom: 1px solid #e5e0d5;
+  border-bottom: 1px solid var(--color-border);
 }
 
 .table-th {
@@ -31,7 +31,7 @@
 }
 
 .table-row {
-  border-bottom: 1px solid #e5e0d5;
+  border-bottom: 1px solid var(--color-border);
   transition: background-color 0.15s ease;
 }
 
@@ -70,10 +70,38 @@
   font-weight: 600;
 }
 
+.table-patient-text {
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+  min-width: 0;
+}
+
 .table-patient-name {
   color: #1f2937;
   font-size: 14px;
   font-weight: 600;
+}
+
+.table-value {
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+}
+
+.table-value-total {
+  color: #1f2937;
+  font-weight: 600;
+}
+
+.table-value-installments {
+  color: #6b7280;
+  font-size: 12px;
+}
+
+.table-beneficiary {
+  color: #6b7280;
+  font-size: 12px;
 }
 
 .table-edit {

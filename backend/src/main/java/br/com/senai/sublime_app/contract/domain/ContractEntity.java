@@ -4,6 +4,7 @@ import br.com.senai.sublime_app.contract.enums.PaymentMethod;
 import br.com.senai.sublime_app.contract.enums.SessionFrequency;
 import br.com.senai.sublime_app.patient.domain.PatientEntity;
 import br.com.senai.sublime_app.pricing.domain.PlanEntity;
+import br.com.senai.sublime_app.pricing.domain.Money;
 import br.com.senai.sublime_app.pricing.domain.PricingGroupEntity;
 import br.com.senai.sublime_app.pricing.enums.PlanType;
 import br.com.senai.sublime_app.shared.exception.BusinessRuleException;
@@ -78,6 +79,11 @@ public class ContractEntity {
     @Column(name = "payment_method", nullable = false, length = 30)
     private PaymentMethod paymentMethod;
 
+    // Número de parcelas, de 1 até os meses do contrato (Installments). Só ele é gravado: o
+    // total e o valor das parcelas saem das linhas travadas nos itens
+    @Column(nullable = false)
+    private int installments;
+
     @Column(nullable = false)
     private boolean active = true;
 
@@ -100,10 +106,12 @@ public class ContractEntity {
     // ---------------------------------------------------------------------------
 
     public static ContractEntity create(PatientEntity patient, PatientEntity beneficiary, PlanEntity plan,
-            LocalDate startDate, PaymentMethod paymentMethod, List<ContractItemDraft> drafts) {
+            LocalDate startDate, PaymentMethod paymentMethod, int installments, List<ContractItemDraft> drafts) {
         ContractEntity contract = new ContractEntity(null, patient, beneficiary, plan, startDate, paymentMethod);
         contract.addItems(drafts, null);
         contract.endDate = contract.calculateEndDate();
+        validateInstallments(installments, contract.getMaxInstallments());
+        contract.installments = installments;
         return contract;
     }
 
@@ -122,6 +130,8 @@ public class ContractEntity {
                 this.plan, this.startDate, paymentMethod);
         newVersion.addItems(drafts, this);
         newVersion.endDate = newVersion.calculateAmendedEndDate(this, requestedEndDate, amendmentDate);
+        // O parcelamento combinado é copiado (o aditivo não o renegocia)
+        newVersion.installments = this.installments;
         this.active = false;
         return newVersion;
     }
@@ -131,6 +141,28 @@ public class ContractEntity {
     public void deactivate() {
         requireActive();
         this.active = false;
+    }
+
+    // Vigente na data: ativo e com o fim a partir dela (endDate inclusivo: o último dia ainda
+    // conta). Mesma regra das consultas de vigente do ContractRepository. Ativo com o fim antes
+    // da data = vencido, aguardando a decisão do administrador.
+    public boolean isCurrentOn(LocalDate date) {
+        return active && !endDate.isBefore(date);
+    }
+
+    // Valor do contrato: a soma dos itens (sessões × valor da linha travada), sem desconto
+    public Money getTotalValue() {
+        return ContractItemValue.sumOf(items.stream().map(ContractItemEntity::getValue).toList());
+    }
+
+    // Máximo de parcelas: os meses do contrato, pelas semanas da vigência (Installments)
+    public int getMaxInstallments() {
+        return Installments.maxFor(getDurationInWeeks());
+    }
+
+    // O total dividido nas parcelas combinadas, com os centavos que sobram na primeira
+    public Installments getInstallmentValues() {
+        return Installments.split(getTotalValue(), installments);
     }
 
     // Cópia somente leitura: itens só mudam pelo contrato (criação e aditivo)
@@ -214,7 +246,7 @@ public class ContractEntity {
     // Prazo do contrato em semanas: maior prazo entre os itens por duração (o Grupo
     // não entra — acompanha o contrato). Contrato só com Grupo (plano de mensalidade):
     // prazo do plano (termWeeks). Público e estático para a prévia do formulário
-    // (GET /api/contracts/term-preview) usar exatamente a mesma conta.
+    // (POST /api/contracts/preview) usar exatamente a mesma conta.
     public static int durationWeeksFor(PlanEntity plan, List<SessionFrequency> durationItemFrequencies) {
         validateContractable(plan);
         if (plan.getType() == PlanType.MONTHLY_FEE) {
@@ -285,6 +317,11 @@ public class ContractEntity {
         if (beneficiary != null && !beneficiary.isActive() && !beneficiary.getId().equals(previousBeneficiaryId)) {
             throw new BusinessRuleException("O beneficiário está inativo.");
         }
+    }
+
+    // Parcelas de 1 até os meses do contrato (só na criação: o aditivo copia as da versão anterior)
+    private static void validateInstallments(int installments, int maxInstallments) {
+        Installments.validateCount(installments, maxInstallments);
     }
 
     // O beneficiário é outra pessoa (o acompanhante da dupla, o familiar): o titular não pode

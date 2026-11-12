@@ -32,8 +32,8 @@
 
 .cart-placeholder {
   justify-content: center;
-  border: 1px dashed #e5e0d5;
-  background: #faf7f0;
+  border: 1px dashed var(--color-border);
+  background: var(--color-bg);
   color: #6b7280;
 }
 

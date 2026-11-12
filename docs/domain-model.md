@@ -25,6 +25,7 @@
   - [Vigência e frequência](#vigência-e-frequência)
   - [Plano do item do Grupo](#plano-do-item-do-grupo)
   - [Vigente, vencimento e prorrogação](#vigente-vencimento-e-prorrogação)
+  - [Valor e parcelas](#valor-e-parcelas)
   - [Versionamento (aditivos)](#versionamento-aditivos)
 - [`User`](#user)
 - [`Provider`](#provider)
@@ -134,6 +135,7 @@ erDiagram
     date startDate
     date endDate "calculado"
     string paymentMethod
+    int installments "1 a 12"
     boolean active
     bigint previousContractId FK, UK "nullable"
   }
@@ -578,8 +580,9 @@ Especializado ([ADR 0008](adr/0008-contrato-com-itens.md)).
 
 **Endpoints de apoio à tela** (nada é gravado; a regra fica no backend e o frontend
 não a repete):
-- `GET /api/contracts/term-preview?planId&startDate&frequencies` — na criação:
-  vigência em semanas, `endDate` calculado, plano do Grupo sugerido e opções.
+- `POST /api/contracts/preview` — na criação, com o plano, o início, os itens já escolhidos
+  e as parcelas (opcional): vigência em semanas, `endDate` calculado, plano do Grupo
+  sugerido e opções, valor de cada item, total e parcelas (ver "Valor e parcelas").
 - `GET /api/contracts/{id}/group-plan-options` — no aditivo: opções do plano do
   Grupo pela vigência atual do contrato.
 
@@ -594,6 +597,7 @@ não a repete):
 | `startDate` | date | informado |
 | `endDate` | date | **calculado pelo sistema**, inclusivo (ver "Vigência e frequência") |
 | `paymentMethod` | ENUM | única para o contrato inteiro |
+| `installments` | int | número de parcelas, de 1 até os meses do contrato (máximo 12; ver "Valor e parcelas") |
 | `active` | boolean | soft delete |
 | `previousContractId` | FK → Contract, nullable, unique | versão anterior (aditivo); null na primeira versão |
 
@@ -755,7 +759,7 @@ Grupo até o primeiro cujo prazo cubra a vigência do contrato**
   até o primeiro que cubra a vigência, Familiares ou não. A sugestão do de-para já
   leva ao Familiar certo (Transformação Familiar → Semestral Familiar).
 - A regra fica no backend: valida na criação e no aditivo e expõe as opções nos
-  endpoints de apoio (`term-preview` e `group-plan-options`); o frontend não repete
+  endpoints de apoio (`preview` e `group-plan-options`); o frontend não repete
   a regra.
 
 **Como as opções são montadas** (`ContractService`, depende do catálogo de planos):
@@ -781,6 +785,11 @@ apenas um contrato vigente como titular:** só um contrato vigente bloqueia a
 criação de outro (409). Um contrato ativo porém vencido não bloqueia — por isso um
 paciente pode ter, temporariamente, mais de um contrato ativo.
 
+**A resposta do contrato traz `current`** (vigente hoje, `ContractEntity.isCurrentOn`), para a
+tela não repetir a regra: `active` e `current` = Vigente; `active` sem `current` = Vencido;
+sem `active` = Inativo (inativado ou substituído por aditivo). Um contrato com início futuro
+já é vigente, como na regra do 409 acima.
+
 **Contrato vencido** continua ativo até o administrador decidir. A ação disponível é
 **prorrogar** (aditivo com novo `endDate`, abaixo).
 
@@ -790,6 +799,32 @@ fim atual.
 **Cadastros inativos:** paciente titular, beneficiário, plano e a técnica de cada
 item precisam estar ativos para um contrato novo. No aditivo, o que é mantido da
 versão anterior é aceito mesmo inativo (titular e plano são sempre copiados).
+
+### Valor e parcelas
+
+Calculados pelo backend (`ContractItemValue`, `Installments`); a tela só mostra.
+
+- **Valor de cada item:** sessões × valor da sessão da linha travada. Item por duração: as
+  sessões do plano (Evolução, RPG 60 min = 12 × R$ 167,00 = R$ 2.004,00). Item do Pilates em
+  Grupo: as aulas do plano do Grupo, semanas × vezes por semana (Trimestral 2x = 26 × R$ 65,81 =
+  R$ 1.711,06).
+- **Total do contrato:** a soma dos itens, sem desconto.
+- **Parcelas:** de 1 até os **meses do contrato**, no máximo 12, em qualquer forma de pagamento,
+  sem juros. Meses pelas semanas da vigência (52 semanas = 12 meses), arredondados para o mais
+  próximo: 4 semanas = 1, 12 e 13 = 3, 24 e 26 = 6, 52 = 12. Pelas semanas, e não pelo
+  calendário: o mesmo prazo dá sempre o mesmo máximo, qualquer que seja o início.
+- **Valor das parcelas:** o total dividido pelas parcelas, com os centavos que sobram na
+  primeira (R$ 1.711,06 em 3x = 1ª de R$ 570,36 + 2 × R$ 570,35).
+- **Só o número de parcelas é gravado** (`installments`, `CHECK` de 1 a 12 no banco). O total e
+  o valor das parcelas saem das linhas travadas nos itens, que não mudam: não há um total
+  gravado para ficar diferente dos itens.
+- **Na criação:** parcelas acima do máximo → 400 "O número de parcelas deve ser de 1 a N (meses
+  do contrato).". **Na prévia** (`POST /api/contracts/preview`), parcelas acima do máximo valem
+  o máximo, e a resposta diz as aplicadas (a tela não perde o resultado quando o plano muda
+  para um mais curto).
+- **Aditivo:** copia as parcelas da versão anterior.
+- A resposta do contrato traz `totalValue`, `installments`, `firstInstallmentValue` e
+  `installmentValue`; cada item traz `sessionCount` e `totalValue`.
 
 ### Versionamento (aditivos)
 

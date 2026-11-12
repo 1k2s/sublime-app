@@ -1,0 +1,54 @@
+/* Rodapé fixo do modal de cadastro */
+.bar {
+  display: flex;
+  flex-shrink: 0;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 16px 28px;
+  padding: 16px 28px;
+  border-top: 1px solid var(--color-border);
+  background: var(--color-surface);
+  box-shadow: 0 -6px 18px rgb(16 24 40 / 0.05);
+}
+
+.result {
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+  min-width: 0;
+}
+
+.label {
+  color: var(--color-muted);
+  font-size: 12px;
+  line-height: 16px;
+}
+
+.value {
+  color: var(--color-title);
+  font-size: 17px;
+  font-weight: 700;
+}
+
+.total {
+  color: var(--color-primary);
+  font-size: 20px;
+}
+
+.detail {
+  color: var(--color-text);
+  font-size: 13px;
+  font-weight: 500;
+}
+
+.divider {
+  width: 1px;
+  height: 36px;
+  background: var(--color-border);
+}
+
+.actions {
+  display: flex;
+  gap: 12px;
+  margin-left: auto;
+}

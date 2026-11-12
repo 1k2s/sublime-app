@@ -21,6 +21,12 @@
   border: 1px solid #fee2e2;
 }
 
+.warning {
+  background-color: #fffbeb;
+  color: #92400e;
+  border: 1px solid #fef3c7;
+}
+
 .default {
   background-color: #dfe8dc;
   color: #5f7a58;

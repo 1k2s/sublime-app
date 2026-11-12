@@ -3,10 +3,12 @@ import { FilterPills } from "@/shared/components/FilterPills";
 import { Input } from "@/shared/components/Input";
 import styles from "./ContractFilters.module.css";
 
+// Os status vêm do backend (active e current; ver contractStatus.js)
 const STATUS_OPTIONS = [
+  { label: "Vigentes", value: "CURRENT" },
+  { label: "Vencidos", value: "EXPIRED" },
+  { label: "Inativos", value: "INACTIVE" },
   { label: "Todos", value: "ALL" },
-  { label: "Ativos", value: "ACTIVE" },
-  { label: "Encerrados", value: "CLOSED" },
 ];
 
 export function ContractFilters({ search, onSearchChange, status, onStatusChange, className }) {
@@ -15,7 +17,7 @@ export function ContractFilters({ search, onSearchChange, status, onStatusChange
       <Input
         icon={Search}
         type="search"
-        placeholder="Buscar por paciente..."
+        placeholder="Buscar por titular ou beneficiário..."
         containerClassName={styles["filters-search"]}
         value={search}
         onChange={(event) => onSearchChange(event.target.value)}

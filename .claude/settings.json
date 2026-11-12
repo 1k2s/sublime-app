@@ -1,0 +1,36 @@
+{
+  "permissions": {
+    "allow": [
+      "Bash(node scripts/check-docs.mjs)",
+      "PowerShell(node scripts/check-docs.mjs)",
+      "Bash(./mvnw -q compile)",
+      "PowerShell(./mvnw -q compile)",
+      "Bash(npm run build)",
+      "PowerShell(npm run build)",
+      "Bash(npm run lint)",
+      "PowerShell(npm run lint)",
+      "Bash(git status *)",
+      "PowerShell(git status *)",
+      "Bash(git branch)",
+      "PowerShell(git branch)",
+      "Bash(git branch --show-current)",
+      "PowerShell(git branch --show-current)",
+      "Bash(git branch -a)",
+      "PowerShell(git branch -a)",
+      "Bash(git branch -r)",
+      "PowerShell(git branch -r)",
+      "Bash(git log *)",
+      "PowerShell(git log *)",
+      "Bash(git diff *)",
+      "PowerShell(git diff *)",
+      "Bash(git show *)",
+      "PowerShell(git show *)",
+      "Bash(git fetch *)",
+      "PowerShell(git fetch *)",
+      "Bash(git rev-list *)",
+      "PowerShell(git rev-list *)",
+      "Bash(git remote -v)",
+      "PowerShell(git remote -v)"
+    ]
+  }
+}
