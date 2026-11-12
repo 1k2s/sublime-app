@@ -105,7 +105,7 @@ export function ProviderFormModal({ provider = null, availableUsers = [], isSubm
           </FormField>
 
           <FormField
-            label="Pacientes que trouxe (%)"
+            label="Comissão de pacientes que trouxe (%)"
             htmlFor="referralCommissionPercentage"
             error={errors.referralCommissionPercentage?.message}
           >

@@ -41,14 +41,14 @@ export function ProviderTable({
             <th>E-MAIL</th>
             <th>PERFIL</th>
             <th>COMISSÃO PADRÃO</th>
-            <th>COMISSÃO INDICAÇÃO</th>
+            <th>COMISSÃO DE PACIENTES QUE TROUXE</th>
             <th>STATUS</th>
             <th className={styles.thAction}>AÇÕES</th>
           </tr>
         </thead>
         <tbody>
           {providers.map((provider) => {
-            const isAtivo = provider.active;
+            const isActive = provider.active;
 
             return (
               <tr key={provider.id} className={styles.row}>
@@ -70,8 +70,8 @@ export function ProviderTable({
                 <td className={styles.tdData}>{formatPercentage(provider.referralCommissionPercentage)}</td>
 
                 <td>
-                  <Badge variant={isAtivo ? "active" : "inactive"}>
-                    {isAtivo ? "Ativo" : "Inativo"}
+                  <Badge variant={isActive ? "active" : "inactive"}>
+                    {isActive ? "Ativo" : "Inativo"}
                   </Badge>
                 </td>
 
@@ -80,7 +80,7 @@ export function ProviderTable({
                     type="button"
                     className={styles.actionButton}
                     onClick={() => onViewDetails?.(provider)}
-                    aria-label="Ver e editar prestador"
+                    aria-label={`Ver ou editar ${provider.name}`}
                     title="Ver / Editar"
                   >
                     <Pencil size={16} />

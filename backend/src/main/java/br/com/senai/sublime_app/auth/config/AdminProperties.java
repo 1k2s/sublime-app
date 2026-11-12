@@ -2,8 +2,9 @@ package br.com.senai.sublime_app.auth.config;
 
 import org.springframework.boot.context.properties.ConfigurationProperties;
 
-// E-mail e senha do primeiro ADMIN (variáveis de ambiente ADMIN_EMAIL e ADMIN_PASSWORD).
-// Só são usados quando não existe nenhum ADMIN ativo; nunca ficam no git.
+// E-mail e senha do admin padrão (variáveis de ambiente ADMIN_EMAIL e ADMIN_PASSWORD). Só
+// são usados na primeira subida, enquanto não existe admin padrão (ADR 0027); nunca ficam
+// no git.
 @ConfigurationProperties("sublime.admin")
 public record AdminProperties(String email, String password) {
 

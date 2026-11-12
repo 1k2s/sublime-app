@@ -115,7 +115,7 @@ public class ContractService {
     public List<ContractResponseDTO> findAll() {
         return contractRepository.findAll().stream()
                 .map(ContractResponseDTO::fromEntity)
-                .collect(Collectors.toList());
+                .toList();
     }
 
     @Transactional(readOnly = true)

@@ -332,8 +332,11 @@ não as decide. Como rodar: [`development.md`](development.md). Estado e pendên
 3. **Autorização é do backend.** Esconder um item do menu por papel é só visual: qualquer
    usuário logado abre qualquer rota pela URL, e o papel guardado no navegador pode ser
    editado. Cada endpoint confere o papel pelo token.
-4. **Dinheiro trafega como string** (o JSON da API) e só é formatado na exibição
-   (`shared/utils/money.js`, com `decimal.js`). Cálculo oficial é do backend.
+4. **Dinheiro e percentual não são calculados no front.** O valor digitado vai para a API como
+   texto com ponto (ex: `"95.50"`, `"30.5"`, lidos como `BigDecimal` exato) e volta como número
+   JSON (`95.5` no JavaScript, sem os zeros à direita); o front só o formata na exibição
+   (`formatCurrency` e `formatPercentage`, em `shared/utils/money.js`, com `decimal.js`).
+   Cálculo oficial é do backend.
 
 ### Stack
 
@@ -515,6 +518,11 @@ Contratos), escolhido em 2026-11-11 a partir do que cada uma fazia melhor:
 
 - **O hook busca a lista inteira; a page filtra.** `const { data = [], isLoading, isError }
   = useXxx()` e `filterXxx(data, { search, status })`, função pura na raiz do módulo.
+- **Dado de outro módulo na listagem** (ex: o e-mail e o perfil do usuário na tela de
+  Prestadores): a page usa o hook de cada módulo (`useProviders` e `useUsers`) e cruza as duas
+  listas numa função pura do módulo (`providerUsers.js`), em vez de juntar na `queryFn`. Cada
+  lista fica no cache do módulo dono, então uma edição na tela de Usuários aparece em
+  Prestadores; a mesma função dá as opções do formulário (usuários sem prestador).
 - **O modal guarda só o `id`** do item e o lê da lista inteira
   (`items.find((item) => item.id === selectedId)`): depois de inativar ou reativar, a
   invalidação traz a lista nova e o modal já mostra o estado novo, sem correção à mão.
@@ -528,8 +536,8 @@ Contratos), escolhido em 2026-11-11 a partir do que cada uma fazia melhor:
   (`isTogglingStatus`), que desabilita os botões durante a requisição (evita o clique
   duplo).
 - **Cadastro e edição:** formulário curto (poucos campos, uma etapa) em **modal** (ex:
-  Usuários); formulário longo ou em etapas em **página inteira com wizard** (ex: Pacientes,
-  Prestadores).
+  Usuários, Prestadores); formulário longo ou em etapas em **página inteira com wizard** (ex:
+  Pacientes).
 - **Busca sem `useTransition`:** com listas pequenas, filtrar a cada tecla é imediato.
 
 ### Componentes: tamanho e layout

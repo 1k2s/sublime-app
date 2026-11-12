@@ -27,7 +27,7 @@ export function ProviderDetailsModal({
 
   if (!provider) return null;
 
-  const isAtivo = provider.active;
+  const isActive = provider.active;
 
   const handleConfirmToggle = () => {
     onToggleStatus?.(provider);
@@ -45,14 +45,14 @@ export function ProviderDetailsModal({
     <div className={styles.footer}>
       <div>
         {onToggleStatus && !showConfirm && (
-          isAtivo ? (
+          isActive ? (
             <Button
               variant="danger"
               onClick={() => setShowConfirm(true)}
               disabled={isTogglingStatus}
-              title="Desativar prestador"
+              title="Inativar prestador"
             >
-              <UserX size={16} /> Desativar prestador
+              <UserX size={16} /> Inativar prestador
             </Button>
           ) : (
             <Button
@@ -85,7 +85,7 @@ export function ProviderDetailsModal({
     <Modal
       title={provider.name}
       icon={User}
-      titleExtra={<Badge variant={isAtivo ? "active" : "inactive"}>{isAtivo ? "Ativo" : "Inativo"}</Badge>}
+      titleExtra={<Badge variant={isActive ? "active" : "inactive"}>{isActive ? "Ativo" : "Inativo"}</Badge>}
       description="Detalhes do cadastro do prestador"
       footer={footer}
       onClose={close}
@@ -97,7 +97,7 @@ export function ProviderDetailsModal({
           <div className={styles.grid}>
             <div className={styles.field}>
               <span className={styles.fieldLabel}>
-                <Percent size={14} /> Comissão Padrão (Clínica)
+                <Percent size={14} /> Comissão Padrão
               </span>
               <span className={styles.fieldValue}>
                 {formatPercentage(provider.commissionPercentage)}
@@ -105,7 +105,7 @@ export function ProviderDetailsModal({
             </div>
             <div className={styles.field}>
               <span className={styles.fieldLabel}>
-                <Percent size={14} /> Comissão por Indicação
+                <Percent size={14} /> Comissão de Pacientes que Trouxe
               </span>
               <span className={styles.fieldValue}>
                 {formatPercentage(provider.referralCommissionPercentage)}
@@ -152,11 +152,11 @@ export function ProviderDetailsModal({
           )}
         </div>
 
-        {/* Caixa de Confirmação de Desativação / Reativação */}
+        {/* Caixa de Confirmação de Inativação / Reativação */}
         {showConfirm && (
           <div className={styles.confirmBox}>
             <h4 className={styles.confirmTitle}>
-              Deseja realmente {isAtivo ? "desativar" : "reativar"} o prestador{" "}
+              Deseja realmente {isActive ? "inativar" : "reativar"} o prestador{" "}
               <strong>{provider.name}</strong>?
             </h4>
 
@@ -174,11 +174,11 @@ export function ProviderDetailsModal({
                 Cancelar
               </Button>
               <Button
-                variant={isAtivo ? "danger" : "secondary"}
+                variant={isActive ? "danger" : "secondary"}
                 onClick={handleConfirmToggle}
                 disabled={isTogglingStatus}
               >
-                {isAtivo ? "Confirmar desativação" : "Confirmar reativação"}
+                {isActive ? "Confirmar inativação" : "Confirmar reativação"}
               </Button>
             </div>
           </div>

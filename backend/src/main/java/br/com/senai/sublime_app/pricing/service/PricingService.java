@@ -23,8 +23,8 @@ import br.com.senai.sublime_app.pricing.repository.SessionFrequencyPriceReposito
 import br.com.senai.sublime_app.pricing.repository.TechniqueRepository;
 import br.com.senai.sublime_app.shared.exception.ResourceNotFoundException;
 
-// Porta de entrada do módulo de preços: usado pelos endpoints de consulta e,
-// futuramente, por contract e consultation para resolver preços vigentes.
+// Preços: a tabela vigente de uma técnica e o cadastro de valor (preço novo ou reajuste,
+// no mesmo fluxo).
 @Service
 public class PricingService {
 
