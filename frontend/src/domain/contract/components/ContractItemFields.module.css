@@ -1,0 +1,118 @@
+/* Cada item é uma linha; o cabeçalho usa as mesmas colunas */
+.row {
+  display: grid;
+  grid-template-columns: minmax(0, 2fr) minmax(0, 1.5fr) minmax(0, 1.5fr) 150px 36px;
+  gap: 12px;
+  align-items: start;
+}
+
+.header {
+  padding: 0 0 8px;
+  color: var(--color-muted);
+  font-size: 11px;
+  font-weight: 600;
+  letter-spacing: 0.05em;
+  text-transform: uppercase;
+}
+
+.header-value {
+  text-align: right;
+}
+
+.item {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  padding: 10px 0;
+  border-top: 1px solid var(--color-border);
+}
+
+.cell {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+  min-width: 0;
+}
+
+.error {
+  color: var(--color-danger);
+  font-size: 12px;
+  line-height: 15px;
+}
+
+/* Na mensalidade, o plano do Grupo é o do contrato: só texto, na altura de um campo */
+.fixed {
+  display: flex;
+  align-items: center;
+  min-height: 44px;
+  color: var(--color-muted);
+  font-size: 14px;
+}
+
+.value {
+  display: flex;
+  flex-direction: column;
+  align-items: flex-end;
+  justify-content: center;
+  min-height: 44px;
+  text-align: right;
+}
+
+.value-amount {
+  color: var(--color-primary);
+  font-size: 15px;
+  font-weight: 700;
+}
+
+.value-total {
+  color: var(--color-muted);
+  font-size: 12px;
+}
+
+.value-empty {
+  color: var(--color-muted);
+}
+
+.remove {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 32px;
+  height: 32px;
+  margin-top: 6px;
+  padding: 0;
+  border: none;
+  border-radius: 8px;
+  background: transparent;
+  color: var(--color-muted);
+  cursor: pointer;
+}
+
+.remove:hover {
+  background: #fee2e2;
+  color: #b91c1c;
+}
+
+.issue {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  margin: 0;
+  padding: 8px 12px;
+  border: 1px solid #fef3c7;
+  border-radius: 8px;
+  background: #fffbeb;
+  color: #92400e;
+  font-size: 13px;
+  line-height: 18px;
+}
+
+@media (max-width: 860px) {
+  .row {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+  }
+
+  .header {
+    display: none;
+  }
+}

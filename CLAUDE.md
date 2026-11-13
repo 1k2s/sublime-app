@@ -80,6 +80,21 @@ Ao escrever:
 - **Compile depois das mudanças** (`./mvnw -q compile` em `backend/`; erros do Lombok
   na IDE são falsos, ver `development.md`) e diga claramente o que foi ou não testado.
 - Commit e push só quando pedido.
+- **PRs vão para a `dev`, com "merge commit"** (não "squash" nem "rebase"): os commits da
+  branch ficam no histórico.
+- **Ao pausar uma feature** (troca de computador ou fim da sessão no meio do trabalho):
+  atualize a spec antes do commit, com o que foi feito, o que falta (tarefas da seção 6) e as
+  decisões ainda não registradas (seção 1, Status). A sessão seguinte continua pelos
+  arquivos, não pela conversa.
+- **Comandos de consulta rodam sem pedir permissão:** os que só leem ou verificam, sem
+  alterar código, banco, git ou processos.
+  - **Verificação:** os scripts de `scripts/` que só conferem (ex: `node scripts/check-docs.mjs`),
+    `./mvnw -q compile`, `npm run build` e `npm run lint`.
+  - **Estado do projeto:** `git status`, `git branch`, `git log`, `git diff`, `git show` e
+    `git fetch`; consultas `GET` à API local.
+  - **Continuam pedindo permissão** os que alteram algo: `git add`, `commit`, `push`,
+    `checkout`, `merge` e `rm`; instalar dependências; subir ou derrubar processos (backend,
+    front, Docker); gravar no banco (`POST`, `PUT`, `DELETE` na API).
 
 ### No frontend
 
@@ -93,6 +108,11 @@ Ao escrever:
 - **Respeite o mapa de módulos** da seção "Frontend" do `architecture.md` (o mesmo do backend) e
   importe com o alias `@/`.
 - **Confira depois das mudanças:** `npm run build` e `npm run lint` (em `frontend/`).
+- **Mudança visual ou de layout: prévia antes do código.** Quando o usuário pedir uma mudança
+  de visual, layout ou fluxo de tela (ou houver mais de um jeito razoável de fazê-la), monte
+  primeiro **prévias estáticas** (2 ou 3 versões, com as cores e os dados do projeto) numa
+  página de prévia para ele comparar, e só escreva o código da versão escolhida. Evita as idas
+  e vindas no código. Ajuste pequeno e já definido (ex: trocar uma cor, um texto) vai direto.
 
 ## Ao concluir uma tarefa
 

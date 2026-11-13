@@ -6,13 +6,3 @@
   max-width: 1200px;
   margin: 0 auto;
 }
-
-/* Largura do formulário: o cabeçalho alinha com os cards */
-.page-create {
-  display: flex;
-  flex-direction: column;
-  gap: 24px;
-  width: fit-content;
-  max-width: 100%;
-  margin-inline: auto;
-}

@@ -1,4 +1,5 @@
-// Busca de paciente por nome ou CPF. Setas navegam pelos resultados e Enter entrega o destacado em onSelect
+// Busca de paciente por nome ou CPF. Setas navegam pelos resultados e Enter entrega o destacado em onSelect.
+// excludeIds: pacientes que não aparecem no resultado (ex: o titular, na busca do beneficiário)
 import { useEffect, useId, useState } from "react";
 import { Search } from "lucide-react";
 import { usePatients } from "@/domain/patient/api/usePatients";
@@ -10,7 +11,7 @@ import styles from "@/domain/patient/components/PatientSearchInput.module.css";
 const MIN_SEARCH_LENGTH = 2;
 const DEBOUNCE_MS = 300;
 
-export function PatientSearchInput({ id, onSelect, invalid = false, autoFocus = false }) {
+export function PatientSearchInput({ id, onSelect, invalid = false, autoFocus = false, excludeIds = [] }) {
   const listId = useId();
   const [text, setText] = useState("");
   const [search, setSearch] = useState("");
@@ -23,7 +24,9 @@ export function PatientSearchInput({ id, onSelect, invalid = false, autoFocus = 
 
   const enabled = search.length >= MIN_SEARCH_LENGTH;
   const { data: allPatients = [], isLoading, isError } = usePatients({ enabled });
-  const patients = enabled ? filterPatients(allPatients, { search, status: "ACTIVE" }) : [];
+  const patients = enabled
+    ? filterPatients(allPatients, { search, status: "ACTIVE" }).filter((patient) => !excludeIds.includes(patient.id))
+    : [];
   const showResults = enabled && patients.length > 0;
   const activeIndex = Math.min(highlighted, patients.length - 1);
 

@@ -1,277 +1,215 @@
-import { Controller, useForm, useWatch } from "react-hook-form";
+import { Controller, useFieldArray, useForm, useWatch } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
-import { CalendarDays, Check, Layers, User } from "lucide-react";
-import { usePricingGroups, useTechniquePrices, useTechniques } from "@/domain/pricing/api/usePricing";
-import { formatPriceAxis, getPriceAxisLabel } from "@/domain/pricing/priceAxis";
+import { Layers, ListChecks, Plus, User } from "lucide-react";
 import { Button } from "@/shared/components/Button";
 import { FormField } from "@/shared/components/FormField";
-import { Input } from "@/shared/components/Input";
-import { Select } from "@/shared/components/Select";
+import { applyApiFieldErrors } from "@/shared/http/apiFieldErrors";
+import { useContractDraft } from "../hooks/useContractDraft";
 import { contractSchema } from "../schemas/contractSchema";
+import { ContractItemFields, ContractItemsHeader } from "./ContractItemFields";
+import { ContractPlanPicker } from "./ContractPlanPicker";
+import { ContractResultBar } from "./ContractResultBar";
 import { ContractSection } from "./ContractSection";
-import { ContractSummary } from "./ContractSummary";
+import { ContractTermSection } from "./ContractTermSection";
 import { PatientPicker } from "./PatientPicker";
 import styles from "./ContractForm.module.css";
 
-const PAYMENT_METHODS = [
-  { value: "PIX", label: "Pix" },
-  { value: "CREDIT_CARD", label: "Cartão de crédito" },
-  { value: "DEBIT_CARD", label: "Cartão de débito" },
-  { value: "CASH", label: "Dinheiro" },
-];
+const EMPTY_ITEM = {
+  techniqueId: "",
+  pricingModel: "",
+  durationMinutes: "",
+  frequency: "",
+  groupPlanId: "",
+  weeklyFrequency: "",
+};
 
 const DEFAULT_VALUES = {
   patient: null,
   beneficiary: null,
-  techniqueId: "",
   planId: "",
-  priceId: "",
+  planType: "",
+  startDate: "",
   paymentMethod: "",
-  validFrom: "",
-  validTo: "",
+  installments: "",
+  items: [EMPTY_ITEM],
 };
 
-// Opções dos selects técnica → plano → frequência (ou duração), tiradas do catálogo de preços
-function usePriceOptions({ techniqueId, planId, priceId }) {
-  const techniquesQuery = useTechniques();
-  const groupsQuery = usePricingGroups();
+// Nomes da API → campos do formulário (ver "Erros por campo da API" no architecture.md). Os do
+// item chegam como items[0].campo; os @AssertTrue do item, com o nome do método sem "is"
+const API_FIELDS = { patientId: "patient", beneficiaryId: "beneficiary" };
+const API_ITEM_FIELDS = {
+  sessionDurationPriceId: "durationMinutes",
+  sessionFrequencyPriceId: "weeklyFrequency",
+  validExclusiveArc: "techniqueId",
+  frequencyConsistent: "frequency",
+};
 
-  const techniques = techniquesQuery.data ?? [];
-  const technique = techniques.find((item) => String(item.id) === techniqueId) ?? null;
-  const pricingModel = (groupsQuery.data ?? []).find((group) => group.id === technique?.pricingGroupId)?.pricingModel;
-
-  const pricesQuery = useTechniquePrices(technique?.id ?? null);
-  const prices = pricesQuery.data?.prices ?? [];
-
-  const plans = [...new Map(prices.map((price) => [String(price.planId), price.planName])).entries()].map(
-    ([id, name]) => ({ id, name }),
-  );
-  const axisOptions = prices.filter((price) => String(price.planId) === planId);
-
-  return {
-    techniques,
-    technique,
-    pricingModel,
-    plans,
-    plan: plans.find((item) => item.id === planId) ?? null,
-    axisOptions,
-    price: axisOptions.find((price) => String(price.id) === priceId) ?? null,
-    isLoadingTechniques: techniquesQuery.isLoading || groupsQuery.isLoading,
-    isLoadingPrices: pricesQuery.isLoading,
-    isError: techniquesQuery.isError || groupsQuery.isError || pricesQuery.isError,
-  };
+function toFormField(apiField) {
+  const itemField = apiField.match(/^items\[(\d+)\]\.(\w+)$/);
+  if (itemField) {
+    const [, index, field] = itemField;
+    return `items.${index}.${API_ITEM_FIELDS[field] ?? field}`;
+  }
+  return API_FIELDS[apiField] ?? apiField;
 }
 
-export function ContractForm({ className, onSubmit, onCancel, isSubmitting = false }) {
+// Cadastro do contrato no modelo real, na ordem em que a clínica pensa: paciente, plano, itens
+// (um por grupo de preço) e vigência. Aqui ficam o formulário e o layout; o comportamento dos
+// itens e a prévia ficam no useContractDraft. plans, techniques e pricingGroups: o catálogo,
+// carregado pela page
+export function ContractForm({
+  className,
+  plans = [],
+  techniques = [],
+  pricingGroups = [],
+  isCatalogLoading = false,
+  isCatalogError = false,
+  onSubmit,
+  onCancel,
+  isSubmitting = false,
+}) {
   const {
     control,
     register,
     setValue,
+    setError,
     handleSubmit,
     formState: { errors },
   } = useForm({ resolver: zodResolver(contractSchema), defaultValues: DEFAULT_VALUES });
+  const { fields, append, remove } = useFieldArray({ control, name: "items" });
 
-  const values = useWatch({ control });
-  const options = usePriceOptions(values);
-  const { technique, plan, price, pricingModel } = options;
-  const paymentLabel = PAYMENT_METHODS.find((method) => method.value === values.paymentMethod)?.label;
+  const draft = useContractDraft({ control, plans, techniques, pricingGroups });
+  const [patient, items = []] = useWatch({ control, name: ["patient", "items"] });
 
-  function placeholder(isLoading, text) {
-    if (options.isError) return "Não foi possível carregar";
-    return isLoading ? "Carregando..." : text;
+  // Erro da API: a page chama no onError, para cada erro por campo aparecer no seu campo
+  function applyApiErrors(error) {
+    applyApiFieldErrors(error, setError, toFormField);
   }
 
-  // O preço escolhido define qual dos dois ids vai preenchido (exclusive arc)
+  // Entrega à page o pedido montado pelo draft, ou marca o erro que impede salvar
   function submit(formValues) {
-    const isDuration = pricingModel === "DURATION_BASED";
-    onSubmit({
-      patientId: formValues.patient.id,
-      patientName: formValues.patient.name,
-      beneficiaryId: formValues.beneficiary?.id ?? null,
-      beneficiaryName: formValues.beneficiary?.name ?? null,
-      paymentMethod: formValues.paymentMethod,
-      validFrom: formValues.validFrom,
-      validTo: formValues.validTo || null,
-      groupPlanPriceId: isDuration ? String(price.id) : null,
-      groupPlanFrequencyPriceId: isDuration ? null : String(price.id),
-      techniqueName: technique.name,
-      planName: plan.name,
-      weeklyFrequency: price.weeklyFrequency ?? null,
-      durationMinutes: price.durationMinutes ?? null,
-      sessionValue: price.sessionValue,
-    });
+    const { request, error } = draft.buildRequest(formValues);
+    if (error) {
+      setError(error.field, { type: "manual", message: error.message });
+      return;
+    }
+    onSubmit?.(request, { applyApiErrors });
   }
+
+  const itemsError = errors.items?.message ?? errors.items?.root?.message;
 
   return (
-    <form
-      className={[styles.form, className].filter(Boolean).join(" ")}
-      onSubmit={handleSubmit(submit)}
-      noValidate
-    >
-      <ContractSection
-        icon={User}
-        title="Paciente"
-        description="Selecione o titular e, se houver, o beneficiário."
-        className={styles["form-patient"]}
-      >
-        <div className={styles["form-stack"]}>
-          <FormField label="Paciente titular *" htmlFor="contract-patient" error={errors.patient?.message} reserveErrorSpace>
+    <form className={[styles.form, className].filter(Boolean).join(" ")} onSubmit={handleSubmit(submit)} noValidate>
+      {/* O conteúdo rola; o rodapé com o resultado e os botões fica fixo */}
+      <div className={styles["form-content"]}>
+        {/* Paciente e Plano lado a lado: o formulário fica mais curto */}
+        <div className={styles["form-top"]}>
+          <ContractSection icon={User} title="Paciente" description="Selecione o titular e, se houver, o beneficiário.">
+            <div className={styles["form-pair"]}>
+              <FormField label="Paciente titular *" htmlFor="contract-patient" error={errors.patient?.message} reserveErrorSpace>
+                <Controller
+                  name="patient"
+                  control={control}
+                  render={({ field }) => (
+                    <PatientPicker
+                      id="contract-patient"
+                      value={field.value}
+                      onChange={field.onChange}
+                      invalid={Boolean(errors.patient)}
+                    />
+                  )}
+                />
+              </FormField>
+
+              <FormField
+                label="Beneficiário (opcional)"
+                htmlFor="contract-beneficiary"
+                error={errors.beneficiary?.message}
+                reserveErrorSpace
+              >
+                <Controller
+                  name="beneficiary"
+                  control={control}
+                  render={({ field }) => (
+                    <PatientPicker
+                      id="contract-beneficiary"
+                      value={field.value}
+                      onChange={field.onChange}
+                      invalid={Boolean(errors.beneficiary)}
+                      excludeIds={patient ? [patient.id] : []}
+                    />
+                  )}
+                />
+              </FormField>
+            </div>
+          </ContractSection>
+
+          <ContractSection icon={Layers} title="Plano" description="Os valores dos itens se ajustam ao plano escolhido.">
+            {isCatalogLoading && <p className={styles["form-hint"]}>Carregando os planos...</p>}
+            {isCatalogError && <p className={styles["form-error"]}>Não foi possível carregar os planos.</p>}
             <Controller
-              name="patient"
+              name="planId"
               control={control}
               render={({ field }) => (
-                <PatientPicker
-                  id="contract-patient"
+                <ContractPlanPicker
+                  id="contract-plan"
+                  plans={draft.contractPlans}
                   value={field.value}
-                  onChange={field.onChange}
-                  invalid={Boolean(errors.patient)}
+                  invalid={Boolean(errors.planId)}
+                  onChange={(selectedPlan) => {
+                    field.onChange(selectedPlan ? String(selectedPlan.id) : "");
+                    setValue("planType", selectedPlan?.type ?? "");
+                  }}
                 />
               )}
             />
-          </FormField>
+            {errors.planId && <p className={styles["form-error"]}>{errors.planId.message}</p>}
+          </ContractSection>
+        </div>
 
-          <FormField
-            label="Beneficiário (opcional)"
-            htmlFor="contract-beneficiary"
-            error={errors.beneficiary?.message}
-            reserveErrorSpace
-          >
-            <Controller
-              name="beneficiary"
-              control={control}
-              render={({ field }) => (
-                <PatientPicker
-                  id="contract-beneficiary"
-                  value={field.value}
-                  onChange={field.onChange}
-                  invalid={Boolean(errors.beneficiary)}
+        <ContractSection icon={ListChecks} title="Itens do contrato" description="Um item por grupo de preço.">
+          <div className={styles["form-items"]}>
+            {itemsError && <p className={styles["form-error"]}>{itemsError}</p>}
+
+            <ContractItemsHeader />
+            {fields.map((field, index) => {
+              const itemState = draft.itemStateFor(index);
+              return (
+                <ContractItemFields
+                  key={field.id}
+                  index={index}
+                  item={items[index]}
+                  errors={errors.items?.[index]}
+                  register={register}
+                  setValue={setValue}
+                  techniqueOptions={draft.techniqueOptionsFor(index)}
+                  prices={itemState.prices}
+                  isPricesLoading={itemState.isPricesLoading}
+                  isPricesError={itemState.isPricesError}
+                  plan={draft.plan}
+                  groupPlanOptions={draft.groupPlanOptions}
+                  suggestedGroupPlanId={draft.suggestedGroupPlanId}
+                  isPreviewLoading={draft.preview.isLoading}
+                  resolution={itemState.resolution}
+                  itemValue={itemState.itemValue}
+                  canRemove={fields.length > 1}
+                  onRemove={() => remove(index)}
                 />
-              )}
-            />
-          </FormField>
-        </div>
-      </ContractSection>
+              );
+            })}
 
-      <ContractSection
-        icon={CalendarDays}
-        title="Vigência"
-        description="Período negociado do contrato."
-        className={styles["form-validity"]}
-      >
-        <div className={styles["form-stack"]}>
-          <FormField label="Data de início *" htmlFor="contract-valid-from" error={errors.validFrom?.message} reserveErrorSpace>
-            <Input
-              id="contract-valid-from"
-              type="date"
-              invalid={Boolean(errors.validFrom)}
-              {...register("validFrom")}
-            />
-          </FormField>
+            <div className={styles["form-add"]}>
+              <Button variant="outline" onClick={() => append({ ...EMPTY_ITEM })} disabled={!draft.canAddItem}>
+                <Plus size={16} aria-hidden /> Adicionar item
+              </Button>
+            </div>
+          </div>
+        </ContractSection>
 
-          <FormField label="Data de término" htmlFor="contract-valid-to" error={errors.validTo?.message} reserveErrorSpace>
-            <Input id="contract-valid-to" type="date" invalid={Boolean(errors.validTo)} {...register("validTo")} />
-          </FormField>
-        </div>
-      </ContractSection>
-
-      <ContractSection
-        icon={Layers}
-        title="Plano e técnica"
-        description="Defina a técnica, o plano, a frequência e a forma de pagamento."
-        className={styles["form-plan"]}
-      >
-        <div className={styles["form-row"]}>
-          <FormField label="Técnica *" htmlFor="contract-technique" error={errors.techniqueId?.message} reserveErrorSpace>
-            <Select
-              id="contract-technique"
-              invalid={Boolean(errors.techniqueId)}
-              {...register("techniqueId", {
-                onChange: () => {
-                  setValue("planId", "");
-                  setValue("priceId", "");
-                },
-              })}
-            >
-              <option value="">{placeholder(options.isLoadingTechniques, "Selecione")}</option>
-              {options.techniques.map((item) => (
-                <option key={item.id} value={String(item.id)}>
-                  {item.name}
-                </option>
-              ))}
-            </Select>
-          </FormField>
-
-          <FormField label="Plano *" htmlFor="contract-plan" error={errors.planId?.message} reserveErrorSpace>
-            <Select
-              id="contract-plan"
-              disabled={!technique}
-              invalid={Boolean(errors.planId)}
-              {...register("planId", { onChange: () => setValue("priceId", "") })}
-            >
-              <option value="">{placeholder(options.isLoadingPrices, "Selecione")}</option>
-              {options.plans.map((item) => (
-                <option key={item.id} value={item.id}>
-                  {item.name}
-                </option>
-              ))}
-            </Select>
-          </FormField>
-
-          <FormField
-            label={`${getPriceAxisLabel(pricingModel)} *`}
-            htmlFor="contract-price"
-            error={errors.priceId?.message}
-            reserveErrorSpace
-          >
-            <Select id="contract-price" disabled={!plan} invalid={Boolean(errors.priceId)} {...register("priceId")}>
-              <option value="">Selecione</option>
-              {options.axisOptions.map((item) => (
-                <option key={item.id} value={String(item.id)}>
-                  {formatPriceAxis(item)}
-                </option>
-              ))}
-            </Select>
-          </FormField>
-
-          <FormField
-            label="Forma de pagamento *"
-            htmlFor="contract-payment"
-            error={errors.paymentMethod?.message}
-            reserveErrorSpace
-          >
-            <Select id="contract-payment" invalid={Boolean(errors.paymentMethod)} {...register("paymentMethod")}>
-              <option value="">Selecione</option>
-              {PAYMENT_METHODS.map((method) => (
-                <option key={method.value} value={method.value}>
-                  {method.label}
-                </option>
-              ))}
-            </Select>
-          </FormField>
-        </div>
-      </ContractSection>
-
-      <ContractSummary
-        className={styles["form-summary"]}
-        patient={values.patient}
-        beneficiary={values.beneficiary}
-        technique={technique}
-        plan={plan}
-        price={price}
-        pricingModel={pricingModel}
-        paymentLabel={paymentLabel}
-        validFrom={values.validFrom}
-        validTo={values.validTo}
-      />
-
-      <div className={styles["form-footer"]}>
-        <Button variant="secondary" onClick={onCancel} disabled={isSubmitting}>
-          Cancelar
-        </Button>
-        <Button type="submit" loading={isSubmitting}>
-          <Check size={18} aria-hidden /> Criar contrato
-        </Button>
+        <ContractTermSection control={control} register={register} errors={errors} preview={draft.preview} />
       </div>
+
+      <ContractResultBar preview={draft.preview} isSubmitting={isSubmitting} onCancel={onCancel} />
     </form>
   );
 }

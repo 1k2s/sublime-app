@@ -90,6 +90,11 @@ public class ContractItemEntity {
         return sessionDurationPrice != null;
     }
 
+    // Sessões e valor do item, pela linha travada (a mesma conta da prévia)
+    public ContractItemValue getValue() {
+        return ContractItemValue.of(sessionDurationPrice, sessionFrequencyPrice);
+    }
+
     // Semanas para completar as sessões do plano no ritmo do item. Só faz sentido
     // em item por duração — usado no cálculo do fim do contrato.
     public int weeksToComplete() {

@@ -108,3 +108,20 @@
   padding: 16px 24px;
   border-top: 1px solid var(--color-border);
 }
+
+/* Formulário longo: largo e alto; o conteúdo rola e mantém o próprio rodapé fixo */
+.large {
+  max-width: 1080px;
+  height: 100%;
+  max-height: 900px;
+  border-radius: 18px;
+}
+
+.large .body {
+  display: flex;
+  flex: 1;
+  min-height: 0;
+  padding: 0;
+  overflow: hidden;
+  background: var(--color-bg);
+}

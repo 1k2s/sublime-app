@@ -37,7 +37,7 @@ feature em andamento fica na spec dela, em [`specs/`](specs/).
 | `auth` | implementado no backend e no front: login com JWT, rotas protegidas (exceto login, primeiro acesso e Swagger), corte imediato do acesso ao inativar, mudar o perfil ou redefinir a senha, Swagger com "Authorize" ([ADR 0023](adr/0023-autenticacao-jwt-resource-server.md), [ADR 0024](adr/0024-sessao-frontend-localstorage.md)); **autorização por perfil** (2026-11-07): tabela de acesso no `SecurityConfig` com o `ADMIN` como padrão e o `CurrentUser` para as regras de dados ([ADR 0026](adr/0026-acesso-por-perfil-centralizado.md)) |
 | `provider` | implementado: dois percentuais (padrão 40/45), usuário ativo obrigatório na criação e na reativação ([ADR 0031](adr/0031-prestador-com-usuario-revisto.md)) |
 | `pricing` | implementado: grupos, técnicas (com reativação), planos (`PlanType`, `termWeeks`, de-para), preços com reajuste historizado |
-| `contract` | implementado: cabeçalho + `ContractItem`, vigência calculada (`SessionFrequency`), aditivos, opções do plano do Grupo, endpoints de apoio, beneficiário de no máximo um contrato vigente e diferente do titular |
+| `contract` | implementado: cabeçalho + `ContractItem`, vigência calculada (`SessionFrequency`), aditivos, opções do plano do Grupo, endpoints de apoio, beneficiário de no máximo um contrato vigente e diferente do titular, `current` na resposta (vigente hoje), **valor total e parcelas** (2026-11-12; coluna `installments`, prévia `POST /api/contracts/preview`; [ADR 0032](adr/0032-valor-e-parcelas-do-contrato.md)) |
 | `consultation` | implementado: lançamento com contratos vinculados e escolha livre, resolução de preço (casos 1 a 3), `pricingSource`, comissão pela origem, repasse `HALF_UP`, saldo pela cadeia de versões, soft delete sem `PUT`, endpoints de apoio (`eligible-contracts`, `session-balance`, `patients`); prestador do login para o `PROVIDER`, que só vê e inativa os próprios lançamentos; `launchedByUserId` |
 | **frontend** | **em andamento**: ver a seção [Frontend](#frontend) |
 
@@ -47,7 +47,8 @@ feature em andamento fica na spec dela, em [`specs/`](specs/).
   [`development.md`](development.md)), com `ddl-auto=validate`. **Até a versão estável, as
   migrations podem ser editadas** ([ADR 0028](adr/0028-migrations-editaveis-ate-versao-estavel.md)):
   a V1 foi editada em 2026-11-07 (colunas `default_admin`, `password_change_required` e
-  `launched_by_user_id`), então quem puxar zera o banco local (`docker compose down -v`).
+  `launched_by_user_id`) e em 2026-11-12 (coluna `installments` do contrato), então quem puxar
+  zera o banco local (`docker compose down -v`).
 - **Teste manual do fluxo completo pela API** (2026-10-29, comandos manuais, sem script): o
   catálogo, os cadastros, o contrato (incluindo o aditivo), os três casos de
   lançamento, o saldo, a reativação e as constraints do banco funcionaram como
@@ -75,13 +76,18 @@ feature em andamento fica na spec dela, em [`specs/`](specs/).
 1. **Telas funcionais no front** (decidido em 2026-11-11, antes dos testes): o backend está
    pronto, mas o sistema ainda não funciona de ponta a ponta (contratos e lançamento usam
    mocks e o modelo antigo). **Uma branch e uma spec por tela**, cada uma com o próprio PR,
-   na ordem de dependência (as telas de Usuários e de Prestadores já estão prontas):
-   1. **Contratos:** o envio no modelo real do contrato (`items`, um por grupo de preço),
-      sem mocks, com os erros por campo da API.
-   2. **Lançamento:** o redesenho sobre a API real. Decidido: o paciente vem do
+   na ordem de dependência (as telas de Usuários, Prestadores e Contratos já estão prontas;
+   Contratos em 2026-11-13, com valor total e parcelas):
+   1. **Lançamento:** o redesenho sobre a API real. Decidido: o paciente vem do
       `GET /api/consultations/patients`, o prestador vem do login para o `PROVIDER` e fica
       oculto para ele, o valor aparece só depois de lançar (sem prévia de preço) e o total
       do repasse do dia vem do backend, não da soma no front.
+   2. **Aditivo do contrato** (spec própria; decidido em 2026-11-11 deixá-lo fora da tela de
+      Contratos e, em 2026-11-13, fazê-lo depois do Lançamento, que é o fluxo principal da Fase
+      1; enquanto isso, a prorrogação pelo Swagger): prorrogar, incluir e
+      remover itens, o `group-plan-options`, renegociar as parcelas na prorrogação e como a
+      lista mostra as versões (a substituída por aditivo aparece como Inativo). O detalhe do
+      contrato ganha o "Editar". Até lá, prorrogar só pelo Swagger.
 2. **Testes automatizados no backend** (decidido em 2026-11-07; **pausado** em 2026-11-11
    até as telas funcionarem): cada feature hoje exige dezenas de casos manuais, refeitos a
    cada merge da `dev`, e as regras mais arriscadas são financeiras (resolução de preço,
@@ -202,7 +208,7 @@ chamadas batem com a API real ainda não foram conferidos.**
 | `patient` | listagem com filtros e busca, modal de detalhes, cadastro em wizard (dados pessoais com a origem do paciente, endereço com ViaCEP, confirmação), ligado à API real (PR #33) |
 | `pricing` | catálogo de preços (tabela, busca de técnica, modal de preço) |
 | `consultation` | tela de lançamento (formulário, agenda, carrinho, total). `consultationApi.js` com trechos mockados |
-| `contract` | tela de contratos (filtros, tabela, formulário com seleção de paciente e preço, resumo), com fallback mockado no `contractApi.js`. **Envio no modelo antigo do contrato** (ver "Pendências") |
+| `contract` | tela de Contratos (`/contracts`; 2026-11-13), ligada à API, no modelo real (um item por grupo de preço): listagem com o status Vigente, Vencido ou Inativo (`current` da API), detalhe com o valor total e as parcelas, inativar, e cadastro em **modal grande com rodapé fixo** (plano no `RichSelect` com o alternador Individual \| Familiar, itens em linhas, prévia `POST /api/contracts/preview` com o fim, os valores e as parcelas); erros por campo da API. Primeiro módulo com `display/`, `utils/` e `hooks/` (ver "Dentro de cada módulo" no [`architecture.md`](architecture.md)). **Testada pela API e pela tela** (2026-11-12 e 2026-11-13) |
 | `provider` | tela de Prestadores (`/providers`, só `ADMIN`; 2026-11-11): listagem, detalhes (com o status do usuário vinculado) e cadastro/edição em **modal**. O cadastro **vincula um usuário existente** (ativo e sem prestador); percentual vazio usa o padrão do backend; erros por campo da API. Ligada à API; os casos de teste da tela ainda não foram rodados |
 | `user` | tela de Configurações (`/settings`, os dois perfis): troca do e-mail e da senha com a senha atual; camada `api/` (usuários e `/me`). **Tela de Usuários** (`/users`, só `ADMIN`; 2026-11-10): listagem com busca e filtros, cadastro e alteração com senha provisória, inativar e reativar, admin padrão protegido. Ligada à API e **testada pela tela** (2026-11-11) |
 | `app/`, `shared/` | layout com menu lateral, router com rotas `lazy`, `apiClient`, utilitários (`money`, `date`, `masks`, `alert`, `viacep`) e componentes de `shared/components/` |
@@ -224,8 +230,8 @@ chamadas batem com a API real ainda não foram conferidos.**
 ### Próximos passos
 
 1. **Telas funcionais**, uma branch e uma spec por tela ([`specs/`](specs/README.md)), na
-   ordem de cadastro (cada uma depende dos dados da anterior): Contratos (contrato real, sem
-   mocks) → Lançamento (API real); Prestadores já está pronta. O que cada uma fecha e as
+   ordem de cadastro (cada uma depende dos dados da anterior): Lançamento (API real) e o
+   aditivo do contrato; Prestadores e Contratos já estão prontas. O que cada uma fecha e as
    decisões já tomadas: item 1 dos [Próximos passos](#próximos-passos) do projeto.
 2. **Inventário** das telas que não entram no item 1 (ex: catálogo de preços): o que cada
    uma faz e se as chamadas batem com o contrato real da API (Swagger). Atualizar esta
@@ -235,7 +241,7 @@ Checklist da Fase 1 no front (herdado do guia original):
 - [x] Login funcionando e rotas protegidas.
 - [ ] CRUD de `Patient` com endereço e ViaCEP.
 - [ ] Catálogo de `pricing` consultável.
-- [ ] Cadastro de `provider` e `contract`.
+- [x] Cadastro de `provider` e `contract`.
 - [ ] Fluxo completo de lançamento.
 - [ ] Histórico de atendimentos com filtro por período.
 - [ ] Valores monetários enviados como texto, formatados só na exibição, sem cálculo no front.
@@ -245,10 +251,6 @@ Checklist da Fase 1 no front (herdado do guia original):
 
 - **7 vulnerabilidades nas dependências** (4 moderadas, 3 altas), acusadas pelo `npm ci`
   em 2026-11-06: avaliar com `npm audit` e atualizar o que for seguro.
-- **Erros por campo da API no formulário de Contratos:** Pacientes, Usuários e Prestadores já
-  marcam o `errors` do `ProblemDetail` nos campos (`applyApiFieldErrors`; ver "Camada `api/`"
-  no [`architecture.md`](architecture.md)). Falta o formulário de Contratos, que será refeito
-  (contrato real): aplicar junto. Até lá, um 400 de validação aparece só no alerta.
 - **Regra de negócio no front** (levantado em 2026-11-11; o backend é a fonte da verdade,
   princípio 1 da seção "Frontend" do [`architecture.md`](architecture.md)):
   - **Total de repasse do dia calculado no front:** o `ConsultationTotal.jsx` soma o
@@ -262,10 +264,6 @@ Checklist da Fase 1 no front (herdado do guia original):
     comentários (`/consultations/preview`, `/consultations/batch`) não existem, e o do topo do
     arquivo diz que o `/consultations` não existe (existe). Resolver no redesenho do
     lançamento.
-  - **Titular como beneficiário no Zod:** o `contractSchema` recusa o titular como
-    beneficiário (`refine`), regra que agora está no backend (`ContractEntity`, 400 "O
-    beneficiário deve ser outro paciente."). Na tela nova de Contratos, decidir se o `refine`
-    sai, com a busca do beneficiário deixando de oferecer o titular.
 - **Tela de lançamento planejada em conflito com a API.** O guia original dizia que o
   front envia só `patientId` e `arrivalTime` e que o prestador vem do login. O
   `POST /api/consultations` espera `patientId`, `contractId` (escolhido entre os
@@ -273,15 +271,37 @@ Checklist da Fase 1 no front (herdado do guia original):
   `techniqueId`, `durationMinutes`, `occurredAt` e `status`
   (ver `Consultation` no [`domain-model.md`](domain-model.md)). Redesenhar a tela sobre o
   contrato real, com spec.
-- **Tela de contratos no modelo antigo do contrato.** `ContractForm.jsx` e o mock de
-  `contractApi.js` usam um preço único no cabeçalho (`groupPlanPriceId` /
-  `groupPlanFrequencyPriceId`, campos que não existem na API). O `POST /api/contracts`
-  espera `items`: um por grupo de preço, cada um com `techniqueId`,
-  `sessionDurationPriceId` **ou** `sessionFrequencyPriceId` e, nos por duração,
-  `frequency` (ver `Contract e ContractItem` no [`domain-model.md`](domain-model.md) e o
-  [ADR 0008](adr/0008-contrato-com-itens.md)). O formulário também não oferece o boleto
-  (`BANK_SLIP`, do enum `PaymentMethod`), e o comentário do `contractApi.js` diz que o
-  backend não expõe `/contracts` (expõe). Refazer o envio sobre o contrato real, com spec.
+- *Em aberto:* **boleto no cadastro de contrato.** O formulário oferece Pix, cartão de crédito,
+  cartão de débito e dinheiro; o enum `PaymentMethod` também tem `BANK_SLIP` (um contrato que
+  venha com ele aparece como "Boleto"). Decidido deixar assim por enquanto (2026-11-11).
+- **Organização dos módulos em `display/`, `utils/` e `hooks/`** (decidida em 2026-11-13, feita
+  no `contract`; ver "Dentro de cada módulo" no [`architecture.md`](architecture.md)): levar
+  para cada módulo quando ele for mexido. Arquivos ainda na raiz: `roles.js` (auth),
+  `priceAxis.js` (pricing), `filterPatients.js`, `filterUsers.js`, `filterProviders.js` e
+  `providerUsers.js`. Onde um componente tiver muita conta além do layout, ela vai para um
+  hook em `hooks/`.
+- **Visual global em cada tela** (fundo e bordas frias, cards com sombra, menu e título; feito
+  em 2026-11-12 e valendo para todas as telas): conferir, com a tela de Contratos como base,
+  Pacientes, Usuários, Prestadores, Preços, Lançamento e Configurações, quando cada uma for
+  mexida.
+- **Sessão sincronizada entre as abas** (`auth`; notado nos testes de 2026-11-13; **decidido**
+  manter uma sessão por navegador, com as abas sincronizadas). A sessão fica no
+  `localStorage`, que as abas dividem: ao entrar como prestador numa aba, a aba do admin
+  continua com o menu do admin (o usuário está na memória do React), mas as requisições levam o
+  token do prestador (o `apiClient` lê o `localStorage` a cada uma), e inativar um prestador dá
+  "sem permissão". Fazer: o `AuthProvider` ouve o evento `storage` e, quando outra aba entra
+  ou sai, atualiza o usuário (ou volta para o login). Mantém o
+  [ADR 0024](adr/0024-sessao-frontend-localstorage.md). *Descartado:* uma sessão por aba
+  (`sessionStorage`), em que cada aba nova pede login. Para testar dois perfis ao mesmo tempo:
+  outro navegador ou uma janela anônima.
+- **Avisos do sistema ao usuário** (notado nos testes de 2026-11-13): quando a sessão cai (401:
+  vencida, usuário inativado, perfil alterado), o `signOut` volta para o login sem dizer o
+  motivo. Levantar onde cabe um aviso (modal ou o `shared/utils/alert.js`): a sessão
+  encerrada e outras ações do sistema.
+- **Exports sem uso** (achados em 2026-11-12, de antes da tela de Contratos): `usePatient`
+  (`usePatients.js`), `getUserById` (`userApi.js`), `isValidCpf` (`masks.js`),
+  `personalDataSchema` e `addressFieldsSchema` (`patientSchema.js`). Remover ou usar, numa
+  limpeza à parte.
 - **Mensagem de erro da API no `PriceFormModal`:** ele lê `error.response.data.message`,
   campo que o `ProblemDetail` não tem, e sempre cai na mensagem própria. Trocar por
   `error.message`, que o interceptor do `apiClient` já preenche com o `detail` da API.
@@ -297,7 +317,12 @@ Checklist da Fase 1 no front (herdado do guia original):
 
 - **Cores em variáveis CSS em todos os componentes.** Hoje o código está misturado: parte
   dos `.module.css` usa `var(--color-*)` e parte usa o hexadecimal direto (uma regra antiga
-  do guia, já removida). Padronizar em variáveis, para a paleta mudar num lugar só.
+  do guia, já removida). Padronizar em variáveis, para a paleta mudar num lugar só. **Em
+  parte feito** (2026-11-12): o fundo e as bordas (os dois tons bege) passaram para
+  `var(--color-bg)` e `var(--color-border)` em todos os `.module.css`; os outros tons ainda
+  estão escritos direto.
+- **Estado inicial do cadastro de contrato sem itens** (ideia das prévias de 2026-11-12): uma
+  área "Nenhum item ainda" com atalhos para as técnicas, no lugar da primeira linha vazia.
 - **Regras de dependência entre módulos garantidas pelo ESLint**
   (`import/no-restricted-paths` ou `eslint-plugin-boundaries`): o lint falha quando um
   módulo importa quem não deve.

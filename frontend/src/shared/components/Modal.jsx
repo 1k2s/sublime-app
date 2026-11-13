@@ -1,11 +1,25 @@
 // Janela sobre o conteúdo. Fecha com Esc, clicando no fundo ou no X.
 // Opcionais: icon (ícone no círculo), titleExtra (ao lado do título, ex: Badge), description
-// (subtítulo) e footer (faixa de rodapé, com borda em cima)
+// (subtítulo) e footer (faixa de rodapé, com borda em cima).
+// size="large": formulário longo (ex: cadastro de contrato). O conteúdo ocupa a altura toda e
+// cuida da própria rolagem e do próprio rodapé fixo.
+// closeOnBackdrop={false}: o clique no fundo não fecha (num formulário longo, um clique sem querer
+// perderia o que foi preenchido); fecham o X, o Esc e o botão de cancelar do conteúdo
 import { useEffect } from "react";
 import { X } from "lucide-react";
 import styles from "./Modal.module.css";
 
-export function Modal({ title, icon: Icon, titleExtra, description, footer, onClose, children }) {
+export function Modal({
+  title,
+  icon: Icon,
+  titleExtra,
+  description,
+  footer,
+  onClose,
+  size = "default",
+  closeOnBackdrop = true,
+  children,
+}) {
   useEffect(() => {
     function handleKeyDown(event) {
       if (event.key === "Escape") onClose();
@@ -15,9 +29,9 @@ export function Modal({ title, icon: Icon, titleExtra, description, footer, onCl
   }, [onClose]);
 
   return (
-    <div className={styles.backdrop} onMouseDown={onClose}>
+    <div className={styles.backdrop} onMouseDown={closeOnBackdrop ? onClose : undefined}>
       <div
-        className={styles.dialog}
+        className={[styles.dialog, size === "large" && styles.large].filter(Boolean).join(" ")}
         role="dialog"
         aria-modal="true"
         aria-label={title}

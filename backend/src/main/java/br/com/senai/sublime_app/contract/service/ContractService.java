@@ -3,15 +3,21 @@ package br.com.senai.sublime_app.contract.service;
 import br.com.senai.sublime_app.contract.domain.ContractEntity;
 import br.com.senai.sublime_app.contract.domain.ContractItemDraft;
 import br.com.senai.sublime_app.contract.domain.ContractItemEntity;
+import br.com.senai.sublime_app.contract.domain.ContractItemValue;
+import br.com.senai.sublime_app.contract.domain.Installments;
 import br.com.senai.sublime_app.contract.dto.ContractAmendmentRequestDTO;
+import br.com.senai.sublime_app.contract.dto.ContractItemPreviewDTO;
 import br.com.senai.sublime_app.contract.dto.ContractItemRequestDTO;
+import br.com.senai.sublime_app.contract.dto.ContractPreviewRequestDTO;
+import br.com.senai.sublime_app.contract.dto.ContractPreviewResponseDTO;
 import br.com.senai.sublime_app.contract.dto.ContractRequestDTO;
 import br.com.senai.sublime_app.contract.dto.ContractResponseDTO;
-import br.com.senai.sublime_app.contract.dto.ContractTermPreviewResponseDTO;
+import br.com.senai.sublime_app.contract.dto.ContractGroupPlanOptionsResponseDTO;
 import br.com.senai.sublime_app.contract.enums.SessionFrequency;
 import br.com.senai.sublime_app.contract.repository.ContractRepository;
 import br.com.senai.sublime_app.patient.domain.PatientEntity;
 import br.com.senai.sublime_app.patient.repository.PatientRepository;
+import br.com.senai.sublime_app.pricing.domain.Money;
 import br.com.senai.sublime_app.pricing.domain.PlanEntity;
 import br.com.senai.sublime_app.pricing.domain.SessionDurationPriceEntity;
 import br.com.senai.sublime_app.pricing.domain.SessionFrequencyPriceEntity;
@@ -80,7 +86,7 @@ public class ContractService {
         PlanEntity plan = getPlanOrThrow(dto.planId());
 
         ContractEntity contract = ContractEntity.create(patient, beneficiary, plan,
-                dto.startDate(), dto.paymentMethod(), toDrafts(dto.items()));
+                dto.startDate(), dto.paymentMethod(), dto.installments(), toDrafts(dto.items()));
         validateGroupItemPlan(contract, null);
 
         // Os itens são salvos junto (cascade do agregado)
@@ -132,16 +138,36 @@ public class ContractService {
     }
 
     /**
-     * Prévia da tela de criação (nada é gravado): vigência calculada pelo plano e
-     * pelos ritmos dos itens por duração — a mesma conta da entidade — e as opções do
-     * plano do item do Pilates em Grupo.
+     * Prévia da tela de criação (nada é gravado), com as mesmas contas do cadastro:
+     * vigência pelo plano e pelos ritmos dos itens por duração, opções do plano do item
+     * do Pilates em Grupo, valor de cada item, total e parcelas (as pedidas, limitadas
+     * ao máximo do contrato; sem elas, o máximo). Os itens são montados pelo mesmo
+     * toDrafts do cadastro.
      */
     @Transactional(readOnly = true)
-    public ContractTermPreviewResponseDTO previewTerm(Long planId, LocalDate startDate,
-            List<SessionFrequency> durationItemFrequencies) {
-        PlanEntity plan = getPlanOrThrow(planId);
-        int weeks = ContractEntity.durationWeeksFor(plan, durationItemFrequencies);
-        return toTermPreview(plan, weeks, ContractEntity.endDateFor(startDate, weeks));
+    public ContractPreviewResponseDTO preview(ContractPreviewRequestDTO dto) {
+        PlanEntity plan = getPlanOrThrow(dto.planId());
+        List<ContractItemDraft> drafts = toDrafts(dto.itemsOrEmpty());
+        List<SessionFrequency> frequencies = drafts.stream()
+                .filter(ContractItemDraft::isDurationBased)
+                .map(ContractItemDraft::frequency)
+                .toList();
+        int weeks = ContractEntity.durationWeeksFor(plan, frequencies);
+        List<PlanEntity> groupPlanOptions = groupPlanOptionsFor(plan, weeks);
+
+        Money total = ContractItemValue.sumOf(drafts.stream().map(ContractItemDraft::value).toList());
+        // Na prévia, parcelas acima do máximo (ex: o plano mudou para um mais curto) valem o
+        // máximo: a resposta diz as aplicadas. O cadastro recusa (Installments.validateCount)
+        int maxInstallments = Installments.maxFor(weeks);
+        int applied = dto.installments() != null ? Math.min(dto.installments(), maxInstallments) : maxInstallments;
+        Installments installments = Installments.split(total, applied);
+
+        return new ContractPreviewResponseDTO(weeks, ContractEntity.endDateFor(dto.startDate(), weeks),
+                suggestedGroupPlanId(plan, groupPlanOptions),
+                groupPlanOptions.stream().map(PlanResponseDTO::fromEntity).toList(),
+                drafts.stream().map(ContractItemPreviewDTO::fromDraft).toList(),
+                total.amount(), maxInstallments, installments.count(),
+                installments.firstValue().amount(), installments.value().amount());
     }
 
     /**
@@ -149,9 +175,9 @@ public class ContractService {
      * contrato (nada é gravado).
      */
     @Transactional(readOnly = true)
-    public ContractTermPreviewResponseDTO groupPlanOptionsFor(Long contractId) {
+    public ContractGroupPlanOptionsResponseDTO groupPlanOptionsFor(Long contractId) {
         ContractEntity contract = getContractOrThrow(contractId);
-        return toTermPreview(contract.getPlan(), contract.getDurationInWeeks(), contract.getEndDate());
+        return toGroupPlanOptions(contract.getPlan(), contract.getDurationInWeeks(), contract.getEndDate());
     }
 
     // Um paciente é beneficiário de no máximo um contrato vigente (mesma regra do
@@ -233,18 +259,21 @@ public class ContractService {
                 .toList();
     }
 
+    private ContractGroupPlanOptionsResponseDTO toGroupPlanOptions(PlanEntity contractPlan, int weeks, LocalDate endDate) {
+        List<PlanEntity> options = groupPlanOptionsFor(contractPlan, weeks);
+        return new ContractGroupPlanOptionsResponseDTO(weeks, endDate, suggestedGroupPlanId(contractPlan, options),
+                options.stream().map(PlanResponseDTO::fromEntity).toList());
+    }
+
     // Sugestão: o equivalente do de-para (contrato de pacote) ou o próprio plano
     // (contrato só com Grupo), desde que esteja nas opções
-    private ContractTermPreviewResponseDTO toTermPreview(PlanEntity contractPlan, int weeks, LocalDate endDate) {
-        List<PlanEntity> options = groupPlanOptionsFor(contractPlan, weeks);
+    private static Long suggestedGroupPlanId(PlanEntity contractPlan, List<PlanEntity> options) {
         PlanEntity suggestion = contractPlan.getType() == PlanType.MONTHLY_FEE
                 ? contractPlan
                 : contractPlan.getEquivalentPlan();
-        Long suggestedId = suggestion != null && options.stream().anyMatch(option -> option.getId().equals(suggestion.getId()))
+        return suggestion != null && options.stream().anyMatch(option -> option.getId().equals(suggestion.getId()))
                 ? suggestion.getId()
                 : null;
-        return new ContractTermPreviewResponseDTO(weeks, endDate, suggestedId,
-                options.stream().map(PlanResponseDTO::fromEntity).toList());
     }
 
     // ---------------------------------------------------------------------------
