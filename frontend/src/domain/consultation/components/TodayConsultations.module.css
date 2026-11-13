@@ -1,0 +1,142 @@
+.card {
+  display: flex;
+  flex-direction: column;
+  min-height: 0;
+  overflow: hidden;
+  border-radius: var(--radius);
+  background: var(--color-surface);
+  box-shadow: var(--shadow-card);
+}
+
+.title {
+  margin: 0;
+  padding: 16px 16px 8px;
+  color: var(--color-title);
+  font-size: 17px;
+}
+
+/* Só a tabela rola; o cabeçalho dela fica fixo */
+.scroll {
+  flex: 1 1 auto;
+  min-height: 0;
+  overflow: auto;
+}
+
+.table {
+  width: 100%;
+  border-collapse: collapse;
+}
+
+.table th {
+  position: sticky;
+  top: 0;
+  z-index: 1;
+  padding: 10px 16px;
+  border-bottom: 1px solid var(--color-border);
+  background: var(--color-surface);
+  color: var(--color-muted);
+  font-size: 12px;
+  font-weight: 600;
+  letter-spacing: 0.04em;
+  text-align: left;
+  text-transform: uppercase;
+}
+
+.table td {
+  padding: 13px 16px;
+  border-bottom: 1px solid var(--color-border);
+  font-size: 14px;
+  vertical-align: middle;
+}
+
+.row-last {
+  background: #f4f8f2;
+}
+
+.patient {
+  color: var(--color-title);
+  font-weight: 700;
+}
+
+.now {
+  margin-left: 8px;
+  padding: 2px 8px;
+  border-radius: 999px;
+  background: var(--color-primary-soft);
+  color: var(--color-primary);
+  font-size: 12px;
+}
+
+.warning-warning,
+.warning-danger {
+  margin-left: 8px;
+  padding: 2px 9px;
+  border-radius: 999px;
+  font-size: 12px;
+  font-weight: 700;
+  white-space: nowrap;
+}
+
+.warning-warning {
+  background: #fef3c7;
+  color: #92400e;
+}
+
+.warning-danger {
+  background: #fde8e6;
+  color: var(--color-danger);
+}
+
+.money {
+  text-align: right !important;
+  white-space: nowrap;
+}
+
+.payout {
+  font-weight: 700;
+}
+
+.actions {
+  text-align: right;
+  white-space: nowrap;
+}
+
+.action,
+.confirm-yes {
+  min-height: 34px;
+  padding: 6px 14px;
+  border: 1px solid var(--color-border);
+  border-radius: 999px;
+  background: var(--color-surface);
+  color: var(--color-text);
+  font: inherit;
+  font-size: 13px;
+  cursor: pointer;
+}
+
+.action:disabled {
+  color: var(--color-muted);
+  cursor: wait;
+}
+
+.confirm {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  color: var(--color-danger);
+  font-size: 13px;
+  font-weight: 600;
+}
+
+.confirm-yes {
+  border-color: var(--color-danger);
+  color: var(--color-danger);
+}
+
+.sr-only {
+  position: absolute;
+  width: 1px;
+  height: 1px;
+  overflow: hidden;
+  clip: rect(0 0 0 0);
+}

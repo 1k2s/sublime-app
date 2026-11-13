@@ -1,49 +1,41 @@
-// Mock até o backend expor /consultations. Contrato vigente por paciente; o paciente 3 fica sem contrato
-// para exercitar o caminho de erro
-const MOCK_CONTRACTS = {
-  1: { id: 10, planName: "Pilates 2x por semana", baseValue: "150.00", commissionPercentage: "40.00", providerPayoutValue: "60.00" },
-  2: { id: 11, planName: "RPG sessão avulsa", baseValue: "200.00", commissionPercentage: "35.00", providerPayoutValue: "70.00" },
-  4: { id: 12, planName: "Fisioterapia ortopédica 1x por semana", baseValue: "120.00", commissionPercentage: "50.00", providerPayoutValue: "60.00" },
-  5: { id: 13, planName: "Pilates em grupo 3x por semana", baseValue: "95.50", commissionPercentage: "45.00", providerPayoutValue: "42.98" },
-};
+import { apiClient } from "@/shared/http/apiClient";
 
-// Lançamentos gravados pelo mock. Somem ao recarregar a página
-const mockConsultations = [];
-
-function delay(ms) {
-  return new Promise((resolve) => setTimeout(resolve, ms));
+// Pacientes ativos para o lançamento (id, nome e nascimento; os dois perfis)
+export async function listLaunchPatients() {
+  const { data } = await apiClient.get("/consultations/patients");
+  return data;
 }
 
-// Depois: apiClient.post("/consultations/preview", { patientId, techniqueId, arrivalTime })
-export async function previewConsultation({ patientId, arrivalTime }) {
-  await delay(300);
-
-  const contract = MOCK_CONTRACTS[patientId];
-  if (!contract) {
-    throw new Error("Paciente sem contrato ativo. Procure a administração.");
-  }
-
-  const { baseValue, commissionPercentage, providerPayoutValue, ...contractInfo } = contract;
-  return { arrivalTime, contract: contractInfo, baseValue, commissionPercentage, providerPayoutValue };
+// Contratos vinculados (ou o Avulso), com as durações com preço e o saldo do item
+export async function getLaunchOptions({ patientId, techniqueId, occurredAt }) {
+  const { data } = await apiClient.get("/consultations/launch-options", {
+    params: { patientId, techniqueId, occurredAt },
+  });
+  return data;
 }
 
-// Grava todos os itens do carrinho de uma vez
-// Depois: apiClient.post("/consultations/batch", payloads) (endpoint a combinar com o backend)
-export async function createConsultations(payloads) {
-  await delay(500);
-
-  const created = payloads.map((payload, index) => ({
-    id: Date.now() + index,
-    ...payload,
-    providerPayoutValue: MOCK_CONTRACTS[payload.patientId]?.providerPayoutValue ?? "0.00",
-  }));
-  mockConsultations.push(...created);
-  return created;
+// providerId: só o ADMIN informa (o PROVIDER é sempre ele mesmo)
+export async function getRecentPatients({ providerId }) {
+  const { data } = await apiClient.get("/consultations/recent-patients", { params: { providerId } });
+  return data;
 }
 
-// Lançamentos do prestador logado em uma data ("2026-10-16")
-// Depois: apiClient.get("/consultations", { params: { date } })
-export async function listConsultations({ date }) {
-  await delay(300);
-  return mockConsultations.filter((consultation) => consultation.arrivalTime.startsWith(date));
+export async function getDaySummary({ providerId }) {
+  const { data } = await apiClient.get("/consultations/day-summary", { params: { providerId } });
+  return data;
+}
+
+// Ativos e inativos, do mais recente para o mais antigo
+export async function listConsultations({ providerId, from, to }) {
+  const { data } = await apiClient.get("/consultations", { params: { providerId, from, to } });
+  return data;
+}
+
+export async function createConsultation(body) {
+  const { data } = await apiClient.post("/consultations", body);
+  return data;
+}
+
+export async function deactivateConsultation(id) {
+  await apiClient.delete(`/consultations/${id}`);
 }

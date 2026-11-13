@@ -3,16 +3,20 @@ import {
   activateProvider,
   createProvider,
   deactivateProvider,
+  getRetroactiveGrant,
+  grantRetroactiveLaunches,
   listProviders,
   updateProvider,
 } from "./providerApi";
 
 // A lista inteira, numa requisição só (cache ["providers"]). Quem lista filtra com o
-// filterProviders: a lista inteira continua disponível (ex: o modal lê o prestador dela)
-export function useProviders() {
+// filterProviders: a lista inteira continua disponível (ex: o modal lê o prestador dela).
+// enabled: falso onde só o ADMIN pode listar (ex: a tela de lançamento do PROVIDER)
+export function useProviders({ enabled = true } = {}) {
   return useQuery({
     queryKey: ["providers"],
     queryFn: listProviders,
+    enabled,
   });
 }
 
@@ -53,6 +57,26 @@ export function useActivateProvider() {
     mutationFn: activateProvider,
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ["providers"] });
+    },
+  });
+}
+
+// A liberação de lançamentos retroativos de um prestador (null = sem liberação hoje).
+// providerId nulo (modal fechado) mantém a consulta desligada
+export function useRetroactiveGrant(providerId) {
+  return useQuery({
+    queryKey: ["providers", providerId, "retroactive-grant"],
+    queryFn: () => getRetroactiveGrant(providerId),
+    enabled: providerId != null,
+  });
+}
+
+export function useGrantRetroactiveLaunches() {
+  const queryClient = useQueryClient();
+  return useMutation({
+    mutationFn: ({ providerId, allowedCount }) => grantRetroactiveLaunches(providerId, allowedCount),
+    onSuccess: (_, { providerId }) => {
+      queryClient.invalidateQueries({ queryKey: ["providers", providerId, "retroactive-grant"] });
     },
   });
 }

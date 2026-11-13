@@ -1,0 +1,169 @@
+.bar {
+  display: flex;
+  flex-direction: column;
+  gap: 14px;
+  padding: 20px 24px;
+  border-radius: var(--radius);
+  background: var(--color-surface);
+  box-shadow: var(--shadow-card);
+}
+
+/* Os campos numa linha; numa tela estreita, quebram */
+.fields {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: flex-start;
+  gap: 12px;
+}
+
+.field-provider {
+  flex: 2 1 180px;
+}
+
+.field-patient {
+  flex: 3 1 220px;
+}
+
+.field-technique {
+  flex: 2 1 170px;
+}
+
+.field-contract {
+  flex: 2 1 200px;
+}
+
+.field-duration {
+  flex: 1 1 100px;
+}
+
+.field-status {
+  flex: 1 1 150px;
+}
+
+.field-date {
+  flex: 0 0 auto;
+}
+
+/* Alinha o botão com os campos (abaixo da linha dos rótulos) */
+.field-action {
+  flex: 0 0 auto;
+  padding-top: 25px;
+}
+
+.launch {
+  height: 44px;
+  padding: 0 24px;
+}
+
+/* Com o foco (o Enter no status traz para cá): destacado, para ficar claro que o próximo Enter
+   lança */
+.launch:focus-visible,
+.launch:focus {
+  outline: none;
+  box-shadow:
+    0 0 0 3px var(--color-surface),
+    0 0 0 6px var(--color-primary);
+  transform: scale(1.04);
+}
+
+.tag {
+  margin-left: 6px;
+  padding: 1px 6px;
+  border-radius: 999px;
+  background: var(--color-suggestion-border);
+  color: var(--color-accent);
+  font-size: 10px;
+  font-weight: 700;
+  letter-spacing: 0.04em;
+  text-transform: uppercase;
+}
+
+/* A duração livre (Input numérico) com o mesmo visual de sugestão do Combobox */
+.suggested {
+  border-color: var(--color-suggestion-border);
+  background: var(--color-suggestion-bg);
+  color: var(--color-accent);
+}
+
+.segment {
+  display: flex;
+  height: 44px;
+  overflow: hidden;
+  border: 1px solid var(--color-border);
+  border-radius: var(--radius);
+  background: var(--color-surface);
+}
+
+.segment button {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  padding: 0 14px;
+  border: 0;
+  background: transparent;
+  color: var(--color-text);
+  font: inherit;
+  font-size: 14px;
+  cursor: pointer;
+}
+
+.segment button + button {
+  border-left: 1px solid var(--color-border);
+}
+
+.segment button:disabled {
+  color: var(--color-muted);
+  cursor: not-allowed;
+}
+
+.segment-on {
+  background: var(--color-primary-soft) !important;
+  color: var(--color-primary) !important;
+  font-weight: 700;
+}
+
+.date-picker {
+  display: flex;
+  gap: 6px;
+}
+
+.date-today {
+  padding: 0 12px;
+  border: 1px solid var(--color-border);
+  border-radius: var(--radius);
+  background: var(--color-surface);
+  color: var(--color-text);
+  font: inherit;
+  font-size: 14px;
+  cursor: pointer;
+}
+
+.notices {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+}
+
+.notice-warning,
+.notice-danger,
+.notice-info {
+  padding: 3px 10px;
+  border-radius: 999px;
+  font-size: 13px;
+  font-weight: 600;
+}
+
+.notice-warning {
+  background: #fef3c7;
+  color: #92400e;
+}
+
+.notice-danger {
+  background: #fde8e6;
+  color: var(--color-danger);
+}
+
+.notice-info {
+  background: var(--color-suggestion-bg);
+  color: var(--color-accent);
+}

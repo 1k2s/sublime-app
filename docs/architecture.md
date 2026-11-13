@@ -220,6 +220,7 @@ de propor mudanças de schema.
 | Consulta com relação | `@EntityGraph` quando a resposta usa a relação (evita N+1) | `TechniqueRepository.findByActiveTrue`, `PlanRepository.findAll`, `ConsultationRepository.search` |
 | Consulta que o nome do método não expressa | `@Query` (JPQL) com `@Param`, só quando o método derivado não dá conta (ex: "ou" com `left join`, filtros opcionais `(:x is null or ...)`); senão, método derivado | `ContractRepository.findActiveCoveringDateByHolderOrBeneficiary`, `ConsultationRepository.search` |
 | Endpoint de apoio à tela | leitura que expõe uma regra do backend para o frontend não repetir | `GET /api/techniques/{id}/prices`, `POST /api/contracts/preview` |
+| "Hoje" | `LocalDate.now()`, sem fuso explícito: o fuso padrão da aplicação é o da clínica (`America/Sao_Paulo`), fixado no `main` antes do Spring subir. Vale para todo `now()` e para o `@PastOrPresent`; num servidor em UTC, depois das 21h o "hoje" já seria o dia seguinte ([ADR 0034](adr/0034-hoje-no-fuso-da-clinica.md)) | `SublimeAppApplication`, `ContractResponseDTO` (`current`) |
 
 ## Formato dos erros
 
@@ -365,8 +366,8 @@ frontend/src/
 │   └── layout/              # AppLayout, AppSidebar, navigationItems.js
 ├── shared/                  # genérico, sem regra de negócio
 │   ├── http/                # apiClient.js (axios: baseURL, token, 401) e apiFieldErrors.js
-│   ├── utils/               # money, date, masks, alert (SweetAlert2), viacep
-│   └── components/          # Button, Card, Input, Select, RichSelect, FormField, Modal,
+│   ├── utils/               # money, date, masks, alert (SweetAlert2), viacep, text (normalizeText)
+│   └── components/          # Button, Card, Input, Select, RichSelect, Combobox, FormField, Modal,
 │                            # FilterPills, ListMessage, Stepper, Badge, PageHeader, PageLoader...
 └── domain/                  # um módulo por módulo do backend
     ├── auth/                # sessão, login, ProtectedRoute, roles.js (transversal)
@@ -386,7 +387,7 @@ Dentro de cada módulo, só as pastas que ele usa:
 | `components/` | peças do módulo; recebem dados por props |
 | `pages/` | telas inteiras, uma por rota; buscam dados pelos hooks e montam os componentes |
 | `schemas/` | schemas Zod dos formulários |
-| `hooks/` | estado e comportamento de uma tela ou fluxo, sem JSX (ex: `useConsultationCart`, o lançamento em montagem; `useContractDraft`, o contrato em montagem) |
+| `hooks/` | estado e comportamento de uma tela ou fluxo, sem JSX (ex: `useLaunchDraft`, o lançamento em montagem; `useContractDraft`, o contrato em montagem) |
 | `context/` | só no `auth` (sessão) |
 | `display/` | funções puras e constantes para **mostrar** um valor da API: rótulos, opções dos selects, textos e formatação (ex: `paymentMethods.js`, `contractStatus.js`, `formatInstallments.js`) |
 | `utils/` | funções puras para **decidir ou montar** os dados da tela: filtros, cruzamento de listas, a escolha que vira o `id` da API (ex: `filterContracts.js`, `contractPatients.js`, `resolveItemLine.js`) |
@@ -511,7 +512,7 @@ Regras:
 |---|---|---|
 | Vem da API | pacientes, contratos, preços, lançamentos | TanStack Query (hooks em `api/`) |
 | Global, que não vem de listagem | sessão do usuário | contexto, com o provider em `app/AppProviders.jsx` |
-| De uma tela ou fluxo | itens do lançamento em montagem | `useState` ou hook local (`hooks/`) |
+| De uma tela ou fluxo | o lançamento em montagem | `useState` ou hook local (`hooks/`) |
 
 - Dado do servidor nunca vai para contexto: o cache do TanStack Query já compartilha a mesma
   lista entre componentes.
@@ -582,8 +583,12 @@ Contratos), escolhido em 2026-11-11 a partir do que cada uma fazia melhor:
 - Paleta e medidas globais em variáveis CSS no `index.css` (`--color-bg`, `--color-surface`,
   `--color-primary`, `--color-primary-soft`, `--color-accent`, `--color-danger`,
   `--color-border`, `--color-text`, `--color-title`, `--color-muted`, `--radius`,
-  `--shadow-card`). Os componentes usam as variáveis (`var(--color-primary)`), para a paleta
-  mudar num lugar só.
+  `--shadow-card`, e `--color-suggestion-bg` e `--color-suggestion-border` para um valor
+  sugerido pela tela que o usuário confirma). Os componentes usam as variáveis
+  (`var(--color-primary)`), para a paleta mudar num lugar só.
+- **Seleção num formulário:** `Select` (nativo, poucas opções), `RichSelect` (opções ricas, por
+  clique) e `Combobox` (digitar e filtrar, todo pelo teclado: o Enter escolhe e confirma o campo
+  preenchido, e o `onConfirm` leva ao próximo campo; ex: a barra do Lançamento).
 - **Cards se destacam do fundo pela sombra (`--shadow-card`), não pela borda.** A borda fica
   para separações dentro do card (linhas da tabela, itens de uma lista, campos).
 

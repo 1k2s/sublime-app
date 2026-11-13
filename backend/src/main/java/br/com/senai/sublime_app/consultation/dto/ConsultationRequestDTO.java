@@ -16,7 +16,7 @@ public record ConsultationRequestDTO(
         Long patientId,
 
         // Contrato escolhido entre os vinculados ao paciente na data (GET
-        // /api/consultations/eligible-contracts). Obrigatório quando houver algum;
+        // /api/consultations/launch-options). Obrigatório quando houver algum;
         // vazio só quando o paciente não tem contrato vinculado (Avulso).
         Long contractId,
 

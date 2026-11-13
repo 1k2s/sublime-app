@@ -1,30 +1,19 @@
-.page-wrapper {
+/* A página ocupa a altura do conteúdo: a barra fica parada em cima e só a lista rola */
+.page {
   display: flex;
   flex-direction: column;
-  gap: 24px;
-  width: fit-content;
-  max-width: 100%;
-  margin-inline: auto;
-  --block-width: 460px;
-  --block-height: 620px;
+  gap: 20px;
+  height: 100%;
+  min-height: 0;
 }
 
-.page-grid {
-  display: grid;
-  grid-template-columns: repeat(2, var(--block-width));
-  gap: 24px;
+.list {
+  flex: 1 1 auto;
+  min-height: 0;
 }
 
-.page-block {
-  height: var(--block-height);
-}
-
-.page-total {
-  grid-column: 1 / -1;
-}
-
-@media (max-width: 1259px) {
-  .page-grid {
-    grid-template-columns: minmax(0, var(--block-width));
-  }
+.hint {
+  margin: 0;
+  color: var(--color-muted);
+  font-size: 14px;
 }

@@ -57,8 +57,9 @@ public class SecurityConfig {
                 // A restrição aos dados do próprio prestador fica nos services.
                 .requestMatchers(HttpMethod.POST, "/api/consultations").hasAnyRole(ADMIN, PROVIDER)
                 .requestMatchers(HttpMethod.GET, "/api/consultations", CONSULTATION_BY_ID,
-                        "/api/consultations/eligible-contracts", "/api/consultations/session-balance",
-                        "/api/consultations/patients").hasAnyRole(ADMIN, PROVIDER)
+                        "/api/consultations/launch-options", "/api/consultations/session-balance",
+                        "/api/consultations/patients", "/api/consultations/recent-patients",
+                        "/api/consultations/day-summary").hasAnyRole(ADMIN, PROVIDER)
                 .requestMatchers(HttpMethod.DELETE, CONSULTATION_BY_ID).hasAnyRole(ADMIN, PROVIDER)
                 .requestMatchers(HttpMethod.GET, "/api/techniques").hasAnyRole(ADMIN, PROVIDER)
                 .requestMatchers(HttpMethod.GET, "/api/users/me").hasAnyRole(ADMIN, PROVIDER)

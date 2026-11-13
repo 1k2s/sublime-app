@@ -4,7 +4,9 @@ import br.com.senai.sublime_app.consultation.dto.ConsultationPatientResponseDTO;
 import br.com.senai.sublime_app.consultation.dto.ConsultationRequestDTO;
 import br.com.senai.sublime_app.consultation.dto.ConsultationResponseDTO;
 import br.com.senai.sublime_app.consultation.dto.ContractSessionBalanceResponseDTO;
-import br.com.senai.sublime_app.consultation.dto.EligibleContractResponseDTO;
+import br.com.senai.sublime_app.consultation.dto.DaySummaryResponseDTO;
+import br.com.senai.sublime_app.consultation.dto.LaunchOptionResponseDTO;
+import br.com.senai.sublime_app.consultation.dto.RecentPatientResponseDTO;
 import br.com.senai.sublime_app.consultation.service.ConsultationService;
 import br.com.senai.sublime_app.user.domain.CurrentUser;
 import io.swagger.v3.oas.annotations.Operation;
@@ -47,14 +49,16 @@ public class ConsultationController {
     @Operation(summary = "Lançar atendimento", description = """
             Lança um atendimento cobrado (`ATTENDED`, `NO_SHOW` ou `CANCELED_LATE`). Preço,
             comissão e débito de sessão são resolvidos pelo sistema; o `contractId` vem do
-            `GET /api/consultations/eligible-contracts` (vazio = Avulso).
+            `GET /api/consultations/launch-options` (nulo = Avulso).
 
-            **Perfis:** ADMIN (informa o `providerId`) e PROVIDER (só em nome próprio).
-            Regras: "Consultation" no `docs/domain-model.md`.
+            **Perfis:** ADMIN (informa o `providerId`; qualquer data não futura) e PROVIDER (só
+            em nome próprio e com a data de hoje; o retroativo (data passada) usa a liberação do admin, em
+            `/api/providers/{id}/retroactive-grant`). Regras: "Consultation" no
+            `docs/domain-model.md`.
             """)
     @ApiResponses({
             @ApiResponse(responseCode = "201", description = "Atendimento lançado", content = @Content(schema = @Schema(implementation = ConsultationResponseDTO.class))),
-            @ApiResponse(responseCode = "400", description = "Dados inválidos ou regra do lançamento violada (o `detail` diz qual)", content = @Content),
+            @ApiResponse(responseCode = "400", description = "Dados inválidos, regra do lançamento violada ou retroativo sem liberação (o `detail` diz qual)", content = @Content),
             @ApiResponse(responseCode = "403", description = "PROVIDER lançando para outro prestador, ou usuário sem prestador vinculado", content = @Content),
             @ApiResponse(responseCode = "404", description = "Paciente, prestador ou técnica não encontrado", content = @Content)
     })
@@ -99,23 +103,66 @@ public class ConsultationController {
         return ResponseEntity.ok(consultationService.findPatients());
     }
 
-    @Operation(summary = "Contratos vinculados (modal do lançamento)", description = """
-            Contratos do paciente na data (no máximo dois), com a origem do preço e o saldo.
-            Vazio = Avulso; um = selecionado; dois = o usuário escolhe.
+    @Operation(summary = "Opções do lançamento", description = """
+            Para o paciente, a técnica e a data (nada é gravado): cada contrato vinculado (no
+            máximo dois) ou, sem nenhum, o Avulso (`contractId` nulo). Cada opção traz o caso do
+            preço, o saldo do item (`remainingSessions`), as durações com preço
+            (`durationOptions`; vazia com `anyDurationAllowed` no Pilates em Grupo), a sugerida
+            e, quando não dá para lançar por ela, o motivo (`unavailableReason`). Uma opção =
+            usada direto; duas = o usuário escolhe.
 
             **Perfis:** ADMIN e PROVIDER.
             """)
     @ApiResponses({
-            @ApiResponse(responseCode = "200", description = "Contratos vinculados", content = @Content(schema = @Schema(implementation = EligibleContractResponseDTO.class))),
+            @ApiResponse(responseCode = "200", description = "Opções do lançamento", content = @Content(schema = @Schema(implementation = LaunchOptionResponseDTO.class))),
             @ApiResponse(responseCode = "404", description = "Paciente ou técnica não encontrado", content = @Content)
     })
-    @GetMapping("/eligible-contracts")
-    public ResponseEntity<List<EligibleContractResponseDTO>> findEligibleContracts(
+    @GetMapping("/launch-options")
+    public ResponseEntity<List<LaunchOptionResponseDTO>> findLaunchOptions(
             @Parameter(description = "Paciente que compareceu", required = true, example = "1") @RequestParam Long patientId,
             @Parameter(description = "Técnica atendida", required = true, example = "1") @RequestParam Long techniqueId,
             @Parameter(description = "Data do atendimento (AAAA-MM-DD)", required = true, example = "2026-10-21")
             @RequestParam @DateTimeFormat(iso = DateTimeFormat.ISO.DATE) LocalDate occurredAt) {
-        return ResponseEntity.ok(consultationService.findEligibleContracts(patientId, techniqueId, occurredAt));
+        return ResponseEntity.ok(consultationService.findLaunchOptions(patientId, techniqueId, occurredAt));
+    }
+
+    @Operation(summary = "Pacientes recentes do prestador", description = """
+            Os 8 pacientes distintos mais recentes do prestador, cada um com a técnica e a
+            duração do último atendimento ativo (sugestão da tela de lançamento).
+
+            **Perfis:** ADMIN (informa o `providerId`) e PROVIDER (sempre os dele).
+            """)
+    @ApiResponses({
+            @ApiResponse(responseCode = "200", description = "Pacientes recentes", content = @Content(schema = @Schema(implementation = RecentPatientResponseDTO.class))),
+            @ApiResponse(responseCode = "400", description = "ADMIN sem o `providerId`", content = @Content),
+            @ApiResponse(responseCode = "403", description = "Usuário PROVIDER sem prestador vinculado", content = @Content),
+            @ApiResponse(responseCode = "404", description = "Prestador não encontrado", content = @Content)
+    })
+    @GetMapping("/recent-patients")
+    public ResponseEntity<List<RecentPatientResponseDTO>> findRecentPatients(
+            @Parameter(description = "Prestador (só o ADMIN informa)", example = "1") @RequestParam(required = false) Long providerId,
+            CurrentUser currentUser) {
+        return ResponseEntity.ok(consultationService.findRecentPatients(providerId, currentUser));
+    }
+
+    @Operation(summary = "Resumo do dia do prestador", description = """
+            Hoje (no fuso da clínica): a quantidade de atendimentos ativos, o repasse somado
+            (nos três status) e quantos lançamentos retroativos a liberação de hoje ainda
+            permite.
+
+            **Perfis:** ADMIN (informa o `providerId`) e PROVIDER (sempre o dele).
+            """)
+    @ApiResponses({
+            @ApiResponse(responseCode = "200", description = "Resumo do dia", content = @Content(schema = @Schema(implementation = DaySummaryResponseDTO.class))),
+            @ApiResponse(responseCode = "400", description = "ADMIN sem o `providerId`", content = @Content),
+            @ApiResponse(responseCode = "403", description = "Usuário PROVIDER sem prestador vinculado", content = @Content),
+            @ApiResponse(responseCode = "404", description = "Prestador não encontrado", content = @Content)
+    })
+    @GetMapping("/day-summary")
+    public ResponseEntity<DaySummaryResponseDTO> findDaySummary(
+            @Parameter(description = "Prestador (só o ADMIN informa)", example = "1") @RequestParam(required = false) Long providerId,
+            CurrentUser currentUser) {
+        return ResponseEntity.ok(consultationService.findDaySummary(providerId, currentUser));
     }
 
     @Operation(summary = "Saldo de sessões do contrato", description = """
@@ -155,10 +202,12 @@ public class ConsultationController {
             Soft delete: deixa de contar no saldo e no repasse. Para corrigir um lançamento,
             inative e lance de novo.
 
-            **Perfis:** ADMIN e PROVIDER (o de outro prestador responde 404).
+            **Perfis:** ADMIN (qualquer data) e PROVIDER (só os de hoje; o de outro prestador
+            responde 404).
             """)
     @ApiResponses({
             @ApiResponse(responseCode = "204", description = "Atendimento inativado com sucesso"),
+            @ApiResponse(responseCode = "400", description = "PROVIDER desfazendo um atendimento de outro dia", content = @Content),
             @ApiResponse(responseCode = "403", description = "Usuário PROVIDER sem prestador vinculado", content = @Content),
             @ApiResponse(responseCode = "404", description = "Atendimento não encontrado", content = @Content),
             @ApiResponse(responseCode = "409", description = "O atendimento já está inativo", content = @Content)

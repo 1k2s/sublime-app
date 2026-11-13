@@ -35,4 +35,9 @@ public interface ConsultationRepository extends JpaRepository<ConsultationEntity
             """)
     List<ConsultationEntity> search(@Param("providerId") Long providerId, @Param("patientId") Long patientId,
             @Param("from") LocalDate from, @Param("to") LocalDate to);
+
+    // Últimos lançamentos ativos de um prestador, do mais recente: a base dos pacientes
+    // recentes (os distintos são escolhidos no service). Paciente e técnica vêm junto (N+1)
+    @EntityGraph(attributePaths = { "patient", "technique" })
+    List<ConsultationEntity> findTop100ByProviderIdAndActiveTrueOrderByOccurredAtDescIdDesc(Long providerId);
 }

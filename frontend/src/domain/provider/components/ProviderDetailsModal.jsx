@@ -14,14 +14,21 @@ import { Button } from "@/shared/components/Button";
 import { Modal } from "@/shared/components/Modal";
 import { getRole } from "@/domain/auth/roles";
 import { formatPercentage } from "@/shared/utils/money";
+import { RetroactiveGrantSection } from "./RetroactiveGrantSection";
 import styles from "./ProviderDetailsModal.module.css";
 
+// grant, isGrantLoading, onGrant e isGranting: a liberação de lançamentos retroativos (só para o
+// prestador ativo; o backend recusa para o inativo)
 export function ProviderDetailsModal({
   provider,
   isTogglingStatus = false,
   onClose,
   onEdit,
   onToggleStatus,
+  grant,
+  isGrantLoading = false,
+  onGrant,
+  isGranting = false,
 }) {
   const [showConfirm, setShowConfirm] = useState(false);
 
@@ -151,6 +158,16 @@ export function ProviderDetailsModal({
             </p>
           )}
         </div>
+
+        {/* Seção 3: Liberação de lançamentos retroativos */}
+        {isActive && onGrant && !showConfirm && (
+          <RetroactiveGrantSection
+            grant={grant}
+            isLoading={isGrantLoading}
+            onGrant={(allowedCount) => onGrant(provider, allowedCount)}
+            isGranting={isGranting}
+          />
+        )}
 
         {/* Caixa de Confirmação de Inativação / Reativação */}
         {showConfirm && (

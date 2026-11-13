@@ -8,15 +8,17 @@ import {
   useActivateProvider,
   useCreateProvider,
   useDeactivateProvider,
+  useGrantRetroactiveLaunches,
   useProviders,
+  useRetroactiveGrant,
   useUpdateProvider,
 } from "../api/useProviders";
 import { ProviderFilters } from "../components/ProviderFilters";
 import { ProviderTable } from "../components/ProviderTable";
 import { ProviderDetailsModal } from "../components/ProviderDetailsModal";
 import { ProviderFormModal } from "../components/ProviderFormModal";
-import { filterProviders } from "../filterProviders";
-import { getAvailableUsers, withLinkedUser } from "../providerUsers";
+import { filterProviders } from "../utils/filterProviders";
+import { getAvailableUsers, withLinkedUser } from "../utils/providerUsers";
 import styles from "./ProviderPage.module.css";
 
 export function ProviderPage() {
@@ -32,6 +34,9 @@ export function ProviderPage() {
   const updateProviderMutation = useUpdateProvider();
   const deactivateProviderMutation = useDeactivateProvider();
   const activateProviderMutation = useActivateProvider();
+  // A liberação de lançamentos retroativos do prestador aberto no modal
+  const grantQuery = useRetroactiveGrant(selectedProviderId);
+  const grantMutation = useGrantRetroactiveLaunches();
 
   const rawProviders = providersQuery.data ?? [];
   const users = usersQuery.data ?? [];
@@ -71,6 +76,13 @@ export function ProviderPage() {
     mutation.mutate(provider.id, { onError: (error) => showError(error.message) });
   }
 
+  function handleGrant(provider, allowedCount) {
+    grantMutation.mutate(
+      { providerId: provider.id, allowedCount },
+      { onError: (error) => showError(error.message) },
+    );
+  }
+
   return (
     <div className={styles.pageContainer}>
       <PageHeader
@@ -105,6 +117,10 @@ export function ProviderPage() {
         onClose={() => setSelectedProviderId(null)}
         onEdit={openEdit}
         onToggleStatus={handleToggleStatus}
+        grant={grantQuery.data}
+        isGrantLoading={grantQuery.isLoading}
+        onGrant={handleGrant}
+        isGranting={grantMutation.isPending}
       />
 
       {form && (
