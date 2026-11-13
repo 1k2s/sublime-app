@@ -29,3 +29,17 @@ export async function deactivateProvider(id) {
 export async function activateProvider(id) {
   await apiClient.patch(`/providers/${id}/activate`);
 }
+
+// GET /api/providers/{id}/retroactive-grant — a liberação de hoje com saldo; null quando não há
+// (a API responde 204 sem corpo)
+export async function getRetroactiveGrant(id) {
+  const { status, data } = await apiClient.get(`/providers/${id}/retroactive-grant`);
+  return status === 204 ? null : data;
+}
+
+// POST /api/providers/{id}/retroactive-grant — { allowedCount } (1 a 50). Libera para hoje e
+// substitui a liberação anterior do dia
+export async function grantRetroactiveLaunches(id, allowedCount) {
+  const { data } = await apiClient.post(`/providers/${id}/retroactive-grant`, { allowedCount });
+  return data;
+}

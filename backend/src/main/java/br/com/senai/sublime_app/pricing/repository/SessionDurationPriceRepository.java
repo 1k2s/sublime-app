@@ -26,4 +26,11 @@ public interface SessionDurationPriceRepository extends JpaRepository<SessionDur
     // então há no máximo uma linha.
     Optional<SessionDurationPriceEntity> findByPricingGroupIdAndPlanTypeAndPlanActiveTrueAndDurationMinutesAndValidToIsNull(
             Long pricingGroupId, PlanType planType, int durationMinutes);
+
+    // Linhas vigentes de um plano num grupo: as durações que têm preço (opções do lançamento)
+    List<SessionDurationPriceEntity> findByPricingGroupIdAndPlanIdAndValidToIsNull(Long pricingGroupId, Long planId);
+
+    // Linhas vigentes de um tipo de plano ativo num grupo (o Avulso, nas opções do lançamento)
+    List<SessionDurationPriceEntity> findByPricingGroupIdAndPlanTypeAndPlanActiveTrueAndValidToIsNull(
+            Long pricingGroupId, PlanType planType);
 }

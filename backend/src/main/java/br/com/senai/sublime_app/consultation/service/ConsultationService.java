@@ -1,7 +1,12 @@
 package br.com.senai.sublime_app.consultation.service;
 
+import java.math.BigDecimal;
 import java.time.LocalDate;
+import java.util.ArrayList;
+import java.util.LinkedHashMap;
 import java.util.List;
+import java.util.Map;
+import java.util.Optional;
 
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
@@ -12,7 +17,9 @@ import br.com.senai.sublime_app.consultation.dto.ConsultationPatientResponseDTO;
 import br.com.senai.sublime_app.consultation.dto.ConsultationRequestDTO;
 import br.com.senai.sublime_app.consultation.dto.ConsultationResponseDTO;
 import br.com.senai.sublime_app.consultation.dto.ContractSessionBalanceResponseDTO;
-import br.com.senai.sublime_app.consultation.dto.EligibleContractResponseDTO;
+import br.com.senai.sublime_app.consultation.dto.DaySummaryResponseDTO;
+import br.com.senai.sublime_app.consultation.dto.LaunchOptionResponseDTO;
+import br.com.senai.sublime_app.consultation.dto.RecentPatientResponseDTO;
 import br.com.senai.sublime_app.consultation.repository.ConsultationRepository;
 import br.com.senai.sublime_app.contract.domain.ContractEntity;
 import br.com.senai.sublime_app.contract.domain.ContractItemEntity;
@@ -31,6 +38,7 @@ import br.com.senai.sublime_app.pricing.repository.SessionFrequencyPriceReposito
 import br.com.senai.sublime_app.pricing.repository.TechniqueRepository;
 import br.com.senai.sublime_app.provider.domain.ProviderEntity;
 import br.com.senai.sublime_app.provider.repository.ProviderRepository;
+import br.com.senai.sublime_app.provider.service.RetroactiveLaunchGrantService;
 import br.com.senai.sublime_app.shared.exception.BusinessRuleException;
 import br.com.senai.sublime_app.shared.exception.ForbiddenException;
 import br.com.senai.sublime_app.shared.exception.ResourceNotFoundException;
@@ -44,6 +52,12 @@ public class ConsultationService {
     // Caso 2 no Pilates em Grupo: aula experimental, sempre pelo preço de 1x por semana
     private static final int TRIAL_CLASS_WEEKLY_FREQUENCY = 1;
 
+    // Duração sugerida no Pilates em Grupo (só registra a aula; sem preço por duração)
+    private static final int GROUP_CLASS_DEFAULT_DURATION_MINUTES = 60;
+
+    // Quantos pacientes recentes a tela de lançamento mostra
+    private static final int RECENT_PATIENTS_LIMIT = 8;
+
     private final ConsultationRepository consultationRepository;
     private final ContractRepository contractRepository;
     private final PatientRepository patientRepository;
@@ -52,6 +66,7 @@ public class ConsultationService {
     private final SessionDurationPriceRepository sessionDurationPriceRepository;
     private final SessionFrequencyPriceRepository sessionFrequencyPriceRepository;
     private final UserRepository userRepository;
+    private final RetroactiveLaunchGrantService retroactiveLaunchGrantService;
 
     public ConsultationService(ConsultationRepository consultationRepository,
             ContractRepository contractRepository,
@@ -60,7 +75,8 @@ public class ConsultationService {
             TechniqueRepository techniqueRepository,
             SessionDurationPriceRepository sessionDurationPriceRepository,
             SessionFrequencyPriceRepository sessionFrequencyPriceRepository,
-            UserRepository userRepository) {
+            UserRepository userRepository,
+            RetroactiveLaunchGrantService retroactiveLaunchGrantService) {
         this.consultationRepository = consultationRepository;
         this.contractRepository = contractRepository;
         this.patientRepository = patientRepository;
@@ -69,6 +85,7 @@ public class ConsultationService {
         this.sessionDurationPriceRepository = sessionDurationPriceRepository;
         this.sessionFrequencyPriceRepository = sessionFrequencyPriceRepository;
         this.userRepository = userRepository;
+        this.retroactiveLaunchGrantService = retroactiveLaunchGrantService;
     }
 
     /**
@@ -81,6 +98,7 @@ public class ConsultationService {
     public ConsultationResponseDTO create(ConsultationRequestDTO dto, CurrentUser currentUser) {
         PatientEntity patient = getPatientOrThrow(dto.patientId());
         ProviderEntity provider = resolveProvider(dto.providerId(), currentUser);
+        requireLaunchDateAllowed(dto.occurredAt(), provider, currentUser);
         TechniqueEntity technique = getTechniqueOrThrow(dto.techniqueId());
         // Referência sem consulta: o token já garantiu que o usuário existe e está ativo
         UserEntity launchedBy = userRepository.getReferenceById(currentUser.userId());
@@ -113,7 +131,9 @@ public class ConsultationService {
     // novo. Inativo não conta no saldo nem no repasse. Gravado pelo dirty checking.
     @Transactional
     public void deactivate(Long id, CurrentUser currentUser) {
-        getConsultationVisibleToOrThrow(id, currentUser).deactivate();
+        ConsultationEntity consultation = getConsultationVisibleToOrThrow(id, currentUser);
+        requireDeactivationDateAllowed(consultation, currentUser);
+        consultation.deactivate();
     }
 
     // Pacientes ativos para a tela de lançamento, sem dados sensíveis: os dois perfis usam
@@ -126,18 +146,58 @@ public class ConsultationService {
     }
 
     /**
-     * Contratos vinculados ao paciente na data do atendimento, para o modal do
-     * lançamento (nada é gravado): cada um com o caso do preço que ele daria e o saldo
-     * do item do grupo da técnica, quando houver.
+     * Opções do lançamento para o paciente, a técnica e a data (nada é gravado): cada
+     * contrato vinculado ou, sem nenhum, o Avulso, com o caso do preço, o saldo do item e as
+     * durações que têm preço (ou o motivo de não dar para lançar).
      */
     @Transactional(readOnly = true)
-    public List<EligibleContractResponseDTO> findEligibleContracts(Long patientId, Long techniqueId,
-            LocalDate occurredAt) {
+    public List<LaunchOptionResponseDTO> findLaunchOptions(Long patientId, Long techniqueId, LocalDate occurredAt) {
         PatientEntity patient = getPatientOrThrow(patientId);
         TechniqueEntity technique = getTechniqueOrThrow(techniqueId);
-        return contractRepository.findActiveCoveringDateByHolderOrBeneficiary(patient.getId(), occurredAt).stream()
-                .map(contract -> toEligibleContract(contract, patient, technique.getPricingGroup()))
+        List<ContractEntity> linked = contractRepository.findActiveCoveringDateByHolderOrBeneficiary(
+                patient.getId(), occurredAt);
+        if (linked.isEmpty()) {
+            return List.of(singleSessionOption(technique));
+        }
+        return linked.stream()
+                .map(contract -> contractOption(contract, patient, technique))
                 .toList();
+    }
+
+    // Os pacientes distintos mais recentes do prestador, com a técnica e a duração do último
+    // atendimento ativo (sugestão da tela). Paciente ou técnica inativos ficam de fora: não
+    // dariam um lançamento válido.
+    @Transactional(readOnly = true)
+    public List<RecentPatientResponseDTO> findRecentPatients(Long providerId, CurrentUser currentUser) {
+        ProviderEntity provider = resolveProviderForReading(providerId, currentUser);
+        Map<Long, RecentPatientResponseDTO> byPatient = new LinkedHashMap<>();
+        for (ConsultationEntity consultation : consultationRepository
+                .findTop100ByProviderIdAndActiveTrueOrderByOccurredAtDescIdDesc(provider.getId())) {
+            if (byPatient.size() == RECENT_PATIENTS_LIMIT) {
+                break;
+            }
+            if (consultation.getPatient().isActive() && consultation.getTechnique().isActive()) {
+                byPatient.putIfAbsent(consultation.getPatient().getId(), RecentPatientResponseDTO.fromEntity(consultation));
+            }
+        }
+        return List.copyOf(byPatient.values());
+    }
+
+    // O dia do prestador: os atendimentos ativos de hoje (nos três status, todos cobrados), o
+    // repasse somado aqui (o front não soma) e o que a liberação de hoje ainda permite
+    @Transactional(readOnly = true)
+    public DaySummaryResponseDTO findDaySummary(Long providerId, CurrentUser currentUser) {
+        ProviderEntity provider = resolveProviderForReading(providerId, currentUser);
+        LocalDate today = LocalDate.now();
+        List<ConsultationEntity> todayActive = consultationRepository.search(provider.getId(), null, today, today)
+                .stream()
+                .filter(ConsultationEntity::isActive)
+                .toList();
+        BigDecimal payoutTotal = todayActive.stream()
+                .map(consultation -> consultation.getPayoutValue().amount())
+                .reduce(BigDecimal.ZERO, BigDecimal::add);
+        return new DaySummaryResponseDTO(today, todayActive.size(), payoutTotal,
+                retroactiveLaunchGrantService.remainingFor(provider));
     }
 
     /**
@@ -171,6 +231,14 @@ public class ConsultationService {
         return own;
     }
 
+    // Leituras de um prestador (recentes, resumo do dia): o ADMIN informa qual; o PROVIDER é
+    // sempre o dele, qualquer que seja o da URL (como na listagem)
+    private ProviderEntity resolveProviderForReading(Long providerId, CurrentUser currentUser) {
+        return currentUser.isAdmin()
+                ? getProviderOrThrow(requireProviderId(providerId))
+                : getOwnProviderOrThrow(currentUser);
+    }
+
     // Sem o @NotNull no DTO (o PROVIDER não precisa enviar): a obrigatoriedade do ADMIN
     // é conferida aqui, com a mesma mensagem
     private static Long requireProviderId(Long providerId) {
@@ -190,6 +258,29 @@ public class ConsultationService {
     private static void requireOwnProvider(Long providerId, ProviderEntity own) {
         if (providerId != null && !providerId.equals(own.getId())) {
             throw new ForbiddenException("Você só pode lançar atendimentos em seu próprio nome.");
+        }
+    }
+
+    // ---------------------------------------------------------------------------
+    // Data do lançamento (ver "Quem lança" em Consultation, no domain-model). "Hoje" é o
+    // dia da clínica (linha "Hoje" em "Padrão de construção", no architecture.md).
+    // ---------------------------------------------------------------------------
+
+    // PROVIDER só lança com a data de hoje; o retroativo (data passada: o futuro já é recusado pelo
+    // DTO e pela entidade) usa uma unidade da liberação do admin, que confere o saldo e a
+    // trava até o fim do lançamento. ADMIN lança qualquer data, sem liberação.
+    private void requireLaunchDateAllowed(LocalDate occurredAt, ProviderEntity provider, CurrentUser currentUser) {
+        if (currentUser.isAdmin() || occurredAt.equals(LocalDate.now())) {
+            return;
+        }
+        retroactiveLaunchGrantService.consume(provider);
+    }
+
+    // PROVIDER só desfaz o que é de hoje: o lançamento retroativo exige liberação, e o
+    // que já passou fica com o admin
+    private static void requireDeactivationDateAllowed(ConsultationEntity consultation, CurrentUser currentUser) {
+        if (!currentUser.isAdmin() && !consultation.getOccurredAt().equals(LocalDate.now())) {
+            throw new BusinessRuleException("Só é possível desfazer lançamentos de hoje. Procure o administrador.");
         }
     }
 
@@ -217,21 +308,127 @@ public class ConsultationService {
                         "O contrato informado não está vinculado ao paciente na data do atendimento (precisa ser a versão ativa, cobrir a data e ter o paciente como titular ou beneficiário)."));
     }
 
-    private EligibleContractResponseDTO toEligibleContract(ContractEntity contract, PatientEntity patient,
-            PricingGroupEntity pricingGroup) {
-        Integer remainingSessions = contract.findItemOf(pricingGroup)
+    // ---------------------------------------------------------------------------
+    // Opções do lançamento: as durações seguem a mesma resolução de preço do lançamento
+    // (ver "Resolução de preço" em Consultation, no domain-model)
+    // ---------------------------------------------------------------------------
+
+    private LaunchOptionResponseDTO contractOption(ContractEntity contract, PatientEntity patient,
+            TechniqueEntity technique) {
+        PricingGroupEntity pricingGroup = technique.getPricingGroup();
+        Optional<ContractItemEntity> item = contract.findItemOf(pricingGroup);
+        Integer remainingSessions = item
                 .filter(ContractItemEntity::isDurationBased)
-                .map(item -> remainingSessionsOf(contract, item))
+                .map(found -> remainingSessionsOf(contract, found))
                 .orElse(null);
-        return new EligibleContractResponseDTO(
+        DurationChoice durations = item
+                .map(found -> contractItemDurations(found, contract.getPlan(), technique))
+                .orElseGet(() -> equivalentPlanDurations(contract.getPlan(), technique));
+        return new LaunchOptionResponseDTO(
                 contract.getId(),
                 contract.getPatient().getId(),
                 contract.getPatient().getName(),
                 contract.getPatient().getId().equals(patient.getId()),
                 contract.getPlan().getName(),
-                contract.getEndDate(),
                 ConsultationEntity.pricingSourceFor(contract, pricingGroup),
-                remainingSessions);
+                remainingSessions,
+                durations.options(),
+                durations.anyDurationAllowed(),
+                durations.suggested(),
+                durations.unavailableReason());
+    }
+
+    // Sem contrato vinculado: o Avulso. O Pilates em Grupo não tem avulso (exige contrato)
+    private LaunchOptionResponseDTO singleSessionOption(TechniqueEntity technique) {
+        PricingGroupEntity pricingGroup = technique.getPricingGroup();
+        DurationChoice durations = pricingGroup.getPricingModel() == PricingModel.FREQUENCY_BASED
+                ? DurationChoice.unavailable(technique.getName() + " exige contrato: não há preço avulso para o grupo "
+                        + pricingGroup.getName() + ".")
+                : DurationChoice.of(durationsOf(sessionDurationPriceRepository
+                        .findByPricingGroupIdAndPlanTypeAndPlanActiveTrueAndValidToIsNull(
+                                pricingGroup.getId(), PlanType.SINGLE_SESSION)),
+                        null, "Não há preço avulso para " + technique.getName() + ".");
+        return new LaunchOptionResponseDTO(null, null, null, false, null, PricingSource.SINGLE_SESSION, null,
+                durations.options(), durations.anyDurationAllowed(), durations.suggested(),
+                durations.unavailableReason());
+    }
+
+    // Caso 1: o contrato cobre o grupo. Pilates em Grupo: qualquer duração (a linha é a
+    // travada). Por duração: as do plano do contrato no grupo, mais a travada (sugerida)
+    private DurationChoice contractItemDurations(ContractItemEntity item, PlanEntity contractPlan,
+            TechniqueEntity technique) {
+        if (!item.isDurationBased()) {
+            return DurationChoice.anyDuration();
+        }
+        int locked = item.getSessionDurationPrice().getDurationMinutes();
+        List<Integer> options = new ArrayList<>(currentDurationsOf(technique, contractPlan));
+        if (!options.contains(locked)) {
+            options.add(locked);
+            options.sort(null);
+        }
+        return DurationChoice.of(options, locked, null);
+    }
+
+    // Caso 2: o contrato não cobre o grupo → de-para. Pilates em Grupo: o preço de 1x por
+    // semana do plano equivalente precisa existir. Por duração: as do plano equivalente.
+    // Sem equivalente cadastrado, o motivo é a mensagem da regra (planFor)
+    private DurationChoice equivalentPlanDurations(PlanEntity contractPlan, TechniqueEntity technique) {
+        PricingModel pricingModel = technique.getPricingGroup().getPricingModel();
+        PlanEntity plan;
+        try {
+            plan = contractPlan.planFor(pricingModel);
+        } catch (BusinessRuleException noEquivalent) {
+            return DurationChoice.unavailable(noEquivalent.getMessage());
+        }
+        if (pricingModel == PricingModel.FREQUENCY_BASED) {
+            boolean hasTrialPrice = sessionFrequencyPriceRepository
+                    .findByPricingGroupIdAndPlanIdAndWeeklyFrequencyAndValidToIsNull(
+                            technique.getPricingGroup().getId(), plan.getId(), TRIAL_CLASS_WEEKLY_FREQUENCY)
+                    .isPresent();
+            return hasTrialPrice
+                    ? DurationChoice.anyDuration()
+                    : DurationChoice.unavailable("Não há preço do plano " + plan.getName() + " para "
+                            + technique.getName() + " " + TRIAL_CLASS_WEEKLY_FREQUENCY + "x por semana.");
+        }
+        return DurationChoice.of(currentDurationsOf(technique, plan), null,
+                "Não há preço do plano " + plan.getName() + " para " + technique.getName() + ".");
+    }
+
+    private List<Integer> currentDurationsOf(TechniqueEntity technique, PlanEntity plan) {
+        return durationsOf(sessionDurationPriceRepository.findByPricingGroupIdAndPlanIdAndValidToIsNull(
+                technique.getPricingGroup().getId(), plan.getId()));
+    }
+
+    private static List<Integer> durationsOf(List<SessionDurationPriceEntity> lines) {
+        return lines.stream()
+                .map(SessionDurationPriceEntity::getDurationMinutes)
+                .distinct()
+                .sorted()
+                .toList();
+    }
+
+    // As durações de uma opção: a lista com preço (vazia quando qualquer uma vale, no Pilates
+    // em Grupo), a sugerida e o motivo de não dar para lançar, quando não há preço
+    private record DurationChoice(List<Integer> options, boolean anyDurationAllowed, Integer suggested,
+            String unavailableReason) {
+
+        static DurationChoice anyDuration() {
+            return new DurationChoice(List.of(), true, GROUP_CLASS_DEFAULT_DURATION_MINUTES, null);
+        }
+
+        static DurationChoice unavailable(String reason) {
+            return new DurationChoice(List.of(), false, null, reason);
+        }
+
+        // Sem nenhuma duração com preço, a opção fica indisponível com o motivo. Sem sugerida,
+        // a única opção (havendo só uma) é a sugerida
+        static DurationChoice of(List<Integer> options, Integer suggested, String reasonWhenEmpty) {
+            if (options.isEmpty()) {
+                return unavailable(reasonWhenEmpty);
+            }
+            Integer effectiveSuggested = suggested != null ? suggested : (options.size() == 1 ? options.get(0) : null);
+            return new DurationChoice(options, false, effectiveSuggested, null);
+        }
     }
 
     // ---------------------------------------------------------------------------

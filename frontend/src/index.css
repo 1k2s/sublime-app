@@ -4,6 +4,9 @@
   --color-primary: #5f7a58;
   --color-primary-soft: #dfe8dc;
   --color-accent: #3f6fb5;
+  /* Valor sugerido pela tela (ex: o último atendimento do paciente recente), que o usuário confirma */
+  --color-suggestion-bg: #eef3fb;
+  --color-suggestion-border: #b9cdeb;
   --color-danger: #b42318;
   --color-border: #e4e9e6;
   --color-text: #374151;

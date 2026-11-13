@@ -1,0 +1,56 @@
+/* No desenho das seções do ProviderDetailsModal */
+.section {
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+}
+
+.title {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  margin: 0;
+  color: var(--color-muted);
+  font-size: 13px;
+  font-weight: 600;
+  letter-spacing: 0.05em;
+  text-transform: uppercase;
+}
+
+.status {
+  margin: 0;
+  color: var(--color-text);
+  font-size: 14px;
+}
+
+.form {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 10px;
+}
+
+.label {
+  color: var(--color-muted);
+  font-size: 13px;
+}
+
+.count {
+  width: 90px;
+}
+
+.hint {
+  color: var(--color-muted);
+  font-size: 12px;
+}
+
+.error {
+  color: var(--color-danger);
+  font-size: 12px;
+}
+
+.note {
+  margin: 0;
+  color: var(--color-muted);
+  font-size: 13px;
+}

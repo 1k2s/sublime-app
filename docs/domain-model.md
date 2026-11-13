@@ -29,6 +29,7 @@
   - [Versionamento (aditivos)](#versionamento-aditivos)
 - [`User`](#user)
 - [`Provider`](#provider)
+  - [Liberação de lançamento retroativo](#liberação-de-lançamento-retroativo)
 - [`Consultation`](#consultation)
   - [Status: só o que é cobrado e gera repasse](#status-só-o-que-é-cobrado-e-gera-repasse)
   - [Contrato do atendimento](#contrato-do-atendimento)
@@ -59,6 +60,8 @@ erDiagram
   SESSION_DURATION_PRICE |o--o{ CONTRACT_ITEM : trava
   SESSION_FREQUENCY_PRICE |o--o{ CONTRACT_ITEM : trava
   USER ||--o| PROVIDER : autentica
+  PROVIDER ||--o{ RETROACTIVE_LAUNCH_GRANT : recebe
+  USER ||--o{ RETROACTIVE_LAUNCH_GRANT : libera
   PROVIDER |o--o{ PATIENT : trouxe
   PATIENT ||--o{ CONSULTATION : atendido
   CONTRACT |o--o{ CONSULTATION : contrato_do_atendimento
@@ -166,6 +169,15 @@ erDiagram
     Percentage commissionPercentage
     Percentage referralCommissionPercentage
     boolean active
+  }
+
+  RETROACTIVE_LAUNCH_GRANT {
+    bigint id PK
+    bigint providerId FK
+    bigint grantedByUserId FK
+    date grantedOn
+    int allowedCount "1 a 50"
+    int usedCount
   }
 
   CONSULTATION {
@@ -892,7 +904,8 @@ fica preservado ([ADR 0011](adr/0011-contrato-versionado-por-aditivos.md)). Regr
   tudo. O `PROVIDER` usa só as telas Lançamentos e Configurações, e na API acessa
   só `POST`, `GET` e `DELETE` de `/api/consultations` (só os próprios lançamentos; ver
   "Quem lança" e "Leituras" em `Consultation`), os apoios do lançamento
-  (`eligible-contracts`, `session-balance`, `patients`), `GET /api/techniques` (ativas) e
+  (`launch-options`, `session-balance`, `patients`, `recent-patients`, `day-summary`),
+  `GET /api/techniques` (ativas) e
   `GET`/`PUT /api/users/me`. Nos demais, 403 "Você não tem permissão para acessar este
   recurso.".
 - Não há cadastro público: usuários são criados pelo `POST /api/users`.
@@ -1018,6 +1031,33 @@ um prestador válido. Por ser fixo, a alteração do prestador (`PUT`) nem receb
   podendo lançar por ele ([ADR 0031](adr/0031-prestador-com-usuario-revisto.md)). Para
   reativar os dois, reativa-se primeiro o usuário (`PATCH /api/users/{id}/activate`).
 
+### Liberação de lançamento retroativo
+
+O prestador só lança atendimentos com a data de **hoje** (ver "Quem lança" em
+`Consultation` e o [ADR 0033](adr/0033-lancamento-retroativo-com-liberacao.md)). Para lançar um atendimento esquecido, pede ao admin, que libera uma
+**quantidade** de lançamentos retroativos (`RetroactiveLaunchGrant`):
+
+| Atributo | Tipo | Observação |
+|---|---|---|
+| `id` | Long | auto-increment |
+| `providerId` | FK → Provider | o prestador liberado (precisa estar ativo: 400 "O prestador está inativo.") |
+| `grantedByUserId` | FK → User | o admin que liberou |
+| `grantedOn` | date | o dia em que vale (o dia em que foi dada) |
+| `allowedCount` | int | de 1 a 50 (400 fora disso; `CHECK` no banco) |
+| `usedCount` | int | lançamentos já feitos com ela (nunca acima do `allowedCount`, `CHECK` no banco) |
+
+- **Vale até 23:59 do dia em que foi dada** ou **até a quantidade acabar**, o que vier primeiro.
+- Permite **qualquer data passada** (não futura).
+- Cada lançamento retroativo do prestador **usa uma unidade**. **Desfazer o lançamento não a
+  devolve.**
+- **Liberar de novo no mesmo dia** cria outra liberação, que passa a valer (a anterior fica no
+  histórico).
+- **Concorrência:** o lançamento busca a liberação **trancando a linha** até o fim da transação
+  (`PESSIMISTIC_WRITE`): dois lançamentos ao mesmo tempo não usam a mesma unidade, e o segundo
+  recebe a regra normal (400) se o saldo acabou.
+- `POST /api/providers/{id}/retroactive-grant` (`{ allowedCount }`, 201) e
+  `GET /api/providers/{id}/retroactive-grant` (a de hoje com saldo, ou 204), só `ADMIN`.
+
 ---
 
 ## `Consultation`
@@ -1034,7 +1074,7 @@ prestador, sem fluxo de aprovação.
 | `providerId` | FK → Provider | quem atendeu: o do login para o `PROVIDER`, explícito para o `ADMIN` (ver "Quem lança") |
 | `techniqueId` | FK → Technique | técnica clinicamente executada |
 | `durationMinutes` | int | obrigatório em todos os grupos; eixo do preço nos grupos por duração; no Pilates em Grupo só registra a duração da aula |
-| `occurredAt` | date | data do atendimento; não pode ser futura; referência da vigência do contrato |
+| `occurredAt` | date | data do atendimento; não pode ser futura; para o `PROVIDER`, hoje (retroativo só com liberação; ver "Quem lança"); referência da vigência do contrato |
 | `status` | ENUM `ConsultationStatus` | `ATTENDED` \| `NO_SHOW` \| `CANCELED_LATE` (ver "Status") |
 | `pricingSource` | ENUM `PricingSource` | `CONTRACT_ITEM` \| `EQUIVALENT_PLAN` \| `SINGLE_SESSION`: o caso do preço (ver "Resolução de preço"). Calculado pela entidade, nunca vem do request |
 | `sessionDurationPriceId` | FK → SessionDurationPrice, nullable | exclusive arc: a linha **usada** (travada, atual ou do de-para) |
@@ -1101,10 +1141,22 @@ beneficiário" em `Contract`) ([ADR 0015](adr/0015-contrato-do-atendimento.md)).
 - Consequência aceita: um item incluído por aditivo depois da data do atendimento
   também é elegível (a versão ativa cobre o dia e tem o item).
 
-`GET /api/consultations/eligible-contracts?patientId&techniqueId&occurredAt` lista
-os vinculados (nada é gravado), cada um com o titular, o caso que ele daria
-(`pricingSource`) e o saldo do item, quando houver. O frontend mostra o modal só
-quando há dois.
+`GET /api/consultations/launch-options?patientId&techniqueId&occurredAt` lista as
+**opções do lançamento** (nada é gravado): cada contrato vinculado ou, sem nenhum, o
+Avulso (`contractId` nulo). Cada opção traz o titular, o caso que ela daria
+(`pricingSource`), o saldo do item (quando por duração) e as **durações com preço**, pela
+mesma resolução de preço do lançamento (ver "Resolução de preço"):
+
+| Caso | Durações (`durationOptions`) | Sugerida |
+|---|---|---|
+| 1, por duração | as atuais do plano do contrato no grupo, mais a da linha travada | a travada |
+| 1 ou 2, Pilates em Grupo | qualquer uma (`anyDurationAllowed`: só registra a aula) | 60 |
+| 2, por duração | as atuais do plano do de-para | a única, se houver só uma |
+| 3, por duração | as atuais do Avulso | a única, se houver só uma |
+
+Sem preço (nenhuma duração, Pilates em Grupo sem contrato, de-para sem plano equivalente ou
+sem o preço de 1x por semana), a opção vem com o motivo em `unavailableReason`, a mesma
+mensagem que o lançamento daria. Com duas opções, o usuário escolhe.
 
 ### Resolução de preço
 
@@ -1164,6 +1216,10 @@ que o prestador consegue conferir ([ADR 0019](adr/0019-repasse-com-half-up.md)).
 /api/consultations/{id}` (inativa; de novo → 409) e lançar de novo. Inativo não
 conta no saldo nem no repasse.
 
+**O `PROVIDER` só inativa os atendimentos de hoje** (`occurredAt` = hoje): outro dia → 400
+"Só é possível desfazer lançamentos de hoje. Procure o administrador.". O `ADMIN` inativa
+qualquer um.
+
 ### Quem lança
 
 - **`PROVIDER` só lança para ele mesmo:** o prestador vem do vínculo do usuário logado;
@@ -1176,6 +1232,13 @@ conta no saldo nem no repasse.
   leituras).
 - `launchedByUserId` grava o usuário logado.
 - Prestador, paciente e técnica precisam estar **ativos** (400).
+- **Data do atendimento:** o `PROVIDER` só lança com a data de **hoje** (o dia da clínica:
+  ver a linha "Hoje" em "Padrão de construção", no
+  [`architecture.md`](architecture.md#padrão-de-construção-todos-os-módulos-implementados-seguem)).
+  O **lançamento retroativo** (data passada) usa uma unidade da liberação do admin (ver
+  "Liberação de lançamento retroativo" em `Provider`); sem liberação com saldo → 400
+  "Lançamento retroativo precisa de liberação do administrador.". O `ADMIN` lança qualquer data
+  não futura, sem liberação.
 
 ### Leituras
 
@@ -1188,3 +1251,12 @@ conta no saldo nem no repasse.
 - `GET /api/consultations/patients` (apoio do lançamento, os dois perfis): só pacientes
   **ativos**, por nome, com `id`, `name` e `birthDate` (sem CPF, contato e endereço). O
   `PROVIDER` não acessa a listagem de pacientes (`GET /api/patients`).
+- `GET /api/consultations/recent-patients?providerId` (apoio do lançamento): os **8**
+  pacientes distintos mais recentes do prestador, cada um com a técnica e a duração do último
+  atendimento **ativo** (paciente ou técnica inativos ficam de fora).
+- `GET /api/consultations/day-summary?providerId` (apoio do lançamento): hoje, a quantidade
+  de atendimentos **ativos** do prestador com a data de hoje, o **repasse somado** (nos três
+  status: todos são cobrados) e quantos lançamentos retroativos a liberação de hoje ainda
+  permite.
+- Nos dois, como na listagem: o `ADMIN` informa o `providerId` (sem ele, 400 "O prestador é
+  obrigatório."); para o `PROVIDER`, é sempre o dele.

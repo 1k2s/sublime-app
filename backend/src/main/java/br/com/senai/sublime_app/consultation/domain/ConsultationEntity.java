@@ -159,8 +159,8 @@ public class ConsultationEntity {
     // ---------------------------------------------------------------------------
 
     // Caso do preço: sem contrato → Avulso; contrato com item do grupo da técnica →
-    // item do contrato; senão → de-para. Público e estático para o modal dos contratos
-    // vinculados (GET /api/consultations/eligible-contracts) usar exatamente a mesma conta.
+    // item do contrato; senão → de-para. Público e estático para as opções do lançamento
+    // (GET /api/consultations/launch-options) usarem exatamente a mesma conta.
     public static PricingSource pricingSourceFor(ContractEntity contract, PricingGroupEntity pricingGroup) {
         if (contract == null) {
             return PricingSource.SINGLE_SESSION;

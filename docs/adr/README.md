@@ -78,3 +78,5 @@ discussões que estavam no `domain-model.md` e no `architecture.md`.
 | [0030](0030-seed-do-catalogo-por-migration.md) | Seed do catálogo de preços por migration | aceito |
 | [0031](0031-prestador-com-usuario-revisto.md) | Prestador continua sempre com usuário, com o admin lançando por ele | aceito |
 | [0032](0032-valor-e-parcelas-do-contrato.md) | Valor e parcelas do contrato calculados pelas linhas travadas, só o número de parcelas gravado | aceito |
+| [0033](0033-lancamento-retroativo-com-liberacao.md) | Lançamento só de hoje para o prestador, com o retroativo liberado pelo admin | aceito |
+| [0034](0034-hoje-no-fuso-da-clinica.md) | "Hoje" no fuso da clínica, fixado na inicialização | aceito |

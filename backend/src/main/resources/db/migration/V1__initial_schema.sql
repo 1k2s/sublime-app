@@ -40,6 +40,24 @@ CREATE TABLE provider (
     CONSTRAINT fk_provider_user FOREIGN KEY (user_id) REFERENCES `user` (id)
 ) ENGINE = InnoDB DEFAULT CHARSET = utf8mb4 COLLATE = utf8mb4_0900_ai_ci;
 
+-- Liberação de lançamentos em outro dia para um prestador: vale no dia em que foi dada
+-- (granted_on) e até a quantidade acabar. Liberar de novo cria outra linha (vale a mais
+-- recente do dia), e as anteriores ficam no histórico
+CREATE TABLE retroactive_launch_grant (
+    id                 BIGINT NOT NULL AUTO_INCREMENT,
+    allowed_count      INT    NOT NULL,
+    granted_on         DATE   NOT NULL,
+    used_count         INT    NOT NULL,
+    granted_by_user_id BIGINT NOT NULL,
+    provider_id        BIGINT NOT NULL,
+    CONSTRAINT pk_retroactive_launch_grant PRIMARY KEY (id),
+    CONSTRAINT ck_retroactive_launch_grant_counts
+        CHECK (allowed_count BETWEEN 1 AND 50 AND used_count BETWEEN 0 AND allowed_count),
+    CONSTRAINT fk_retroactive_launch_grant_provider FOREIGN KEY (provider_id) REFERENCES provider (id),
+    CONSTRAINT fk_retroactive_launch_grant_user FOREIGN KEY (granted_by_user_id) REFERENCES `user` (id),
+    INDEX idx_retroactive_launch_grant_provider_day (provider_id, granted_on)
+) ENGINE = InnoDB DEFAULT CHARSET = utf8mb4 COLLATE = utf8mb4_0900_ai_ci;
+
 -- ---------------------------------------------------------------------------
 -- patient (endereço = Value Object embutido nas colunas cep..street)
 -- ---------------------------------------------------------------------------

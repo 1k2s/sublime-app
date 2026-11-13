@@ -1,0 +1,35 @@
+.summary {
+  display: flex;
+  align-items: flex-end;
+  gap: 28px;
+}
+
+.block {
+  display: flex;
+  flex-direction: column;
+  align-items: flex-end;
+  gap: 2px;
+}
+
+.caption {
+  color: var(--color-muted);
+  font-size: 12px;
+}
+
+.count {
+  color: var(--color-text);
+  font-size: 15px;
+  font-weight: 600;
+}
+
+.total {
+  color: var(--color-primary);
+  font-size: 24px;
+  font-weight: 800;
+}
+
+.loading {
+  margin: 0;
+  color: var(--color-muted);
+  font-size: 13px;
+}
