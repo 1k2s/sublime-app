@@ -12,7 +12,7 @@ import br.com.senai.sublime_app.contract.dto.ContractPreviewRequestDTO;
 import br.com.senai.sublime_app.contract.dto.ContractPreviewResponseDTO;
 import br.com.senai.sublime_app.contract.dto.ContractRequestDTO;
 import br.com.senai.sublime_app.contract.dto.ContractResponseDTO;
-import br.com.senai.sublime_app.contract.dto.ContractTermPreviewResponseDTO;
+import br.com.senai.sublime_app.contract.dto.ContractGroupPlanOptionsResponseDTO;
 import br.com.senai.sublime_app.contract.enums.SessionFrequency;
 import br.com.senai.sublime_app.contract.repository.ContractRepository;
 import br.com.senai.sublime_app.patient.domain.PatientEntity;
@@ -175,9 +175,9 @@ public class ContractService {
      * contrato (nada é gravado).
      */
     @Transactional(readOnly = true)
-    public ContractTermPreviewResponseDTO groupPlanOptionsFor(Long contractId) {
+    public ContractGroupPlanOptionsResponseDTO groupPlanOptionsFor(Long contractId) {
         ContractEntity contract = getContractOrThrow(contractId);
-        return toTermPreview(contract.getPlan(), contract.getDurationInWeeks(), contract.getEndDate());
+        return toGroupPlanOptions(contract.getPlan(), contract.getDurationInWeeks(), contract.getEndDate());
     }
 
     // Um paciente é beneficiário de no máximo um contrato vigente (mesma regra do
@@ -259,9 +259,9 @@ public class ContractService {
                 .toList();
     }
 
-    private ContractTermPreviewResponseDTO toTermPreview(PlanEntity contractPlan, int weeks, LocalDate endDate) {
+    private ContractGroupPlanOptionsResponseDTO toGroupPlanOptions(PlanEntity contractPlan, int weeks, LocalDate endDate) {
         List<PlanEntity> options = groupPlanOptionsFor(contractPlan, weeks);
-        return new ContractTermPreviewResponseDTO(weeks, endDate, suggestedGroupPlanId(contractPlan, options),
+        return new ContractGroupPlanOptionsResponseDTO(weeks, endDate, suggestedGroupPlanId(contractPlan, options),
                 options.stream().map(PlanResponseDTO::fromEntity).toList());
     }
 

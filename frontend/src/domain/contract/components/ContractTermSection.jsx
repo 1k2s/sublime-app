@@ -3,7 +3,7 @@ import { CalendarDays } from "lucide-react";
 import { FormField } from "@/shared/components/FormField";
 import { Input } from "@/shared/components/Input";
 import { Select } from "@/shared/components/Select";
-import { PAYMENT_METHOD_OPTIONS } from "../paymentMethods";
+import { PAYMENT_METHOD_OPTIONS } from "../display/paymentMethods";
 import { ContractSection } from "./ContractSection";
 import styles from "./ContractTermSection.module.css";
 

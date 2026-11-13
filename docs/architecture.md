@@ -386,9 +386,28 @@ Dentro de cada módulo, só as pastas que ele usa:
 | `components/` | peças do módulo; recebem dados por props |
 | `pages/` | telas inteiras, uma por rota; buscam dados pelos hooks e montam os componentes |
 | `schemas/` | schemas Zod dos formulários |
-| `hooks/` | estado de uma tela ou fluxo (ex: `useConsultationCart`) |
+| `hooks/` | estado e comportamento de uma tela ou fluxo, sem JSX (ex: `useConsultationCart`, o lançamento em montagem; `useContractDraft`, o contrato em montagem) |
 | `context/` | só no `auth` (sessão) |
-| arquivo na raiz do módulo | funções puras do módulo, sem React (ex: `roles.js`, `priceAxis.js`, `filterPatients.js`) |
+| `display/` | funções puras e constantes para **mostrar** um valor da API: rótulos, opções dos selects, textos e formatação (ex: `paymentMethods.js`, `contractStatus.js`, `formatInstallments.js`) |
+| `utils/` | funções puras para **decidir ou montar** os dados da tela: filtros, cruzamento de listas, a escolha que vira o `id` da API (ex: `filterContracts.js`, `contractPatients.js`, `resolveItemLine.js`) |
+
+Como escolher a pasta de um arquivo novo:
+
+1. **Chama hooks do React?** Se fala com o backend (chamada e cache), vai em `api/`. Se guarda
+   o estado ou o comportamento da tela, vai em `hooks/`. Os dois começam com `use` (regra do
+   React para quem chama hooks); a pasta diz qual é qual: em `api/`, o dado do servidor,
+   compartilhado pelo cache entre telas; em `hooks/`, o que vive enquanto a tela está aberta.
+2. **Não chama:** é função pura, testável sem a tela, e nunca começa com `use`. Se serve para
+   mostrar, vai em `display/`; se serve para decidir ou montar, em `utils/`. O critério é o
+   uso, não o tipo: um arquivo com uma constante e uma função de rótulo (`paymentMethods.js`)
+   vai inteiro em `display/`.
+3. **Componente com muita conta além do layout** (ex: opções, avisos e prévia de um formulário
+   longo): a conta vai para um hook em `hooks/`, e o componente fica com o formulário e o JSX
+   (ex: o `ContractForm` com o `useContractDraft`).
+
+*Por que pela pergunta que o arquivo responde:* com tudo na raiz, um módulo com muitas funções
+fica difícil de ler; separar por constante e função gera dúvida (o mesmo arquivo tem as duas),
+e separar pelo uso não gera.
 
 | Onde | O quê |
 |---|---|
@@ -517,7 +536,7 @@ Padrão das telas que listam e editam um cadastro (Usuários, Pacientes, Prestad
 Contratos), escolhido em 2026-11-11 a partir do que cada uma fazia melhor:
 
 - **O hook busca a lista inteira; a page filtra.** `const { data = [], isLoading, isError }
-  = useXxx()` e `filterXxx(data, { search, status })`, função pura na raiz do módulo.
+  = useXxx()` e `filterXxx(data, { search, status })`, função pura em `utils/`.
 - **Dado de outro módulo na listagem** (ex: o e-mail e o perfil do usuário na tela de
   Prestadores): a page usa o hook de cada módulo (`useProviders` e `useUsers`) e cruza as duas
   listas numa função pura do módulo (`providerUsers.js`), em vez de juntar na `queryFn`. Cada

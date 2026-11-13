@@ -1,4 +1,4 @@
-import { getContractStatus } from "./contractStatus";
+import { getContractStatus } from "../display/contractStatus";
 
 // Busca e filtros de contratos, em memória sobre a lista inteira (lista pequena). Função pura:
 // a page chama com o estado dos filtros. status: "ALL" ou um valor do CONTRACT_STATUS

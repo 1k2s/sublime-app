@@ -11,8 +11,8 @@ import { ContractDetailsModal } from "../components/ContractDetailsModal";
 import { ContractFilters } from "../components/ContractFilters";
 import { ContractForm } from "../components/ContractForm";
 import { ContractTable } from "../components/ContractTable";
-import { withPatientNames } from "../contractPatients";
-import { filterContracts } from "../filterContracts";
+import { withPatientNames } from "../utils/contractPatients";
+import { filterContracts } from "../utils/filterContracts";
 import styles from "./ContractPage.module.css";
 
 export function ContractPage() {

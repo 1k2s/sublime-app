@@ -4,7 +4,7 @@ import { Badge } from "@/shared/components/Badge";
 import { ListMessage } from "@/shared/components/ListMessage";
 import { formatDate } from "@/shared/utils/date";
 import { formatCurrency } from "@/shared/utils/money";
-import { getContractStatus } from "../contractStatus";
+import { getContractStatus } from "../display/contractStatus";
 import styles from "./ContractTable.module.css";
 
 function getInitials(name = "") {

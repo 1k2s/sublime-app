@@ -1,6 +1,6 @@
 import { useState } from "react";
 import { RichSelect } from "@/shared/components/RichSelect";
-import { findPlanCounterpart, isFamilyPlan } from "../planFamily";
+import { findPlanCounterpart, isFamilyPlan } from "../utils/planFamily";
 import styles from "./ContractPlanPicker.module.css";
 
 // O plano do contrato: um seletor com os planos separados pelo tipo, pacote (sessões; itens por

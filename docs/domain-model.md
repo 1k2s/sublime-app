@@ -802,7 +802,8 @@ versão anterior é aceito mesmo inativo (titular e plano são sempre copiados).
 
 ### Valor e parcelas
 
-Calculados pelo backend (`ContractItemValue`, `Installments`); a tela só mostra.
+Calculados pelo backend (`ContractItemValue`, `Installments`); a tela só mostra. Ver o
+[ADR 0032](adr/0032-valor-e-parcelas-do-contrato.md).
 
 - **Valor de cada item:** sessões × valor da sessão da linha travada. Item por duração: as
   sessões do plano (Evolução, RPG 60 min = 12 × R$ 167,00 = R$ 2.004,00). Item do Pilates em

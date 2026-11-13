@@ -5,7 +5,7 @@ import br.com.senai.sublime_app.contract.dto.ContractPreviewRequestDTO;
 import br.com.senai.sublime_app.contract.dto.ContractPreviewResponseDTO;
 import br.com.senai.sublime_app.contract.dto.ContractRequestDTO;
 import br.com.senai.sublime_app.contract.dto.ContractResponseDTO;
-import br.com.senai.sublime_app.contract.dto.ContractTermPreviewResponseDTO;
+import br.com.senai.sublime_app.contract.dto.ContractGroupPlanOptionsResponseDTO;
 import br.com.senai.sublime_app.contract.service.ContractService;
 import io.swagger.v3.oas.annotations.Operation;
 import io.swagger.v3.oas.annotations.Parameter;
@@ -111,11 +111,11 @@ public class ContractController {
             gravar).
             """)
     @ApiResponses({
-            @ApiResponse(responseCode = "200", description = "Opções calculadas", content = @Content(schema = @Schema(implementation = ContractTermPreviewResponseDTO.class))),
+            @ApiResponse(responseCode = "200", description = "Opções calculadas", content = @Content(schema = @Schema(implementation = ContractGroupPlanOptionsResponseDTO.class))),
             @ApiResponse(responseCode = "404", description = "Contrato não encontrado", content = @Content)
     })
     @GetMapping("/{id}/group-plan-options")
-    public ResponseEntity<ContractTermPreviewResponseDTO> groupPlanOptions(
+    public ResponseEntity<ContractGroupPlanOptionsResponseDTO> groupPlanOptions(
             @Parameter(description = "Identificador do contrato", required = true, example = "1") @PathVariable Long id) {
         return ResponseEntity.ok(contractService.groupPlanOptionsFor(id));
     }

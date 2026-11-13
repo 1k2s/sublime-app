@@ -2,7 +2,7 @@ import { Check } from "lucide-react";
 import { Button } from "@/shared/components/Button";
 import { formatDate } from "@/shared/utils/date";
 import { formatCurrency } from "@/shared/utils/money";
-import { formatInstallments } from "../formatInstallments";
+import { formatInstallments } from "../display/formatInstallments";
 import styles from "./ContractResultBar.module.css";
 
 // Rodapé fixo do cadastro: o resultado do contrato (o fim e o valor total com as parcelas, da

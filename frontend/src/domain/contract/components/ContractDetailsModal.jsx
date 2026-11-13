@@ -6,10 +6,10 @@ import { Button } from "@/shared/components/Button";
 import { Modal } from "@/shared/components/Modal";
 import { formatDate } from "@/shared/utils/date";
 import { formatCurrency } from "@/shared/utils/money";
-import { getContractStatus } from "../contractStatus";
-import { formatInstallments } from "../formatInstallments";
-import { getPaymentMethodLabel } from "../paymentMethods";
-import { getSessionFrequencyLabel } from "../sessionFrequencies";
+import { getContractStatus } from "../display/contractStatus";
+import { formatInstallments } from "../display/formatInstallments";
+import { getPaymentMethodLabel } from "../display/paymentMethods";
+import { getSessionFrequencyLabel } from "../display/sessionFrequencies";
 import styles from "./ContractDetailsModal.module.css";
 
 // Detalhe do contrato: cabeçalho e itens (com o valor travado de cada um). Só leitura: o

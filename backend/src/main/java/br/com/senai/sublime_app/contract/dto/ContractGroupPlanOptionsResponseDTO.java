@@ -5,9 +5,10 @@ import java.util.List;
 
 import br.com.senai.sublime_app.pricing.dto.PlanResponseDTO;
 
-// Apoio à tela de contrato (nada é gravado): vigência calculada e opções do plano do
-// item do Pilates em Grupo. A regra fica no backend; o frontend não a repete.
-public record ContractTermPreviewResponseDTO(
+// Apoio ao aditivo (GET /api/contracts/{id}/group-plan-options; nada é gravado): a vigência
+// atual e as opções do plano do item do Pilates em Grupo. A regra fica no backend; o frontend
+// não a repete. No cadastro, as mesmas opções vêm na prévia (ContractPreviewResponseDTO)
+public record ContractGroupPlanOptionsResponseDTO(
 
         int durationWeeks,
         // fim inclusivo

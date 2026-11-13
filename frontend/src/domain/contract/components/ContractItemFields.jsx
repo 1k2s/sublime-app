@@ -1,7 +1,7 @@
 import { AlertTriangle, Trash2 } from "lucide-react";
 import { Select } from "@/shared/components/Select";
 import { formatCurrency } from "@/shared/utils/money";
-import { SESSION_FREQUENCY_OPTIONS } from "../sessionFrequencies";
+import { SESSION_FREQUENCY_OPTIONS } from "../display/sessionFrequencies";
 import styles from "./ContractItemFields.module.css";
 
 // Valores distintos de um eixo nas linhas da técnica (todas as linhas, de todos os planos): as
