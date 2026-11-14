@@ -19,10 +19,6 @@ function isPlanAllowed(plan, pricingModel) {
   return pricingModel === "DURATION_BASED" ? plan.type !== "MONTHLY_FEE" : plan.type === "MONTHLY_FEE";
 }
 
-function getErrorMessage(error) {
-  return error.response?.data?.message ?? "Não foi possível salvar o preço.";
-}
-
 export function PriceFormModal({ groups, plans, initialValues, onClose }) {
   const savePrice = useSavePrice();
   const {
@@ -132,7 +128,7 @@ export function PriceFormModal({ groups, plans, initialValues, onClose }) {
 
         {savePrice.isError && (
           <span className={styles.error} role="alert">
-            {getErrorMessage(savePrice.error)}
+            {savePrice.error.message}
           </span>
         )}
 

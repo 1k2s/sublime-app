@@ -12,6 +12,9 @@ dist
 dist-ssr
 *.local
 
+# O modelo versionado é o .env.example
+.env
+
 # Editor directories and files
 .vscode/*
 !.vscode/extensions.json
