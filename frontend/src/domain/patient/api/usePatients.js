@@ -4,7 +4,6 @@ import {
   activatePatient,
   createPatient,
   deactivatePatient,
-  getPatientById,
   listPatients,
   updatePatient,
 } from "@/domain/patient/api/patientApi";
@@ -16,14 +15,6 @@ export function usePatients({ enabled = true } = {}) {
     queryKey: ["patients"],
     queryFn: listPatients,
     enabled,
-  });
-}
-
-export function usePatient(id) {
-  return useQuery({
-    queryKey: ["patients", id],
-    queryFn: () => getPatientById(id),
-    enabled: Boolean(id),
   });
 }
 

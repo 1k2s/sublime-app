@@ -23,7 +23,7 @@ export function hasAddressInput(values = {}) {
 }
 
 // Etapa 1: Dados pessoais, contato e origem do paciente
-export const personalDataSchema = z.object({
+const personalDataSchema = z.object({
   name: z
     .string()
     .trim()
@@ -71,7 +71,7 @@ export const personalDataSchema = z.object({
 });
 
 // Etapa 2: Endereço opcional no cadastro, mas completo quando informado (street, numberHouse, city, cep)
-export const addressFieldsSchema = z.object({
+const addressFieldsSchema = z.object({
   cep: z.string().optional().or(z.literal("")),
   street: z.string().optional().or(z.literal("")),
   numberHouse: z.string().optional().or(z.literal("")),
