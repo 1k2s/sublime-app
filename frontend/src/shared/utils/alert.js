@@ -6,7 +6,7 @@ export function showError(message) {
     title: "Algo deu errado",
     text: message,
     confirmButtonText: "Ok",
-    confirmButtonColor: "#5f7a58",
+    confirmButtonColor: "var(--color-primary)",
   });
 }
 
@@ -17,6 +17,6 @@ export function showSuccess(message) {
     title: "Tudo certo",
     text: message,
     confirmButtonText: "Ok",
-    confirmButtonColor: "#5f7a58",
+    confirmButtonColor: "var(--color-primary)",
   });
 }

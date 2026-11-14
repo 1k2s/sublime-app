@@ -51,7 +51,7 @@
 }
 
 .search-option-active {
-  background: #dfe8dc;
+  background: var(--color-primary-soft);
 }
 
 .search-message {

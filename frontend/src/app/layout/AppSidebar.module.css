@@ -1,20 +1,13 @@
 .brand {
   display: flex;
-  flex-direction: column;
-  align-items: center;
-  padding: 32px 16px 28px;
+  justify-content: center;
+  padding: 24px 16px 20px;
 }
 
-.brandName {
-  font-family: Georgia, "Times New Roman", serif;
-  font-size: 32px;
-  line-height: 1.1;
-  color: #5f7a58;
-}
-
-.brandTagline {
-  font-size: 10px;
-  color: #6b7280;
+.logo {
+  width: 140px;
+  height: 140px;
+  object-fit: contain;
 }
 
 .user {
@@ -23,7 +16,7 @@
   gap: 10px;
   margin: auto 12px 0;
   padding: 16px 4px;
-  border-top: 1px solid var(--color-border);
+  border-top: 1px solid var(--color-shell-line);
 }
 
 .avatar {
@@ -34,7 +27,7 @@
   width: 36px;
   height: 36px;
   border-radius: 50%;
-  background: #5f7a58;
+  background: var(--color-primary);
   color: #ffffff;
 }
 
@@ -48,11 +41,12 @@
 .userName {
   font-size: 13px;
   font-weight: 600;
+  color: var(--color-shell-text-strong);
 }
 
 .userRole {
   font-size: 11px;
-  color: #6b7280;
+  color: var(--color-shell-muted);
 }
 
 .logout {
@@ -61,12 +55,13 @@
   border: none;
   border-radius: 8px;
   background: none;
-  color: #374151;
+  color: var(--color-shell-text);
   cursor: pointer;
 }
 
 .logout:hover:not(:disabled) {
-  background: #dfe8dc;
+  background: var(--color-shell-line);
+  color: #ffffff;
 }
 
 .logout:disabled {

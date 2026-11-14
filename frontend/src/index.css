@@ -1,12 +1,19 @@
 :root {
   --color-bg: #f9fbfa;
+  /* Fundo escuro da moldura, atrás do menu e do painel do conteúdo */
+  --color-shell: #0d110f;
+  /* Textos e linhas sobre a moldura escura (menu lateral) */
+  --color-shell-text: #a7b0aa;
+  --color-shell-text-strong: #e4e9e6;
+  --color-shell-muted: #8a948e;
+  --color-shell-line: rgb(255 255 255 / 0.08);
   --color-surface: #ffffff;
-  --color-primary: #5f7a58;
-  --color-primary-soft: #dfe8dc;
-  --color-accent: #3f6fb5;
+  --color-primary: #3f7d52;
+  --color-primary-soft: #dcebe1;
+  --color-accent: #216fb0;
   /* Valor sugerido pela tela (ex: o último atendimento do paciente recente), que o usuário confirma */
-  --color-suggestion-bg: #eef3fb;
-  --color-suggestion-border: #b9cdeb;
+  --color-suggestion-bg: #e9f1f9;
+  --color-suggestion-border: #b3cfe9;
   --color-danger: #b42318;
   --color-border: #e4e9e6;
   --color-text: #374151;

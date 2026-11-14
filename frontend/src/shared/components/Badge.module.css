@@ -28,6 +28,6 @@
 }
 
 .default {
-  background-color: #dfe8dc;
-  color: #5f7a58;
+  background-color: var(--color-primary-soft);
+  color: var(--color-primary);
 }

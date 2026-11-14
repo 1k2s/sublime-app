@@ -21,8 +21,8 @@
   width: 40px;
   height: 40px;
   border-radius: 50%;
-  background: #dfe8dc;
-  color: #5f7a58;
+  background: var(--color-primary-soft);
+  color: var(--color-primary);
 }
 
 .section-text {
