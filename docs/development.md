@@ -52,8 +52,9 @@ Monorepo ([ADR 0022](adr/0022-monorepo.md)):
    Swagger: `http://localhost:8080/swagger-ui.html` (OpenAPI em `/api-docs`). Para
    chamar as rotas pelo Swagger, faça o login em `POST /api/auth/login`, copie o `token`
    e cole em **Authorize** (cadeado, no topo).
-4. Subir a interface (em `frontend/`): `npm ci` na primeira vez (instala as
-   dependências do `package-lock.json`) e depois `npm run dev`. Abre em
+4. Subir a interface (em `frontend/`): na primeira vez, criar o `frontend/.env` a partir
+   do `frontend/.env.example` (ver "Frontend e API" abaixo) e rodar `npm ci` (instala as
+   dependências do `package-lock.json`); depois, `npm run dev`. Abre em
    `http://localhost:5173`.
 
 Para conferir se o backend compila: `./mvnw -q compile` (em `backend/`). É a
@@ -99,7 +100,12 @@ logar: troque a senha pela API ou recrie o usuário.
 ## Frontend e API
 
 - **Endereço da API:** variável `VITE_API_URL` no `frontend/.env`
-  (`http://localhost:8080/api`). Depois de alterar, reinicie o `npm run dev`.
+  (`http://localhost:8080/api`). Depois de alterar, reinicie o `npm run dev`. O `.env` é
+  ignorado pelo `frontend/.gitignore`; para criar, copie o modelo versionado:
+  `Copy-Item frontend/.env.example frontend/.env`. Variável nova entra também no
+  `.env.example`. Sem o arquivo, a tela fica em branco e o console do navegador mostra
+  "VITE_API_URL não definida" (o `apiClient` falha ao carregar, de propósito: sem o endereço, as
+  chamadas iriam para o próprio Vite, que responde com o `index.html`).
 - **CORS:** o `SecurityConfig` do backend libera `http://localhost:5173` em
   `/api/**` (GET, POST, PUT, PATCH, DELETE), só para desenvolvimento. Mudou a porta
   do Vite? Ajuste lá.

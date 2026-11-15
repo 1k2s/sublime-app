@@ -610,6 +610,9 @@ Contratos), escolhido em 2026-11-11 a partir do que cada uma fazia melhor:
   `sublime.authToken`, `sublime.authUser` e `sublime.authExpiresAt`.
 - `apiClient` envia o token salvo em cada requisição e, num 401, apaga o token e encerra a
   sessão (`setUnauthorizedHandler`, registrado pelo `AuthProvider`).
+- **Sem a `VITE_API_URL`, o `apiClient` falha ao carregar** (`requireApiUrl`), com a causa no
+  console. Sem o endereço, o Axios chamaria o próprio Vite, que responde 200 com o
+  `index.html`, e as telas quebrariam sem dizer o motivo.
 - **A sessão termina** no logout, ao abrir o app com a sessão vencida (pela
   `sublime.authExpiresAt`) ou incompleta, e num 401 da API (garantia final: token vencido
   durante o uso, usuário inativado ou com o perfil alterado).

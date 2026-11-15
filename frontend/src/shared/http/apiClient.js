@@ -10,9 +10,21 @@ export function setUnauthorizedHandler(handler) {
   unauthorizedHandler = handler;
 }
 
+// Sem a VITE_API_URL, o Axios chamaria o próprio Vite, que responde 200 com o index.html:
+// a tela quebraria sem dizer o motivo. Falha logo, com a causa
+function requireApiUrl() {
+  const url = import.meta.env.VITE_API_URL;
+  if (!url) {
+    throw new Error(
+      "VITE_API_URL não definida. Crie o frontend/.env a partir do frontend/.env.example e reinicie o npm run dev."
+    );
+  }
+  return url;
+}
+
 //Criando uma instância do Axios: um objeto que já vem com todos os verbos http
 export const apiClient = axios.create({
-  baseURL: import.meta.env.VITE_API_URL,
+  baseURL: requireApiUrl(),
 });
 
 //Incluindo o TOKEN a cada requisição

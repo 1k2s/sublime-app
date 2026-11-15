@@ -1,6 +1,8 @@
+import styles from "./PageLoader.module.css";
+
 export function PageLoader() {
   return (
-    <div style={{ display: 'flex', justifyContent: 'center', alignItems: 'center', height: '100vh', fontFamily: 'system-ui, sans-serif' }}>
+    <div className={styles.loader}>
       <p>Carregando...</p>
     </div>
   );
