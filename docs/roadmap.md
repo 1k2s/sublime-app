@@ -204,7 +204,7 @@ chamadas batem com a API real ainda não foram conferidos.**
 
 | Módulo | O que existe |
 |---|---|
-| `auth` | **concluído e testado pela tela** (2026-11-07): login real, primeiro acesso (a tela troca sozinha para a definição da senha), sessão no `localStorage` que expira pela `expiresAt` e cai num 401, cache limpo ao sair, tela inicial por perfil (`HomeRedirect`), **rotas e menu por papel** (`ProtectedRoute` com `roles`), mensagem da API no `error.message` (interceptor do `apiClient`). Ver "Rotas e sessão" no [`architecture.md`](architecture.md) |
+| `auth` | **concluído e testado pela tela** (2026-11-07): login real, primeiro acesso (a tela troca sozinha para a definição da senha), sessão no `localStorage` que expira pela `expiresAt` e cai num 401, cache limpo ao sair, **abas sincronizadas** (2026-11-15: uma sessão por navegador, e as abas abertas acompanham quem entra ou sai; [ADR 0035](adr/0035-sessao-sincronizada-entre-abas.md); **testado pela tela** com duas abas: sair, entrar com outro perfil, trocar o e-mail e abrir aba nova), tela inicial por perfil (`HomeRedirect`), **rotas e menu por papel** (`ProtectedRoute` com `roles`), mensagem da API no `error.message` (interceptor do `apiClient`). Ver "Rotas e sessão" no [`architecture.md`](architecture.md) |
 | `patient` | listagem com filtros e busca, modal de detalhes, cadastro em wizard (dados pessoais com a origem do paciente, endereço com ViaCEP, confirmação), ligado à API real (PR #33) |
 | `pricing` | catálogo de preços (tabela, busca de técnica, modal de preço) |
 | `consultation` | tela de Lançamento (`/consultations`, os dois perfis; 2026-11-13), ligada à API: **barra fixa usada toda pelo teclado** (`Combobox`: paciente, técnica, contrato só com dois, duração com as válidas do backend, status; o Enter pula de campo, e do status leva ao Lançar), **um atendimento por vez**, com aviso de sucesso; pacientes recentes como **sugestão** (técnica e duração em azul); só o aviso de saldo (≤ 2 ou esgotado); data **Hoje** ou **Retroativo** (com liberação do admin); lista de hoje com rolagem própria e "Desfazer" com confirmação; repasse do dia do backend; o `ADMIN` escolhe o prestador. **Testada pela API e pela tela** (2026-11-13) |
@@ -264,16 +264,6 @@ Checklist da Fase 1 no front (herdado do guia original):
   em 2026-11-12 e valendo para todas as telas): conferir, com a tela de Contratos como base,
   Pacientes, Usuários, Prestadores, Preços e Configurações, quando cada uma for mexida (o
   Lançamento já nasceu no visual novo).
-- **Sessão sincronizada entre as abas** (`auth`; notado nos testes de 2026-11-13; **decidido**
-  manter uma sessão por navegador, com as abas sincronizadas). A sessão fica no
-  `localStorage`, que as abas dividem: ao entrar como prestador numa aba, a aba do admin
-  continua com o menu do admin (o usuário está na memória do React), mas as requisições levam o
-  token do prestador (o `apiClient` lê o `localStorage` a cada uma), e inativar um prestador dá
-  "sem permissão". Fazer: o `AuthProvider` ouve o evento `storage` e, quando outra aba entra
-  ou sai, atualiza o usuário (ou volta para o login). Mantém o
-  [ADR 0024](adr/0024-sessao-frontend-localstorage.md). *Descartado:* uma sessão por aba
-  (`sessionStorage`), em que cada aba nova pede login. Para testar dois perfis ao mesmo tempo:
-  outro navegador ou uma janela anônima.
 - **Avisos do sistema ao usuário** (notado nos testes de 2026-11-13): quando a sessão cai (401:
   vencida, usuário inativado, perfil alterado), o `signOut` volta para o login sem dizer o
   motivo. Levantar onde cabe um aviso (modal ou o `shared/utils/alert.js`): a sessão
