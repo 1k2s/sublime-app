@@ -5,22 +5,32 @@ import { AuthContext } from "./useAuth";
 
 const AUTH_USER_KEY = "sublime.authUser";
 const AUTH_EXPIRES_AT_KEY = "sublime.authExpiresAt";
+const SESSION_KEYS = [AUTH_TOKEN_KEY, AUTH_USER_KEY, AUTH_EXPIRES_AT_KEY];
 
-// Sessão guardada no navegador. Incompleta ou vencida (pela expiresAt do login) conta como
-// sem sessão e é apagada, para o token vencido não seguir nas requisições
-function readStoredUser() {
+// O evento "storage" chega quando outra aba muda o localStorage; key null = localStorage.clear()
+function isSessionChange(event) {
+  return event.key === null || SESSION_KEYS.includes(event.key);
+}
+
+// Sessão guardada no navegador, só leitura. Incompleta ou vencida (pela expiresAt do login) conta
+// como sem sessão
+function findStoredUser() {
   try {
     const token = localStorage.getItem(AUTH_TOKEN_KEY);
     const storedUser = localStorage.getItem(AUTH_USER_KEY);
     const expiresAt = localStorage.getItem(AUTH_EXPIRES_AT_KEY);
-    if (!token || !storedUser || isExpired(expiresAt)) {
-      clearStoredSession();
-      return null;
-    }
+    if (!token || !storedUser || isExpired(expiresAt)) return null;
     return JSON.parse(storedUser);
   } catch {
     return null;
   }
+}
+
+// Ao abrir a aba: a sessão sem uso é apagada, para o token vencido não seguir nas requisições
+function readStoredUser() {
+  const storedUser = findStoredUser();
+  if (!storedUser) clearStoredSession();
+  return storedUser;
 }
 
 // Sem data ou com data ilegível também conta como vencida (ex: sessão gravada antes da expiresAt existir)
@@ -68,6 +78,23 @@ export function AuthProvider({ children }) {
     setUnauthorizedHandler(signOut);
     return () => setUnauthorizedHandler(null);
   }, [signOut]);
+
+  // Uma sessão por navegador, com as abas sincronizadas (ADR 0035): quando outra aba entra ou sai,
+  // esta relê a sessão inteira (o login grava três chaves e gera três eventos; relendo, o resultado é o
+  // mesmo em qualquer ordem). Só lê, nunca apaga: no meio do login da outra aba, a sessão ainda está
+  // incompleta, e apagar levaria o token que ela acabou de gravar. Outro usuário: limpa o cache, que
+  // tem os dados do anterior. Sem sessão: user null, e o ProtectedRoute leva ao login
+  useEffect(() => {
+    function syncWithOtherTabs(event) {
+      if (!isSessionChange(event)) return;
+      const storedUser = findStoredUser();
+      if (storedUser?.id !== user?.id) queryClient.clear();
+      setUser(storedUser);
+    }
+
+    window.addEventListener("storage", syncWithOtherTabs);
+    return () => window.removeEventListener("storage", syncWithOtherTabs);
+  }, [user, queryClient]);
 
   const value = useMemo(() => ({ user, signIn, signOut, updateUser }), [user, signIn, signOut, updateUser]);
 
