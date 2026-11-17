@@ -124,6 +124,16 @@ feature em andamento fica na spec dela, em [`specs/`](specs/).
   projeto usa o MySQL 8.0, que chegou ao fim do suporte em abril de 2026. Avaliar a migração
   para o 8.4 (LTS) antes de subir o banco de produção: rodar as migrations e a suíte de testes
   na versão nova (mudar a imagem no `docker-compose.yml` e no `TestcontainersConfiguration`).
+- **`equals` e `hashCode` das entidades** (revisão dos testes, 2026-11-17). As 12 entidades
+  usam `@EqualsAndHashCode(onlyExplicitlyIncluded = true)` só pelo `id`: duas entidades novas
+  (com `id` nulo) contam como iguais, num `HashSet` ou num `equals`. O `isSameAs` da
+  `ProviderEntity` já compara o próprio objeto quando não há `id`, mas o `equals` não. Padrão do
+  projeto todo (coleções e Hibernate): numa branch e com um ADR próprios.
+- **Desligar o open-in-view** (`spring.jpa.open-in-view=false`; revisão dos testes,
+  2026-11-17). Ligado (o padrão do Spring), ele mantém a sessão do Hibernate aberta durante toda
+  a requisição: um lazy loading fora do service funciona sem aviso, inclusive nos testes.
+  Desligar é o recomendado, mas muda todos os endpoints; fazer depois dos testes de integração
+  do lançamento e dos cadastros.
 - **N+1 nas listagens de contratos e pacientes** (revisão de 2026-11-11; numa branch
   própria, junto com o item seguinte). O `ContractRepository` não sobrescreve o `findAll` com
   `@EntityGraph`: o `GET /api/contracts` faz uma consulta de itens por contrato, mais uma por

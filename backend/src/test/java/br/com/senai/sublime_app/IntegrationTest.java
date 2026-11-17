@@ -13,9 +13,11 @@ import org.springframework.test.context.ActiveProfiles;
 // Teste de integração (ADR 0035): a aplicação inteira, com o MySQL do Testcontainers, o
 // perfil "test" (application-test.properties) e o MockMvc para chamar a API.
 // - Sem @Transactional de propósito: cada requisição tem a própria transação, como em
-//   produção (um service sem @Transactional ou um lazy loading fora da transação falham
-//   aqui também). O que o teste grava fica no banco até o fim da execução, então cada
-//   teste cria dados únicos e nunca supõe uma tabela vazia.
+//   produção (uma alteração que o service não grava não aparece na requisição seguinte, e
+//   o dado conferido vem do banco, não do cache do Hibernate). O lazy loading fora do
+//   service não falha aqui nem em produção: o open-in-view do Spring vem ligado. O que o
+//   teste grava fica no banco até o fim da execução, então cada teste cria dados únicos
+//   e nunca supõe uma tabela vazia.
 // - Todas as classes com esta anotação dividem o mesmo contexto do Spring e, por isso, o
 //   mesmo container: ele sobe uma vez por execução.
 @Target(ElementType.TYPE)

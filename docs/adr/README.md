@@ -79,5 +79,5 @@ discussões que estavam no `domain-model.md` e no `architecture.md`.
 | [0031](0031-prestador-com-usuario-revisto.md) | Prestador continua sempre com usuário, com o admin lançando por ele | aceito |
 | [0032](0032-valor-e-parcelas-do-contrato.md) | Valor e parcelas do contrato calculados pelas linhas travadas, só o número de parcelas gravado | aceito |
 | [0033](0033-lancamento-retroativo-com-liberacao.md) | Lançamento só de hoje para o prestador, com o retroativo liberado pelo admin | aceito |
-| [0034](0034-hoje-no-fuso-da-clinica.md) | "Hoje" no fuso da clínica, fixado na inicialização | aceito |
+| [0034](0034-hoje-no-fuso-da-clinica.md) | "Hoje" no fuso da clínica, fixado na inicialização | aceito (em parte substituído por 0035: onde o fuso é aplicado) |
 | [0035](0035-testes-de-integracao-com-testcontainers.md) | Testes de integração com o MySQL do Testcontainers | aceito |

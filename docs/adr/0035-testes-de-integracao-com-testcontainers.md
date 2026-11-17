@@ -36,9 +36,9 @@ vez por execução. O Flyway aplica as migrations nele: o teste valida também o
 - **O banco do `docker-compose`:** sujaria os dados de desenvolvimento, dependeria do estado
   deixado por quem rodou antes e não existe num CI.
 - **Rollback por teste (`@Transactional` no teste):** a requisição do MockMvc entraria na
-  transação do teste, e o teste passaria onde a produção falha (service sem `@Transactional`,
-  alteração sem flush, lazy loading fora da transação, um dado lido do cache do Hibernate em vez
-  do banco).
+  transação do teste, e o teste passaria onde a produção falha (alteração que o service não
+  grava, um dado lido do cache do Hibernate em vez do banco). O lazy loading fora do service não
+  entra nessa conta: o open-in-view do Spring vem ligado e o mantém funcionando nos dois casos.
 - **Container por classe de teste (`@Container` estático):** subiria um MySQL por classe, com
   mais tempo e sem ganho.
 
@@ -52,8 +52,17 @@ vez por execução. O Flyway aplica as migrations nele: o teste valida também o
   `application.properties`), mas o perfil `test` sobrescreve as chaves que a aplicação usa.
   Propriedade nova lida do `.env` precisa do seu valor no `application-test.properties`, ou o
   teste passa a depender da máquina.
-- O "hoje" do backend continua sem um relógio falso nos testes
-  ([ADR 0034](0034-hoje-no-fuso-da-clinica.md)): os testes usam datas relativas a hoje.
+- **Fuso da clínica nos testes** (substitui em parte o [ADR 0034](0034-hoje-no-fuso-da-clinica.md):
+  onde o fuso é aplicado). O `@SpringBootTest` não chama o `main`, onde o fuso era fixado: os
+  testes rodariam no fuso da máquina. O `TimeZone.setDefault` passa para o bloco `static` do
+  `SublimeAppApplication`, que roda ao carregar a classe, em produção e nos testes. O Maven roda
+  os testes numa JVM em UTC (como o CI), e um teste confere que o fuso da clínica vale mesmo
+  assim. A decisão do ADR 0034 (fuso fixo no código, não um `Clock`) continua.
+- O "hoje" do backend continua sem um relógio falso nos testes: os testes usam datas relativas a
+  hoje, e os de unidade recebem a data pronta.
 - Mudar a versão do MySQL é mudar os dois lugares (o `docker-compose.yml` e o
-  `TestcontainersConfiguration`), cada um com um comentário apontando para o outro.
+  `TestcontainersConfiguration`); o `MySqlImageTest` falha se eles divergirem.
+- Uma classe de integração com configuração própria (um `@MockitoBean`, outro `@Import`) cria
+  um segundo contexto do Spring e um segundo container: a configuração fica só na
+  `@IntegrationTest`.
 - O mesmo `./mvnw test` roda no CI, sem configuração extra além do Docker.

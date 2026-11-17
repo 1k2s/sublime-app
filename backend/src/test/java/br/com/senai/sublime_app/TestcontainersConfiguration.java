@@ -12,8 +12,9 @@ import org.testcontainers.utility.DockerImageName;
 @TestConfiguration(proxyBeanMethods = false)
 public class TestcontainersConfiguration {
 
-    // Versão exata, a mesma do docker-compose.yml (na raiz): mude nos dois
-    private static final String MYSQL_IMAGE = "mysql:8.0.46";
+    // Versão exata, a mesma do docker-compose.yml (na raiz): mude nos dois. O
+    // MySqlImageTest falha se os dois divergirem.
+    static final String MYSQL_IMAGE = "mysql:8.0.46";
 
     @Bean
     @ServiceConnection

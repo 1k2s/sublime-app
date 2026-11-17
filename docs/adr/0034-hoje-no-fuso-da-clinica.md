@@ -1,6 +1,6 @@
 # 0034 — "Hoje" no fuso da clínica, fixado na inicialização
 
-- **Status:** aceito
+- **Status:** aceito (em parte substituído por 0035: onde o fuso é aplicado)
 - **Data:** 2026-11-13
 
 ## Contexto

@@ -9,10 +9,12 @@ import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.
 import java.nio.charset.StandardCharsets;
 import java.util.Base64;
 import java.util.List;
+import java.util.UUID;
 
 import javax.crypto.Mac;
 import javax.crypto.spec.SecretKeySpec;
 
+import org.junit.jupiter.api.BeforeAll;
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Nested;
 import org.junit.jupiter.api.Test;
@@ -42,7 +44,7 @@ class AuthorizationIntegrationTest {
     private static final String PASSWORD = "senha-de-teste";
 
     // Hash BCrypt da PASSWORD, calculado uma vez para todos os testes (o BCrypt é lento de
-    // propósito); ver encodedPassword()
+    // propósito), com o PasswordEncoder da própria aplicação
     private static String encodedPassword;
 
     @Autowired
@@ -51,11 +53,13 @@ class AuthorizationIntegrationTest {
     @Autowired
     private UserRepository userRepository;
 
-    @Autowired
-    private PasswordEncoder passwordEncoder;
-
     @Value("${jwt.secret}")
     private String jwtSecret;
+
+    @BeforeAll
+    static void encodePassword(@Autowired PasswordEncoder passwordEncoder) {
+        encodedPassword = passwordEncoder.encode(PASSWORD);
+    }
 
     @Test
     @DisplayName("Sem token, rota protegida responde 401 com ProblemDetail")
@@ -66,12 +70,11 @@ class AuthorizationIntegrationTest {
     }
 
     @Test
-    @DisplayName("Token malformado responde 401")
+    @DisplayName("Token malformado (nem é um JWT) responde 401 com ProblemDetail")
     void rejectsMalformedToken() throws Exception {
-        String token = loginAs(Role.ADMIN);
-
-        mockMvc.perform(get("/api/users/me").header(HttpHeaders.AUTHORIZATION, bearer(token + "x")))
-                .andExpect(status().isUnauthorized());
+        mockMvc.perform(get("/api/users/me").header(HttpHeaders.AUTHORIZATION, bearer("abc")))
+                .andExpect(status().isUnauthorized())
+                .andExpect(jsonPath("$.status").value(401));
     }
 
     // O prestador troca, no próprio token, o userId e o perfil pelos de um admin real e
@@ -118,7 +121,10 @@ class AuthorizationIntegrationTest {
     }
 
     // Inclui vizinhas das rotas liberadas: a liberação é rota a rota, sem curinga, e o {id}
-    // do lançamento só casa com número
+    // do lançamento só casa com número. Cada rota daqui tem o caso positivo do ADMIN em
+    // adminAccessesAdminRoutes (um 403 sozinho não distingue "só do admin" de "quebrada
+    // para todos"), exceto /api/consultations/resumo, que não existe: só confere que o
+    // PROVIDER não passa pelo {id}
     @ParameterizedTest(name = "PROVIDER recebe 403 em GET {0}")
     @ValueSource(strings = { "/api/users", "/api/contracts", "/api/providers", "/api/patients",
             "/api/techniques/all", "/api/consultations/resumo" })
@@ -132,7 +138,8 @@ class AuthorizationIntegrationTest {
     }
 
     @ParameterizedTest(name = "ADMIN acessa GET {0}")
-    @ValueSource(strings = { "/api/users", "/api/contracts", "/api/providers", "/api/techniques/all" })
+    @ValueSource(strings = { "/api/users", "/api/contracts", "/api/providers", "/api/patients",
+            "/api/techniques/all" })
     @DisplayName("ADMIN acessa as rotas de administração")
     void adminAccessesAdminRoutes(String path) throws Exception {
         String token = loginAs(Role.ADMIN);
@@ -155,7 +162,7 @@ class AuthorizationIntegrationTest {
     @DisplayName("Login com primeiro acesso pendente responde 403 com firstAccessRequired")
     void requiresFirstAccessForProvisionalPassword() throws Exception {
         UserEntity user = userRepository.save(UserEntity.withProvisionalPassword(
-                uniqueEmail(), encodedPassword(), Role.PROVIDER));
+                uniqueEmail(), encodedPassword, Role.PROVIDER));
 
         mockMvc.perform(login(user.getEmail(), PASSWORD))
                 .andExpect(status().isForbidden())
@@ -196,14 +203,7 @@ class AuthorizationIntegrationTest {
     }
 
     private UserEntity saveUser(Role role) {
-        return userRepository.save(new UserEntity(uniqueEmail(), encodedPassword(), role));
-    }
-
-    private String encodedPassword() {
-        if (encodedPassword == null) {
-            encodedPassword = passwordEncoder.encode(PASSWORD);
-        }
-        return encodedPassword;
+        return userRepository.save(new UserEntity(uniqueEmail(), encodedPassword, role));
     }
 
     // Payload do token (Base64URL) com o userId e o perfil do admin no lugar dos do prestador
@@ -240,8 +240,8 @@ class AuthorizationIntegrationTest {
     }
 
     // E-mail único: sem rollback, os usuários de um teste continuam no banco até o fim da
-    // execução (ver a @IntegrationTest)
+    // execução (ver a @IntegrationTest). UUID, e não um relógio, que pode repetir.
     private static String uniqueEmail() {
-        return "usuario-" + System.nanoTime() + "@sublime.test";
+        return "usuario-" + UUID.randomUUID() + "@sublime.test";
     }
 }

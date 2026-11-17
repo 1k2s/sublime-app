@@ -126,6 +126,16 @@
 				<groupId>org.springframework.boot</groupId>
 				<artifactId>spring-boot-maven-plugin</artifactId>
 			</plugin>
+			<!-- Testes numa JVM em UTC, como um servidor ou o CI: o teste do fuso
+			     (SublimeAppApplicationTests) só prova que a aplicação aplica o fuso da clínica
+			     se a máquina estiver noutro fuso (ADRs 0034 e 0035) -->
+			<plugin>
+				<groupId>org.apache.maven.plugins</groupId>
+				<artifactId>maven-surefire-plugin</artifactId>
+				<configuration>
+					<argLine>-Duser.timezone=UTC</argLine>
+				</configuration>
+			</plugin>
 			<plugin>
 				<groupId>org.apache.maven.plugins</groupId>
 				<artifactId>maven-compiler-plugin</artifactId>
