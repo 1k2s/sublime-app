@@ -29,8 +29,21 @@ em [`docs/README.md`](docs/README.md). Quando ler cada um:
 
 ## Onde registrar cada coisa
 
-Atualize a documentação **no mesmo passo** da mudança (são a fonte de verdade do
-time e entram no mesmo PR):
+A documentação é a fonte de verdade do time e entra no mesmo PR da mudança.
+
+**Quando atualizar a documentação:**
+
+- **Toda feature tem spec, do backend ou do frontend** (no front: tela nova, mudança de
+  layout, de visual ou de fluxo). Durante o trabalho, só a spec muda (decisões, tarefas,
+  status). Os documentos de referência (`domain-model.md`, `architecture.md`, ADRs,
+  `roadmap.md`) mudam quando a feature termina.
+- **Sem spec** (só correção ou ajuste pontual, como um texto ou uma cor): a documentação muda
+  só quando a branch termina, ao preparar o PR, de uma vez e com o resultado final. Nunca a
+  cada ajuste.
+- **O que entra:** só o que ajuda o time a trabalhar (regra, padrão, decisão). Detalhe visual
+  (medidas, cores, tempos de animação) fica no código.
+
+Onde registrar:
 
 - **Regra implementada** → `domain-model.md` (ou `architecture.md`, se for padrão de
   construção, do backend ou do front). Só o que o código faz hoje.
@@ -67,7 +80,7 @@ Ao escrever:
   simplicidade de manter), não só por estar documentada ou por ser o que o código já faz.
   Ao encontrar uma forma melhor, mesmo contrária ao `architecture.md` ou a um precedente,
   **analise e sugira** (o que muda, por quê, o custo), com uma recomendação. Aprovada a
-  sugestão, a documentação é atualizada no mesmo passo. Se várias telas ou módulos resolvem
+  sugestão, a documentação é atualizada conforme "Quando atualizar a documentação". Se várias telas ou módulos resolvem
   o mesmo caso de jeitos diferentes, compare e proponha o melhor de cada um como padrão.
 - **Validação de entidade em método privado com nome descritivo** (`validateX`,
   `requireX`), nunca `if` direto no corpo do construtor ou da fábrica (princípio 7).

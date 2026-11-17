@@ -1,12 +1,55 @@
-.layout {
+.shell {
+  --nav-width: 52px; /* menu recolhido */
+  --nav-open-width: 210px;
+
   display: flex;
   height: 100vh;
+  background:
+    linear-gradient(90deg, transparent 0, rgb(0 0 0 / 0.14) var(--nav-width), rgb(0 0 0 / 0.32) 100%),
+    var(--shell-gradient);
 }
 
-/* Só o conteúdo rola; o menu lateral fica fixo */
+/* Acompanha a largura do menu: ao abrir, o conteúdo se ajusta */
+.rail {
+  flex: none;
+}
+
+/* Painel do conteúdo, fora do main para não entrar na animação */
+.stage {
+  display: flex;
+  flex: 1;
+  min-width: 0;
+  margin: 6px 6px 6px 0;
+  overflow: hidden;
+  border-radius: 24px;
+  background: var(--color-bg);
+  box-shadow: -6px 0 30px rgb(0 0 0 / 0.12);
+}
+
+/* Sem fill-mode: ao terminar, o transform sai e os modais fixed voltam a se posicionar pela
+   janela */
 .content {
   flex: 1;
   min-width: 0;
-  padding: 24px 32px;
+  padding: 16px 24px;
   overflow-y: auto;
+  animation: contentEnter 0.25s cubic-bezier(0.22, 1, 0.36, 1);
+
+  @media (prefers-reduced-motion: reduce) {
+    animation: none;
+  }
+}
+
+/* Largura única das telas, centralizada */
+.page {
+  width: min(1440px, 100%);
+  height: 100%;
+  margin-inline: auto;
+}
+
+@keyframes contentEnter {
+  from {
+    opacity: 0;
+    transform: translateY(12px);
+  }
 }
