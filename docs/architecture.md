@@ -625,11 +625,19 @@ Contratos), escolhido em 2026-11-11 a partir do que cada uma fazia melhor:
   `sublime.authToken`, `sublime.authUser` e `sublime.authExpiresAt`.
 - `apiClient` envia o token salvo em cada requisição e, num 401, apaga o token e encerra a
   sessão (`setUnauthorizedHandler`, registrado pelo `AuthProvider`).
+- **Sem a `VITE_API_URL`, o `apiClient` falha ao carregar** (`requireApiUrl`), com a causa no
+  console. Sem o endereço, o Axios chamaria o próprio Vite, que responde 200 com o
+  `index.html`, e as telas quebrariam sem dizer o motivo.
 - **A sessão termina** no logout, ao abrir o app com a sessão vencida (pela
   `sublime.authExpiresAt`) ou incompleta, e num 401 da API (garantia final: token vencido
   durante o uso, usuário inativado ou com o perfil alterado).
 - **Ao sair, o cache do TanStack Query é limpo** (`queryClient.clear()` no `signOut`), para
   o próximo usuário do mesmo navegador não ver os dados do anterior.
+- **Uma sessão por navegador, com as abas sincronizadas**
+  ([ADR 0035](adr/0035-sessao-sincronizada-entre-abas.md)): o `AuthProvider` ouve o evento
+  `storage` e, quando outra aba sai ou entra, relê a sessão (`findStoredUser`, só leitura): sem
+  sessão, volta para o login; com outro usuário, limpa o cache e assume o novo. Dois perfis ao
+  mesmo tempo, só em navegadores diferentes ou numa janela anônima.
 - **Tela inicial por perfil:** a rota `/` (`HomeRedirect`) leva o `ADMIN` a `/patients` e o
   `PROVIDER` a `/consultations` (`homePath` de cada papel, lido pelo `getHomePath`).
 - Os papéis ficam em `domain/auth/roles.js` (`ADMIN` e `PROVIDER`); o valor de cada um

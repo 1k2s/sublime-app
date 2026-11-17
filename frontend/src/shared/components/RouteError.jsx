@@ -1,4 +1,5 @@
 import { useRouteError, isRouteErrorResponse, Link } from 'react-router-dom';
+import styles from './RouteError.module.css';
 
 export function RouteError() {
   const error = useRouteError();
@@ -19,10 +20,10 @@ export function RouteError() {
   }
 
   return (
-    <div style={{ padding: '2rem', textAlign: 'center', fontFamily: 'system-ui, sans-serif' }}>
+    <div className={styles.page}>
       <h1>{title}</h1>
       <p>{message}</p>
-      <Link to="/" style={{ display: 'inline-block', marginTop: '1rem', padding: '0.5rem 1rem', background: '#5f7a58', color: '#ffffff', textDecoration: 'none', borderRadius: 'var(--radius, 12px)' }}>
+      <Link to="/" className={styles.home}>
         Voltar para o início
       </Link>
     </div>

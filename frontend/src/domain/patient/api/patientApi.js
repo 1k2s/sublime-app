@@ -6,11 +6,6 @@ export async function listPatients() {
   return data;
 }
 
-export async function getPatientById(id) {
-  const { data } = await apiClient.get(`/patients/${id}`);
-  return data;
-}
-
 export async function createPatient(payload) {
   const { data } = await apiClient.post("/patients", payload);
   return data;

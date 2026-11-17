@@ -217,7 +217,7 @@ chamadas batem com a API real ainda não foram conferidos.**
 
 | Módulo | O que existe |
 |---|---|
-| `auth` | **concluído e testado pela tela** (2026-11-07): login real, primeiro acesso (a tela troca sozinha para a definição da senha), sessão no `localStorage` que expira pela `expiresAt` e cai num 401, cache limpo ao sair, tela inicial por perfil (`HomeRedirect`), **rotas e menu por papel** (`ProtectedRoute` com `roles`), mensagem da API no `error.message` (interceptor do `apiClient`). Ver "Rotas e sessão" no [`architecture.md`](architecture.md) |
+| `auth` | **concluído e testado pela tela** (2026-11-07): login real, primeiro acesso (a tela troca sozinha para a definição da senha), sessão no `localStorage` que expira pela `expiresAt` e cai num 401, cache limpo ao sair, **abas sincronizadas** (2026-11-15: uma sessão por navegador, e as abas abertas acompanham quem entra ou sai; [ADR 0035](adr/0035-sessao-sincronizada-entre-abas.md); **testado pela tela** com duas abas: sair, entrar com outro perfil, trocar o e-mail e abrir aba nova), tela inicial por perfil (`HomeRedirect`), **rotas e menu por papel** (`ProtectedRoute` com `roles`), mensagem da API no `error.message` (interceptor do `apiClient`). Ver "Rotas e sessão" no [`architecture.md`](architecture.md) |
 | `patient` | listagem com filtros e busca, modal de detalhes, cadastro em wizard (dados pessoais com a origem do paciente, endereço com ViaCEP, confirmação), ligado à API real (PR #33) |
 | `pricing` | catálogo de preços (tabela, busca de técnica, modal de preço) |
 | `consultation` | tela de Lançamento (`/consultations`, os dois perfis; 2026-11-13), ligada à API: **barra fixa usada toda pelo teclado** (`Combobox`: paciente, técnica, contrato só com dois, duração com as válidas do backend, status; o Enter pula de campo, e do status leva ao Lançar), **um atendimento por vez**, com aviso de sucesso; pacientes recentes como **sugestão** (técnica e duração em azul); só o aviso de saldo (≤ 2 ou esgotado); data **Hoje** ou **Retroativo** (com liberação do admin); lista de hoje com rolagem própria e "Desfazer" com confirmação; repasse do dia do backend; o `ADMIN` escolhe o prestador. **Testada pela API e pela tela** (2026-11-13) |
@@ -233,6 +233,12 @@ chamadas batem com a API real ainda não foram conferidos.**
   (2026-11-11), depois da padronização: filtros, inativar e reativar com o modal aberto,
   mensagens da tabela, cadastro e edição nas quatro telas, busca de paciente no contrato e
   no lançamento, e Configurações; tudo funcionou como esperado.
+- **Limpeza do front** (2026-11-14, branch `chore/frontend-cleanup`): a mensagem da API no
+  modal de preço, os exports sem uso removidos (o `isValidCpf` também: o backend não confere os
+  dígitos verificadores, e o front ficaria mais rígido que a API), o `PageLoader` e o
+  `RouteError` em CSS Modules, o `frontend/.env` fora do git com o modelo `.env.example`, e o
+  `apiClient` que falha ao carregar sem a `VITE_API_URL`. Conferido por build e lint; **não
+  testado pela tela**.
 - **`npm run build` funciona** desde a atualização de 2026-11-05 (as correções do PR #13
   do repositório antigo resolveram os arquivos cortados). `npm run lint`: sem erros e sem
   avisos (2026-11-07).
@@ -249,6 +255,13 @@ chamadas batem com a API real ainda não foram conferidos.**
 2. **Inventário** das telas que não entram no item 1 (ex: catálogo de preços): o que cada
    uma faz e se as chamadas batem com o contrato real da API (Swagger). Atualizar esta
    seção com o resultado.
+3. **Nova identidade visual do portal** (levantado em 2026-11-14): **aguarda o artefato** com a
+   identidade, que entra aqui quando o time a validar. Até lá, nada muda no código. Quando
+   chegar, uma branch e uma spec própria, com as prévias das telas antes do código. Entram
+   juntas a melhoria **"Cores em variáveis CSS em todos os componentes"** (com a paleta toda em
+   variáveis, a troca de cores se faz no `index.css`), a pendência da **logo e da `Topbar`** na
+   Sidebar e a conferência do **"Visual global em cada tela"**, que passa a seguir a identidade
+   nova.
 
 Checklist da Fase 1 no front (herdado do guia original):
 - [x] Login funcionando e rotas protegidas.
@@ -277,32 +290,17 @@ Checklist da Fase 1 no front (herdado do guia original):
   em 2026-11-12 e valendo para todas as telas): conferir, com a tela de Contratos como base,
   Pacientes, Usuários, Prestadores, Preços e Configurações, quando cada uma for mexida (o
   Lançamento já nasceu no visual novo).
-- **Sessão sincronizada entre as abas** (`auth`; notado nos testes de 2026-11-13; **decidido**
-  manter uma sessão por navegador, com as abas sincronizadas). A sessão fica no
-  `localStorage`, que as abas dividem: ao entrar como prestador numa aba, a aba do admin
-  continua com o menu do admin (o usuário está na memória do React), mas as requisições levam o
-  token do prestador (o `apiClient` lê o `localStorage` a cada uma), e inativar um prestador dá
-  "sem permissão". Fazer: o `AuthProvider` ouve o evento `storage` e, quando outra aba entra
-  ou sai, atualiza o usuário (ou volta para o login). Mantém o
-  [ADR 0024](adr/0024-sessao-frontend-localstorage.md). *Descartado:* uma sessão por aba
-  (`sessionStorage`), em que cada aba nova pede login. Para testar dois perfis ao mesmo tempo:
-  outro navegador ou uma janela anônima.
 - **Avisos do sistema ao usuário** (notado nos testes de 2026-11-13): quando a sessão cai (401:
   vencida, usuário inativado, perfil alterado), o `signOut` volta para o login sem dizer o
   motivo. Levantar onde cabe um aviso (modal ou o `shared/utils/alert.js`): a sessão
   encerrada e outras ações do sistema.
-- **Exports sem uso** (achados em 2026-11-12, de antes da tela de Contratos): `usePatient`
-  (`usePatients.js`), `getUserById` (`userApi.js`), `isValidCpf` (`masks.js`),
-  `personalDataSchema` e `addressFieldsSchema` (`patientSchema.js`). Remover ou usar, numa
-  limpeza à parte.
-- **Mensagem de erro da API no `PriceFormModal`:** ele lê `error.response.data.message`,
-  campo que o `ProblemDetail` não tem, e sempre cai na mensagem própria. Trocar por
-  `error.message`, que o interceptor do `apiClient` já preenche com o `detail` da API.
-- **Fora das convenções** da seção "Frontend" do [`architecture.md`](architecture.md):
-  `PageLoader` e `RouteError` com estilo inline.
-- **`frontend/.env` versionado:** hoje só tem `VITE_API_URL` (sem segredo). Avaliar trocar
-  por um `.env.example` versionado e o `.env` no `.gitignore`, antes que entre algum valor
-  sensível.
+- **Mensagem de erro que não é da API** (revisão de 2026-11-14): o interceptor do `apiClient`
+  só traduz os erros de requisição. Um erro do JavaScript antes de a requisição sair (ex: no
+  `mutationFn`) chega à tela em inglês, pelo `error.message`, no `PriceFormModal` e em todo
+  `showError(error.message)`. Decidir uma mensagem de reserva em português num lugar só.
+- **Arquivos `.env` por modo do Vite** (revisão de 2026-11-14): o `frontend/.gitignore`
+  ignora só o `.env` e os `*.local`; um `.env.production` seria versionado. Trocar por `.env*`
+  com a exceção `!.env.example`.
 - Sidebar: trocar a logo em texto pelo arquivo da marca; criar a `Topbar`, se o design
   tiver barra superior.
 
@@ -330,4 +328,25 @@ Checklist da Fase 1 no front (herdado do guia original):
   tela (e de volta), para uma mudança de contrato mexer num arquivo só.
 - **Tipos do contrato da API:** decidir sobre TypeScript com tipos gerados do OpenAPI do
   backend (`openapi-typescript`), para o editor acusar quando a API mudar.
-- **Testes automatizados** do front.
+- **Testes automatizados do front, com o Cypress** (hipótese levantada em 2026-11-14, ainda
+  não decidida; depois dos testes do backend). Hoje cada tela é testada à mão, e os casos
+  manuais já rodados (os 20 da autorização pela interface, o fluxo do Lançamento pelo teclado,
+  o cadastro de contrato) são a base dos primeiros testes. Para a spec, se for adiante:
+  - **Contra a API real ou com a API simulada** (`cy.intercept`): a real confere a tela junto
+    com o contrato da API (o backend é a fonte da verdade), mas precisa do backend e do MySQL
+    no ar e de um banco num estado conhecido a cada execução (hoje só há o
+    `docker compose down -v` e o seed da V4); a simulada é rápida e não depende do backend, mas
+    não pega mudança de contrato. Provável: poucos fluxos de ponta a ponta contra a API real
+    (login, contrato, lançamento) e o resto simulado.
+  - **Login sem passar pela tela** em cada teste: `cy.request` ao `POST /api/auth/login` e a
+    resposta gravada nas chaves `sublime.auth*` do `localStorage` (`cy.session` guarda entre
+    os testes).
+  - **Seletores estáveis** (`data-testid` ou papel e rótulo acessíveis), não classes do CSS
+    Modules, que mudam de nome no build.
+  - **Limite do Cypress: uma aba por teste.** A pendência "Sessão sincronizada entre as abas"
+    não se testa com ele; o Playwright testa várias abas e navegadores em paralelo sem custo.
+    Comparar os dois na spec antes de instalar.
+  - **Funções puras** de `utils/` e `display/` (ex: `filterContracts`, `formatInstallments`)
+    se testam mais barato com o Vitest, que usa o mesmo Vite, sem navegador.
+  - **CI:** entra no item 3 dos [Próximos passos](#próximos-passos) do projeto; o de ponta a
+    ponta exige subir o MySQL e o backend no GitHub Actions.
