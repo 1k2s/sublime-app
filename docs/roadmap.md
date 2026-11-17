@@ -69,8 +69,12 @@ feature em andamento fica na spec dela, em [`specs/`](specs/).
   usado por outro usuário, sobe só com um aviso no log, sem criar ninguém.
 - **Variáveis locais:** a aplicação precisa do `backend/.env` (ver "Variáveis de ambiente"
   no [`development.md`](development.md)); sem `JWT_SECRET`, não sobe.
-- **Testes:** até aqui, manuais (pela API e pela interface). Decidido em 2026-11-07 que os
-  **testes automatizados** são o próximo passo (ver abaixo).
+- **Testes automatizados no backend** (2026-11-13): unidade do `Percentage` e do
+  `ProviderEntity` e a infraestrutura de integração com o MySQL do Testcontainers
+  ([ADR 0035](adr/0035-testes-de-integracao-com-testcontainers.md)), com o primeiro teste de
+  integração (`AuthorizationIntegrationTest`: 401 sem token e com token adulterado, rotas por
+  perfil, login recusado, primeiro acesso e corte do acesso do usuário inativado). O resto,
+  ainda manual (ver "Próximos passos").
 
 ## Próximos passos
 
@@ -84,23 +88,23 @@ feature em andamento fica na spec dela, em [`specs/`](specs/).
       itens, o `group-plan-options`, renegociar as parcelas na prorrogação e como a lista mostra
       as versões (a substituída por aditivo aparece como Inativo). O detalhe do contrato ganha o
       "Editar". Até lá, prorrogar só pelo Swagger.
-2. **Testes automatizados no backend** (decidido em 2026-11-07; **pausado** em 2026-11-11
-   até as telas funcionarem): cada feature hoje exige dezenas de casos manuais, refeitos a
+2. **Testes automatizados no backend** (decidido em 2026-11-07; pausado em 2026-11-11 e
+   **retomado** em 2026-11-13, com a infraestrutura): cada feature exige dezenas de casos manuais, refeitos a
    cada merge da `dev`, e as regras mais arriscadas são financeiras (resolução de preço,
    comissão, repasse, saldo).
-   - **Feito:** o primeiro teste de unidade (`PercentageTest`: o arredondamento `HALF_UP`
-     do repasse e a recusa de mais de 2 casas).
-   - **Próximo, já levantado:** `ProviderEntity`, com 7 regras (percentual pela origem do
-     paciente: trazido por ele, da clínica e trazido por outro; padrão 40/45 no cadastro;
-     indicação nunca menor que o padrão; os dois percentuais obrigatórios na alteração;
-     reativar exige usuário ativo). Depois, as outras entidades com regra de risco.
-   - Depois, **testes de integração** da API (autorização e lançamento primeiro), com o
-     MySQL do **Testcontainers** (as migrations usam recursos do MySQL, então o H2 não
-     serve). Os 55 casos manuais da autorização são a base.
+   - **Feito** (2026-11-13): unidade do `Percentage` e do `ProviderEntity` (as 7 regras);
+     infraestrutura de integração (`@IntegrationTest`, [ADR 0035](adr/0035-testes-de-integracao-com-testcontainers.md));
+     e uma amostra da autorização por perfil (`AuthorizationIntegrationTest`).
+   - **Próximo:** testes de unidade das outras entidades com regra de risco (resolução de
+     preço, comissão no lançamento, saldo, vigência e parcelas do contrato).
+   - Depois, mais **testes de integração**: o lançamento (os três casos de preço, o
+     retroativo com liberação, o `PROVIDER` só com os próprios dados) e o resto da
+     autorização. Os 55 casos manuais da autorização são a base.
    - Opcional, durante as telas: ao fechar cada uma, escrever os testes de unidade das
      regras que ela usa.
-3. **CI no GitHub Actions**, logo depois dos primeiros testes: a cada PR, compilar e testar
-   o backend, build e lint do front e `node scripts/check-docs.mjs`, com o resultado no PR.
+3. **CI no GitHub Actions**, agora que há testes: a cada PR, `./mvnw test` no backend (o
+   runner do GitHub já tem o Docker, que o Testcontainers usa), build e lint do front e
+   `node scripts/check-docs.mjs`, com o resultado no PR.
    CD (deploy automático) fica para quando houver a versão 1 no ar.
 4. **Dashboards**, com spec própria. **Do prestador:** os rendimentos dele (soma dos repasses)
    no dia, na semana e no mês, e os **atendimentos dele com filtros, inclusive por data**: é
@@ -116,11 +120,10 @@ feature em andamento fica na spec dela, em [`specs/`](specs/).
 - **Antes da versão 1 no ar:** revisar e consolidar as migrations e voltar a regra de
   nunca editá-las ([ADR 0028](adr/0028-migrations-editaveis-ate-versao-estavel.md)); zerar
   o banco de produção.
-- **A decidir: comparação de prestadores sem `id`** (encontrado ao planejar os testes,
-  2026-11-11). O `isSameAs` da `ProviderEntity` faz `other.getId().equals(this.id)`: com o
-  prestador de origem ainda sem `id`, lança `NullPointerException`. Em produção não ocorre
-  (todo prestador vem do banco com `id`), mas `Objects.equals(other.getId(), this.id)` não
-  quebraria.
+- **Antes da versão 1 no ar: versão do MySQL** (notado na revisão dos testes, 2026-11-13). O
+  projeto usa o MySQL 8.0, que chegou ao fim do suporte em abril de 2026. Avaliar a migração
+  para o 8.4 (LTS) antes de subir o banco de produção: rodar as migrations e a suíte de testes
+  na versão nova (mudar a imagem no `docker-compose.yml` e no `TestcontainersConfiguration`).
 - **N+1 nas listagens de contratos e pacientes** (revisão de 2026-11-11; numa branch
   própria, junto com o item seguinte). O `ContractRepository` não sobrescreve o `findAll` com
   `@EntityGraph`: o `GET /api/contracts` faz uma consulta de itens por contrato, mais uma por

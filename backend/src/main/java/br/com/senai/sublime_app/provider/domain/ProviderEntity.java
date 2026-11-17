@@ -109,8 +109,10 @@ public class ProviderEntity {
     }
 
     // Compara ids: relação LAZY pode vir como proxy do Hibernate. Origem nula = clínica.
+    // Sem id (ainda não gravado), só o próprio objeto é o mesmo prestador: nem quebra, nem
+    // confunde dois prestadores novos (que teriam os dois id nulo).
     private boolean isSameAs(ProviderEntity other) {
-        return other != null && other.getId().equals(this.id);
+        return other != null && (this == other || (this.id != null && this.id.equals(other.getId())));
     }
 
     // Inativar duas vezes não é uma operação válida: 409 avisa que o estado já era esse

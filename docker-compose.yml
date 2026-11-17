@@ -1,6 +1,7 @@
 services:
   mysql:
-    image: mysql:8.0
+    # Versão exata: a mesma do TestcontainersConfiguration (backend/src/test); mude nos dois
+    image: mysql:8.0.46
     container_name: mysql-dev
     environment:
       MYSQL_ROOT_PASSWORD: root

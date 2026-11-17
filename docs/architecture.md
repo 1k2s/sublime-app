@@ -10,6 +10,7 @@
 - [Padrão de construção (todos os módulos implementados seguem)](#padrão-de-construção-todos-os-módulos-implementados-seguem)
 - [Formato dos erros](#formato-dos-erros)
 - [Segurança](#segurança)
+- [Testes do backend](#testes-do-backend)
 - [Frontend](#frontend)
   - [Princípios](#princípios)
   - [Stack](#stack)
@@ -308,6 +309,16 @@ módulo `auth`.
   aplicação não sobe.
 - **Swagger:** esquema `bearer` em todas as rotas (botão "Authorize"); o login e o primeiro acesso são marcados
   sem exigência de token (`@SecurityRequirements` vazio).
+
+## Testes do backend
+
+Em `backend/src/test`, no mesmo pacote da classe testada. Como rodar: "Rodando os testes", no
+[`development.md`](development.md).
+
+| Tipo | Quando | Padrão | Precedente |
+|---|---|---|---|
+| Unidade | regra de entidade, VO ou enum | JUnit + AssertJ, **sem Spring e sem banco**; um método por regra, com `@DisplayName` em português e as três partes (prepara, executa, confere); erro conferido pela classe e pela **mensagem exata**; `@Nested` para agrupar por operação; o `id` (gerado pelo banco) preenchido pelo `ReflectionTestUtils` só quando a regra depende dele | `PercentageTest`, `ProviderEntityTest` |
+| Integração | o que só aparece com a aplicação inteira: autorização, fluxo de um endpoint, constraint do banco | **`@IntegrationTest`**: MySQL do Testcontainers, perfil `test` e MockMvc, **sem rollback**: cada requisição tem a própria transação, como em produção ([ADR 0035](adr/0035-testes-de-integracao-com-testcontainers.md)). Cada teste cria os próprios dados, únicos (ex: e-mails), e nunca supõe tabela vazia; o token sai do `POST /api/auth/login` real; a mudança de estado que o teste confere passa pela API, não pelo repositório; casos de uma tabela (ex: rotas por perfil) com `@ParameterizedTest` | `AuthorizationIntegrationTest` |
 
 ## Frontend
 

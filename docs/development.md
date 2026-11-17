@@ -10,6 +10,7 @@ frontend). Para a arquitetura e as regras de negócio, ver
 - [Stack](#stack)
 - [Estrutura do repositório](#estrutura-do-repositório)
 - [Rodando localmente](#rodando-localmente)
+- [Rodando os testes](#rodando-os-testes)
 - [Variáveis de ambiente](#variáveis-de-ambiente)
 - [Frontend e API](#frontend-e-api)
 - [Banco e schema (Flyway)](#banco-e-schema-flyway)
@@ -25,7 +26,7 @@ frontend). Para a arquitetura e as regras de negócio, ver
 
 - **Spring Boot 4.1.1**, **Java 25**, **Jackson 3** (pacote `tools.jackson`, não
   `com.fasterxml`), Lombok, springdoc (Swagger).
-- **MySQL 8** via `docker-compose.yml` (container `mysql-dev`, porta **3307**,
+- **MySQL 8.0.46** via `docker-compose.yml` (versão exata, a mesma dos testes; container `mysql-dev`, porta **3307**,
   banco `sublime_db`, usuário `root`/`root`).
 - **Frontend:** React 19 + Vite, JavaScript (sem TypeScript), CSS Modules, React
   Router, TanStack Query, React Hook Form + Zod, Axios. Node 22. Convenções na seção
@@ -59,6 +60,29 @@ Monorepo ([ADR 0022](adr/0022-monorepo.md)):
 Para conferir se o backend compila: `./mvnw -q compile` (em `backend/`). É a
 referência quando a IDE acusa erro (ver "Problemas conhecidos"). No front:
 `npm run build` e `npm run lint` (em `frontend/`).
+
+## Rodando os testes
+
+Em `backend/`. Padrões de como escrever: "Testes do backend", no
+[`architecture.md`](architecture.md).
+
+| O quê | Comando |
+|---|---|
+| Todos | `./mvnw test` |
+| Uma classe | `./mvnw test -Dtest=PercentageTest` |
+| Uma classe com `@Nested` | `./mvnw test -Dtest='ProviderEntityTest*'` (o `*` inclui as classes internas) |
+| Um método | `./mvnw test -Dtest=PercentageTest#appliesPercentageWithHalfUpRounding` |
+
+- **O Docker precisa estar no ar** (o Docker Desktop): os testes de integração sobem um MySQL
+  próprio em container ([ADR 0035](adr/0035-testes-de-integracao-com-testcontainers.md)). O
+  `docker compose up` não é necessário, e o banco de desenvolvimento (`sublime_db`) nunca é
+  tocado. A primeira execução baixa a imagem do MySQL.
+- O perfil `test` (`src/test/resources/application-test.properties`) tem o segredo do JWT e o
+  admin padrão próprios. O `backend/.env` também é lido nos testes, mas o perfil `test`
+  sobrescreve as chaves que a aplicação usa. Ao ler uma propriedade nova do `.env`, ponha o valor
+  de teste dela no `application-test.properties`, para o teste não depender da máquina.
+- Pelo VS Code (*Extension Pack for Java*): o ▶ ao lado de cada `@Test` ou a aba **Testing**.
+- Resultado de cada classe em `backend/target/surefire-reports/`.
 
 ## Variáveis de ambiente
 
