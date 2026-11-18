@@ -586,6 +586,18 @@ Contratos), escolhido em 2026-11-11 a partir do que cada uma fazia melhor:
   `--shadow-card`, e `--color-suggestion-bg` e `--color-suggestion-border` para um valor
   sugerido pela tela que o usuário confirma). Os componentes usam as variáveis
   (`var(--color-primary)`), para a paleta mudar num lugar só.
+- **Casca do app com tokens próprios:** o menu e a área verde usam as `--shell-*` do
+  `index.css` (o degradê, o ícone ativo e o ritmo de abrir e recolher); o conteúdo usa só as
+  `--color-*`. A fonte da marca fica em `--font-brand`.
+- **A largura das telas é do layout:** o `AppLayout` limita e centraliza o conteúdo (`.page`);
+  a page não define `max-width`. Formulário curto limita só os campos, centralizados no cartão,
+  que tem a largura da tela (ex: Configurações).
+- **Menu lateral** (`app/layout/AppSidebar`): recolhido, mostra só os ícones; abre com o mouse
+  em cima ou com o foco do teclado num item e **empurra o conteúdo**. Os itens não mudam de
+  lugar entre os modos. A pílula clara marca a tela aberta pela URL.
+- **Mudança de estado por variáveis:** um estado (ex: o menu recolhido) só troca valores de
+  variáveis CSS; as que animam são registradas com `@property` (ex: `AppSidebar.module.css`).
+  `prefers-reduced-motion` desliga as animações.
 - **Seleção num formulário:** `Select` (nativo, poucas opções), `RichSelect` (opções ricas, por
   clique) e `Combobox` (digitar e filtrar, todo pelo teclado: o Enter escolhe e confirma o campo
   preenchido, e o `onConfirm` leva ao próximo campo; ex: a barra do Lançamento).

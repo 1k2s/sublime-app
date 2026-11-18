@@ -211,7 +211,7 @@ chamadas batem com a API real ainda não foram conferidos.**
 | `contract` | tela de Contratos (`/contracts`; 2026-11-13), ligada à API, no modelo real (um item por grupo de preço): listagem com o status Vigente, Vencido ou Inativo (`current` da API), detalhe com o valor total e as parcelas, inativar, e cadastro em **modal grande com rodapé fixo** (plano no `RichSelect` com o alternador Individual \| Familiar, itens em linhas, prévia `POST /api/contracts/preview` com o fim, os valores e as parcelas); erros por campo da API. Primeiro módulo com `display/`, `utils/` e `hooks/` (ver "Dentro de cada módulo" no [`architecture.md`](architecture.md)). **Testada pela API e pela tela** (2026-11-12 e 2026-11-13) |
 | `provider` | tela de Prestadores (`/providers`, só `ADMIN`; 2026-11-11): listagem, detalhes (com o status do usuário vinculado) e cadastro/edição em **modal**. O cadastro **vincula um usuário existente** (ativo e sem prestador); percentual vazio usa o padrão do backend; erros por campo da API. No detalhe, a **liberação de lançamento retroativo** (2026-11-13, testada pela tela). Ligada à API; os casos de teste do cadastro ainda não foram rodados |
 | `user` | tela de Configurações (`/settings`, os dois perfis): troca do e-mail e da senha com a senha atual; camada `api/` (usuários e `/me`). **Tela de Usuários** (`/users`, só `ADMIN`; 2026-11-10): listagem com busca e filtros, cadastro e alteração com senha provisória, inativar e reativar, admin padrão protegido. Ligada à API e **testada pela tela** (2026-11-11) |
-| `app/`, `shared/` | layout com menu lateral, router com rotas `lazy`, `apiClient`, utilitários (`money`, `date`, `masks`, `alert`, `viacep`) e componentes de `shared/components/` |
+| `app/`, `shared/` | **casca do app** (2026-11-17): menu lateral próprio que abre no hover e empurra o conteúdo, painel claro do conteúdo com animação de entrada, largura única das telas e fonte da marca (ver "Estilo" no [`architecture.md`](architecture.md)); **testada pela tela** (2026-11-17). Router com rotas `lazy`, `apiClient`, utilitários (`money`, `date`, `masks`, `alert`, `viacep`) e componentes de `shared/components/` |
 
 - **Telas de listagem padronizadas** (2026-11-11): Usuários, Pacientes, Prestadores e
   Contratos seguem o mesmo padrão (filtro na page, modal pelo `id`, permissão só no router,
@@ -242,13 +242,12 @@ chamadas batem com a API real ainda não foram conferidos.**
 2. **Inventário** das telas que não entram no item 1 (ex: catálogo de preços): o que cada
    uma faz e se as chamadas batem com o contrato real da API (Swagger). Atualizar esta
    seção com o resultado.
-3. **Nova identidade visual do portal** (levantado em 2026-11-14): **aguarda o artefato** com a
-   identidade, que entra aqui quando o time a validar. Até lá, nada muda no código. Quando
-   chegar, uma branch e uma spec própria, com as prévias das telas antes do código. Entram
-   juntas a melhoria **"Cores em variáveis CSS em todos os componentes"** (com a paleta toda em
-   variáveis, a troca de cores se faz no `index.css`), a pendência da **logo e da `Topbar`** na
-   Sidebar e a conferência do **"Visual global em cada tela"**, que passa a seguir a identidade
-   nova.
+3. **Nova identidade visual do portal** (levantado em 2026-11-14). **Feito:** a casca do app e o
+   menu lateral, com o logo da marca (2026-11-17). **Falta:** decidir a **cor do conteúdo** (o
+   conteúdo segue com a paleta atual, `#5f7a58`; só o menu usa o verde novo, `#0BA17C`),
+   comparando as duas com o menu novo; depois, a melhoria **"Cores em variáveis CSS em todos os
+   componentes"** e a conferência do **"Visual global em cada tela"**, com as prévias antes do
+   código. A `Topbar` entra só se a identidade tiver barra superior.
 
 Checklist da Fase 1 no front (herdado do guia original):
 - [x] Login funcionando e rotas protegidas.
@@ -262,8 +261,13 @@ Checklist da Fase 1 no front (herdado do guia original):
 
 ### Pendências
 
-- **7 vulnerabilidades nas dependências** (4 moderadas, 3 altas), acusadas pelo `npm ci`
-  em 2026-11-06: avaliar com `npm audit` e atualizar o que for seguro.
+- **9 vulnerabilidades nas dependências** (3 moderadas, 6 altas; `npm audit` de 2026-11-17).
+  Primeiro as que rodam no app: `zod` < 4.6.6 e `follow-redirects` (do `axios`); as outras são
+  das ferramentas de build (`vite`, `picomatch`, `minimatch`). Numa branch `chore/` própria,
+  com teste do app inteiro: o `npm audit fix` sobe o `zod`, o `axios` e o `vite`.
+- *Em aberto:* **CSS aninhado** (o nativo, com `&`) **como padrão do projeto**: hoje só no
+  `AppLayout` e no `AppSidebar`.
+- *Em aberto:* **fonte da marca no título do login** (hoje Georgia).
 - *Em aberto:* **boleto no cadastro de contrato.** O formulário oferece Pix, cartão de crédito,
   cartão de débito e dinheiro; o enum `PaymentMethod` também tem `BANK_SLIP` (um contrato que
   venha com ele aparece como "Boleto"). Decidido deixar assim por enquanto (2026-11-11).
@@ -288,8 +292,6 @@ Checklist da Fase 1 no front (herdado do guia original):
 - **Arquivos `.env` por modo do Vite** (revisão de 2026-11-14): o `frontend/.gitignore`
   ignora só o `.env` e os `*.local`; um `.env.production` seria versionado. Trocar por `.env*`
   com a exceção `!.env.example`.
-- Sidebar: trocar a logo em texto pelo arquivo da marca; criar a `Topbar`, se o design
-  tiver barra superior.
 
 ### Melhorias (sem prioridade)
 

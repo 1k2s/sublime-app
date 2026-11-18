@@ -5,7 +5,7 @@ Ela é o "contrato" da feature enquanto ela não está pronta.
 
 **Em andamento:**
 
-- [Casca do app e menu lateral](casca-e-menu-lateral.md) (frontend).
+Nenhuma no momento.
 
 As próximas estão nos "Próximos passos" do [`roadmap.md`](../roadmap.md).
 
