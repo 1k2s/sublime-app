@@ -1,74 +1,453 @@
-.brand {
+/* O recolhido e a janela baixa só trocam as variáveis. As que mudam entre os modos são
+   registradas (@property) para animarem junto com a largura */
+@property --panel-width {
+  syntax: "<length>";
+  inherits: true;
+  initial-value: 52px;
+}
+
+@property --shape {
+  syntax: "<length>";
+  inherits: true;
+  initial-value: 56px;
+}
+
+@property --pill-extra {
+  syntax: "<length>";
+  inherits: true;
+  initial-value: 0px;
+}
+
+@property --pill-radius {
+  syntax: "<length>";
+  inherits: true;
+  initial-value: 28px;
+}
+
+@property --pill-end-radius {
+  syntax: "<length>";
+  inherits: true;
+  initial-value: 0px;
+}
+
+@property --pill-right {
+  syntax: "<length>";
+  inherits: true;
+  initial-value: 0px;
+}
+
+@property --curve {
+  syntax: "<length>";
+  inherits: true;
+  initial-value: 0px;
+}
+
+@property --fill-start {
+  syntax: "<color>";
+  inherits: true;
+  initial-value: transparent;
+}
+
+@property --fill-mid {
+  syntax: "<color>";
+  inherits: true;
+  initial-value: transparent;
+}
+
+@property --fill-end {
+  syntax: "<color>";
+  inherits: true;
+  initial-value: transparent;
+}
+
+/* O overflow corta o que passa da largura (o nome dos itens ao recolher e o logo de fundo); o
+   z-index 0 deixa o logo (-1) entre o fundo e os itens */
+.sidebar {
+  --panel-width: var(--nav-open-width);
+  --item: 56px; /* altura da linha, igual nos dois modos */
+  --gap: 10px;
+  --item-left: 6px;
+  --dot: 40px; /* círculo do recolhido */
+  --list-top: 16px;
+  --step: calc(var(--item) + var(--gap));
+  --shape: var(--item); /* altura do fundo do item */
+  --pill-extra: 0px; /* quanto a pílula clara passa do item */
+  --pill-radius: 28px;
+  /* Aberto: pílula clara solta do painel. Recolhido: encostada e ligada a ele pelas curvas.
+     A troca é em duas etapas (metade do tempo cada), porque as curvas só se encaixam com a
+     pílula encostada e sem canto do lado direito: ao abrir, as curvas somem e depois a pílula se
+     solta; ao recolher, o contrário */
+  --pill-end-radius: 28px;
+  --pill-right: var(--item-left);
+  --curve: 0px;
+  --pill-step: 0.175s;
+  --curve-delay: 0s;
+  --detach-delay: var(--pill-step);
+  --fill-start: rgb(255 255 255 / 0.085);
+  --fill-mid: rgb(255 255 255 / 0.03);
+  --fill-end: transparent;
+
+  position: relative;
+  z-index: 0;
   display: flex;
   flex-direction: column;
+  width: var(--panel-width);
+  height: 100%;
+  padding: 20px 0 18px;
+  overflow: hidden;
+  background:
+    linear-gradient(90deg, transparent 0, rgb(0 0 0 / 0.14) var(--nav-width)),
+    var(--shell-gradient);
+  transition:
+    --panel-width var(--shell-motion),
+    --shape var(--shell-motion),
+    --pill-extra var(--shell-motion),
+    --pill-radius var(--shell-motion),
+    --pill-end-radius var(--pill-step) ease-in-out var(--detach-delay),
+    --pill-right var(--pill-step) ease-in-out var(--detach-delay),
+    --curve var(--pill-step) ease-in-out var(--curve-delay),
+    --fill-start var(--shell-motion),
+    --fill-mid var(--shell-motion),
+    --fill-end var(--shell-motion);
+
+  &.collapsed {
+    --panel-width: var(--nav-width);
+    --shape: var(--dot);
+    --pill-extra: 20px;
+    --pill-radius: 14px;
+    --pill-end-radius: 0px;
+    --pill-right: 0px;
+    --curve: 18px;
+    --curve-delay: var(--pill-step);
+    --detach-delay: 0s;
+    --fill-start: rgb(255 255 255 / 0.1);
+    --fill-mid: rgb(255 255 255 / 0.1);
+    --fill-end: rgb(255 255 255 / 0.1);
+  }
+
+  /* Janela baixa: o menu cabe sem rolar */
+  @media (max-height: 760px) {
+    --item: 50px;
+
+    &.collapsed {
+      --pill-extra: 14px;
+    }
+  }
+}
+
+/* Logo no mesmo lugar nos dois modos (centro a 26px, como os ícones) */
+.header {
+  display: flex;
   align-items: center;
-  padding: 32px 16px 28px;
+  gap: 10px;
+  min-height: 44px;
+  padding: 0 16px 0 4px;
 }
 
 .brandName {
-  font-family: Georgia, "Times New Roman", serif;
-  font-size: 32px;
-  line-height: 1.1;
-  color: #5f7a58;
+  color: #ffffff;
+  font-family: var(--font-brand);
+  font-size: 28px;
+  font-weight: 500;
+  letter-spacing: 0.04em;
+  white-space: nowrap;
 }
 
-.brandTagline {
-  font-size: 10px;
-  color: #6b7280;
+/* Nome da marca e dados do usuário: ao abrir, entram da direita depois de o menu começar a
+   abrir; ao recolher, saem logo */
+.brandName,
+.userInfo {
+  transition:
+    opacity 0.25s ease 0.1s,
+    transform var(--shell-motion) 0.1s,
+    visibility 0s 0.1s;
+
+  .collapsed & {
+    opacity: 0;
+    visibility: hidden;
+    transform: translateX(24px);
+    transition:
+      opacity 0.15s ease,
+      transform 0.2s ease,
+      visibility 0s 0.15s;
+  }
 }
 
+.headerLogo {
+  flex: none;
+  width: 44px;
+  height: 44px;
+  object-fit: contain;
+  filter: brightness(0) invert(1); /* silhueta branca */
+  opacity: 0.85;
+}
+
+/* As pílulas se posicionam pelo número do item (--active, --pointed) × --step */
+.items {
+  position: relative;
+  margin-top: var(--list-top);
+}
+
+.list {
+  display: flex;
+  flex-direction: column;
+  gap: var(--gap);
+  margin: 0;
+  padding: 0;
+  list-style: none;
+
+  & > li {
+    display: flex;
+    align-items: center;
+    height: var(--item);
+  }
+}
+
+.item {
+  position: relative;
+  z-index: 2;
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  width: calc(100% - 2 * var(--item-left)); /* termina onde termina a pílula clara */
+  height: var(--shape);
+  margin-left: var(--item-left);
+  padding: 0 12px 0 10px; /* 10px: ícone no centro do círculo do recolhido */
+  overflow: hidden;
+  border-radius: 999px 0 0 999px;
+  background: linear-gradient(90deg, var(--fill-start) 0%, var(--fill-mid) 55%, var(--fill-end) 100%);
+  color: rgb(255 255 255 / 0.95);
+  font-size: 16px;
+  font-weight: 600;
+  text-decoration: none;
+  white-space: nowrap;
+  transition:
+    color 0.25s ease,
+    font-size 0.25s ease,
+    width var(--shell-motion),
+    border-radius var(--shell-motion);
+
+  &:focus-visible {
+    outline: 2px solid rgb(255 255 255 / 0.85);
+    outline-offset: -2px;
+  }
+
+  &.active {
+    background: none;
+    color: var(--color-title);
+    font-size: 18px;
+    font-weight: 700;
+    cursor: default;
+
+    &:focus-visible {
+      outline-color: var(--shell-active);
+    }
+  }
+
+  &.disabled {
+    opacity: 0.45;
+    cursor: default;
+  }
+
+  .collapsed & {
+    width: var(--dot);
+    border-radius: 999px;
+  }
+}
+
+.icon {
+  display: flex;
+  flex: none;
+  color: #ffffff;
+  transition: transform 0.25s ease;
+
+  .active & {
+    color: var(--shell-active);
+    transform: scale(1.2);
+  }
+}
+
+/* Centralizado na pílula inteira, e não só no espaço depois do ícone: o degradê do fundo faz o
+   fim da pílula parecer mais curto. O padding repete do lado direito o espaço do ícone (10px de
+   margem + 20px do ícone). Some só da vista: o leitor de tela continua lendo o nome */
+.label {
+  flex: 1;
+  min-width: 0;
+  padding-right: 30px;
+  text-align: center;
+  transition: opacity 0.2s ease;
+
+  .collapsed & {
+    opacity: 0;
+  }
+}
+
+/* Pílula da tela aberta: no aberto, solta do painel, com a mesma folga dos dois lados; no
+   recolhido, ligada ao painel pelas curvas (no aberto, --curve 0 as esconde) */
+.activePill {
+  position: absolute;
+  z-index: 1;
+  top: calc((var(--item) - var(--shape)) / 2 - var(--pill-extra));
+  left: var(--item-left);
+  right: var(--pill-right);
+  height: calc(var(--shape) + 2 * var(--pill-extra));
+  border-radius: var(--pill-radius) var(--pill-end-radius) var(--pill-end-radius) var(--pill-radius);
+  background: var(--color-bg);
+  transform: translateY(calc(var(--active) * var(--step)));
+  transition: transform 0.38s cubic-bezier(0.22, 1, 0.36, 1);
+
+  /* Curvas sobrepostas 1px: com a tela em escala (ex: 125%), a emenda mostraria uma linha verde */
+  &::before,
+  &::after {
+    content: "";
+    position: absolute;
+    right: 0;
+    width: var(--curve);
+    height: calc(var(--curve) + 1px);
+  }
+
+  /* Canto côncavo */
+  &::before {
+    bottom: calc(100% - 1px);
+    background: radial-gradient(circle at 0 0, transparent calc(var(--curve) - 0.5px), var(--color-bg) var(--curve));
+  }
+
+  &::after {
+    top: calc(100% - 1px);
+    background: radial-gradient(circle at 0 100%, transparent calc(var(--curve) - 0.5px), var(--color-bg) var(--curve));
+  }
+}
+
+/* Pílula do mouse e do Tab */
+.hoverPill {
+  position: absolute;
+  z-index: 1;
+  top: calc((var(--item) - var(--shape)) / 2);
+  left: var(--item-left);
+  right: 0;
+  height: var(--shape);
+  border-radius: 999px 0 0 999px;
+  background: linear-gradient(90deg, rgb(255 255 255 / 0.2) 0%, rgb(255 255 255 / 0.08) 55%, transparent 100%);
+  opacity: 0;
+  pointer-events: none;
+  transform: translateY(calc(var(--pointed) * var(--step)));
+  transition:
+    transform 0.18s cubic-bezier(0.22, 1, 0.36, 1),
+    opacity 0.12s ease;
+
+  &.visible {
+    opacity: 1;
+  }
+
+  /* Ao reaparecer, vai direto ao item, sem deslizar */
+  &.instant {
+    transition: opacity 0.12s ease;
+  }
+
+  .collapsed & {
+    right: auto;
+    width: var(--dot);
+    border-radius: 999px;
+    background: rgb(255 255 255 / 0.18);
+  }
+}
+
+/* Logo de fundo: centrado no espaço livre, encolhe se faltar espaço; o painel corta o que passa
+   da largura */
+.logoArea {
+  position: relative;
+  z-index: -1;
+  display: flex;
+  align-items: center;
+  flex: 1;
+  min-height: 0;
+  margin: 16px 0 16px -20px;
+  pointer-events: none;
+}
+
+.backgroundLogo {
+  flex: none;
+  height: 100%;
+  max-height: 290px;
+  aspect-ratio: 1;
+  object-fit: contain;
+  opacity: 0.2;
+  filter: grayscale(1) brightness(1.25);
+  mask-image: linear-gradient(90deg, #000 0%, rgb(0 0 0 / 0.85) 30%, rgb(0 0 0 / 0.45) 66%, transparent 100%);
+  transition: opacity 0.25s ease;
+
+  .collapsed & {
+    opacity: 0;
+  }
+}
+
+/* Rodapé: o sair fica na coluna dos ícones, e os dados do usuário entram ao lado */
 .user {
   display: flex;
   align-items: center;
   gap: 10px;
-  margin: auto 12px 0;
-  padding: 16px 4px;
-  border-top: 1px solid var(--color-border);
-}
-
-.avatar {
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  flex-shrink: 0;
-  width: 36px;
-  height: 36px;
-  border-radius: 50%;
-  background: #5f7a58;
-  color: #ffffff;
+  margin-top: auto;
+  padding: 16px 16px 0 var(--item-left);
 }
 
 .userInfo {
   display: flex;
-  flex-direction: column;
   flex: 1;
+  flex-direction: column;
   min-width: 0;
+  overflow: hidden;
+  white-space: nowrap;
 }
 
-.userName {
-  font-size: 13px;
+.userEmail {
+  overflow: hidden;
+  color: #ffffff;
+  font-size: 12px;
   font-weight: 600;
+  text-overflow: ellipsis;
 }
 
 .userRole {
+  color: rgb(209 250 229 / 0.8);
   font-size: 11px;
-  color: #6b7280;
 }
 
 .logout {
   display: flex;
-  padding: 6px;
-  border: none;
-  border-radius: 8px;
-  background: none;
-  color: #374151;
+  align-items: center;
+  justify-content: center;
+  flex: none;
+  width: var(--dot);
+  height: var(--dot);
+  padding: 0;
+  border: 0;
+  border-radius: 50%;
+  background: rgb(255 255 255 / 0.1);
+  color: #ffffff;
   cursor: pointer;
+
+  &:hover {
+    background: rgb(255 255 255 / 0.2);
+  }
+
+  &:focus-visible {
+    outline: 2px solid #ffffff;
+    outline-offset: -2px; /* dentro: o painel corta o que passa da borda */
+  }
 }
 
-.logout:hover:not(:disabled) {
-  background: #dfe8dc;
-}
-
-.logout:disabled {
-  cursor: default;
+@media (prefers-reduced-motion: reduce) {
+  .sidebar,
+  .brandName,
+  .collapsed .brandName,
+  .item,
+  .icon,
+  .label,
+  .activePill,
+  .hoverPill,
+  .backgroundLogo,
+  .userInfo,
+  .collapsed .userInfo {
+    transition: none;
+  }
 }

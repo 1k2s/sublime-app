@@ -1,16 +1,20 @@
 # Specs (features em andamento)
 
-Uma spec por feature em andamento: `docs/specs/<feature>.md`. Ela é o "contrato" da
-feature enquanto ela não está pronta.
+Uma spec por feature em andamento, do backend ou do frontend: `docs/specs/<feature>.md`.
+Ela é o "contrato" da feature enquanto ela não está pronta.
 
-**Em andamento:** nenhuma. As próximas estão nos "Próximos passos" do
-[`roadmap.md`](../roadmap.md).
+**Em andamento:**
+
+Nenhuma no momento.
+
+As próximas estão nos "Próximos passos" do [`roadmap.md`](../roadmap.md).
 
 ## Modelo
 
 Toda spec segue esta estrutura (seção que não se aplica fica com "não se aplica", para
 ninguém achar que foi esquecida). O desenho é apresentado e aprovado antes de escrever o
-código.
+código. Numa feature só do frontend, a seção 3 traz as decisões de visual e de comportamento
+da tela (com as alternativas testadas e descartadas), e a seção 4 fica "não se aplica".
 
 ```markdown
 # Spec — Nome da feature

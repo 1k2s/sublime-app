@@ -31,7 +31,7 @@ export function SettingsPage() {
     <div className={styles.page}>
       <PageHeader title="Configurações" description="Seu e-mail de acesso e sua senha." />
 
-      <Card className={styles.card}>
+      <Card>
         {isLoading && <p className={styles.message}>Carregando...</p>}
         {isError && <p className={styles.message}>{error.message}</p>}
         {me && <SettingsForm defaultEmail={me.email} onSubmit={handleSubmit} isSubmitting={isSaving} />}

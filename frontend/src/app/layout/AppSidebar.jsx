@@ -1,82 +1,160 @@
-// Menu lateral: marca, itens de navegação e usuário logado
-import { NavLink } from "react-router-dom";
-import { Menu, MenuItem, Sidebar, sidebarClasses } from "react-pro-sidebar";
-import { LogOut, User } from "lucide-react";
+// Menu lateral: a pílula clara marca a tela aberta; a translúcida acompanha o mouse e o Tab.
+// Abre com o mouse em cima ou o foco do teclado dentro
+import { useEffect, useRef, useState } from "react";
+import { NavLink, matchPath, useLocation } from "react-router-dom";
+import { LogOut } from "lucide-react";
 import { useAuth } from "@/domain/auth/context/useAuth";
 import { getRole } from "@/domain/auth/roles";
 import { navigationItems } from "./navigationItems";
 import styles from "./AppSidebar.module.css";
 
-// O menu se separa do conteúdo pela sombra, como os cards (sem linha na borda)
-const sidebarRootStyles = {
-  borderRight: "none",
-  boxShadow: "1px 0 12px rgb(16 24 40 / 0.05)",
-  zIndex: 1,
-  [`.${sidebarClasses.container}`]: {
-    display: "flex",
-    flexDirection: "column",
-  },
-};
-
-// O item da tela aberta se destaca: fundo verde-claro, texto e ícone na cor do sistema e a barra
-// à esquerda
-const menuItemStyles = {
-  button: ({ disabled }) => ({
-    height: 46,
-    margin: "3px 12px",
-    padding: "0 14px",
-    borderLeft: "3px solid transparent",
-    borderRadius: 10,
-    fontSize: 15,
-    color: disabled ? "var(--color-muted)" : "var(--color-text)",
-    opacity: disabled ? 0.6 : 1,
-    transition: "background-color 0.15s ease, color 0.15s ease",
-    "&:hover": { backgroundColor: "var(--color-primary-soft)" },
-    "&.active": {
-      backgroundColor: "var(--color-primary-soft)",
-      borderLeftColor: "var(--color-primary)",
-      color: "var(--color-primary)",
-      fontWeight: 600,
-    },
-  }),
-  icon: { minWidth: 26, width: 26, marginRight: 10 },
-};
+// Atrasos do hover: não abre com o mouse só de passagem, nem fecha num escorregão
+const OPEN_DELAY_MS = 60;
+const CLOSE_DELAY_MS = 150;
 
 export function AppSidebar() {
   const { user, signOut } = useAuth();
+  const { pathname } = useLocation();
+  const [expanded, setExpanded] = useState(false);
+  const hoverTimer = useRef(null);
+  const isHovered = useRef(false);
+  // Ao voltar ao menu, a pílula aparece direto no item (instant), sem deslizar do anterior
+  const [pointer, setPointer] = useState({ index: null, visible: false, instant: true });
+
+  useEffect(() => () => clearTimeout(hoverTimer.current), []);
+
   const visibleItems = navigationItems.filter((item) => item.roles.includes(user.role));
+  // Pela URL: /patients/new marca Pacientes; rota fora do menu dá -1
+  const activeIndex = visibleItems.findIndex(
+    (item) => !item.disabled && matchPath({ path: item.path, end: false }, pathname),
+  );
+  const pillIndex = pointer.index ?? Math.max(activeIndex, 0);
+
+  function expandAfter(delay) {
+    clearTimeout(hoverTimer.current);
+    hoverTimer.current = setTimeout(() => setExpanded(true), delay);
+  }
+
+  function collapseAfter(delay) {
+    clearTimeout(hoverTimer.current);
+    hoverTimer.current = setTimeout(() => setExpanded(false), delay);
+  }
+
+  // Só o foco do teclado abre (o clique também foca o link, e o mouse já abriu)
+  function handleFocus(event) {
+    if (event.target.matches(":focus-visible")) {
+      expandAfter(0);
+    }
+  }
+
+  // Tab para fora do menu. Com o mouse em cima, quem fecha é o mouse: a tela aberta pode levar o
+  // foco para um campo (ex: o Lançamento) e o menu não deve fechar por isso
+  function handleBlur(event) {
+    if (!isHovered.current && !event.currentTarget.contains(event.relatedTarget)) {
+      collapseAfter(0);
+    }
+  }
+
+  function handleMouseEnter() {
+    isHovered.current = true;
+    expandAfter(OPEN_DELAY_MS);
+  }
+
+  function handleMouseLeave() {
+    isHovered.current = false;
+    collapseAfter(CLOSE_DELAY_MS);
+  }
+
+  function pointAt(index) {
+    setPointer((current) => ({ index, visible: true, instant: !current.visible }));
+  }
+
+  function hidePointer() {
+    setPointer((current) => ({ ...current, visible: false }));
+  }
+
+  // Tab para fora da lista
+  function handleListBlur(event) {
+    if (!event.currentTarget.contains(event.relatedTarget)) {
+      hidePointer();
+    }
+  }
 
   return (
-    <Sidebar width="240px" backgroundColor="#ffffff" rootStyles={sidebarRootStyles}>
-      <div className={styles.brand}>
+    <nav
+      aria-label="Menu principal"
+      className={`${styles.sidebar} ${expanded ? "" : styles.collapsed}`}
+      onMouseEnter={handleMouseEnter}
+      onMouseLeave={handleMouseLeave}
+      onFocus={handleFocus}
+      onBlur={handleBlur}
+    >
+      <div className={styles.header}>
+        <img className={styles.headerLogo} src="/sublime-logo-symbol.png" alt="" />
         <span className={styles.brandName}>Sublime</span>
-        <span className={styles.brandTagline}>Fisioterapia Especializada</span>
       </div>
 
-      <Menu menuItemStyles={menuItemStyles}>
-        {visibleItems.map(({ label, path, icon: Icon, disabled }) => (
-          <MenuItem
-            key={path}
-            icon={<Icon size={20} />}
-            disabled={disabled}
-            component={disabled ? undefined : <NavLink to={path} />}
-          >
-            {label}
-          </MenuItem>
-        ))}
-      </Menu>
+      <div
+        className={styles.items}
+        style={{ "--active": activeIndex, "--pointed": pillIndex }}
+        onMouseLeave={hidePointer}
+        onBlur={handleListBlur}
+      >
+        {activeIndex >= 0 && <span className={styles.activePill} aria-hidden="true" />}
+        <span
+          className={`${styles.hoverPill} ${pointer.instant ? styles.instant : ""} ${
+            pointer.visible && pointer.index !== activeIndex ? styles.visible : ""
+          }`}
+          aria-hidden="true"
+        />
+
+        <ul className={styles.list}>
+          {visibleItems.map(({ label, path, icon: Icon, disabled }, index) => {
+            const content = (
+              <>
+                <span className={styles.icon}>
+                  <Icon size={20} aria-hidden="true" />
+                </span>
+                <span className={styles.label}>{label}</span>
+              </>
+            );
+
+            return (
+              <li key={path}>
+                {disabled ? (
+                  <span className={`${styles.item} ${styles.disabled}`} aria-disabled="true">
+                    {content}
+                  </span>
+                ) : (
+                  <NavLink
+                    to={path}
+                    className={`${styles.item} ${index === activeIndex ? styles.active : ""}`}
+                    onMouseEnter={() => pointAt(index)}
+                    onFocus={() => pointAt(index)}
+                  >
+                    {content}
+                  </NavLink>
+                )}
+              </li>
+            );
+          })}
+        </ul>
+      </div>
+
+      {/* Fica no recolhido para esmaecer, em vez de sumir de uma vez */}
+      <div className={styles.logoArea} aria-hidden="true">
+        <img className={styles.backgroundLogo} src="/sublime-logo-symbol.png" alt="" />
+      </div>
+
       <div className={styles.user}>
-        <span className={styles.avatar}>
-          <User size={18} />
-        </span>
+        <button type="button" className={styles.logout} aria-label="Sair" onClick={signOut}>
+          <LogOut size={20} aria-hidden="true" />
+        </button>
         <div className={styles.userInfo}>
-          <span className={styles.userName}>{user.email}</span>
+          <span className={styles.userEmail}>{user.email}</span>
           <span className={styles.userRole}>{getRole(user.role)?.label}</span>
         </div>
-        <button type="button" className={styles.logout} aria-label="Sair" title="Sair" onClick={signOut}>
-          <LogOut size={18} />
-        </button>
       </div>
-    </Sidebar>
+    </nav>
   );
 }

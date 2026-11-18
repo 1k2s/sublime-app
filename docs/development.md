@@ -150,11 +150,8 @@ logar: troque a senha pela API ou recrie o usuário.
 | `date-fns` | datas (filtros por período, `validFrom`/`validTo`) |
 | `decimal.js` | exibição precisa de valores monetários |
 | `lucide-react` | ícones |
-| `react-pro-sidebar` | menu lateral |
+| `@fontsource/cormorant-garamond` | fonte da marca (nome "Sublime" no menu), servida pelo próprio app |
 | `sweetalert2` | alertas de erro da API (`shared/utils/alert.js`) |
-
-O `react-pro-sidebar` 1.1.0 funciona com React 19, mas tem manutenção irregular: confira
-a compatibilidade antes de subir a versão do React.
 
 ## Banco e schema (Flyway)
 
@@ -370,6 +367,12 @@ Não são do código:
   - Git: `git config --global http.sslBackend schannel`.
 
   **Nunca desligar a verificação SSL** (nem a do antivírus).
+- **Animações do app não aparecem** (menu, entrada das telas): o sistema pede movimento
+  reduzido, e o app respeita (`prefers-reduced-motion`). No Windows, é a opção
+  **Configurações → Acessibilidade → Efeitos visuais → Efeitos de animação**
+  (`Win+R` → `ms-settings:easeofaccess-visualeffects`); reabra o navegador depois. Para testar
+  sem mudar o sistema: DevTools → ⋮ → More tools → **Rendering** → *Emulate CSS media feature
+  prefers-reduced-motion*.
 - **Arquivos que voltaram sozinhos para versões antigas** (já aconteceu com
   `TechniqueController` e `domain-model.md`): suspeita de OneDrive sincronizando a
   Área de Trabalho ou de aba antiga do VS Code salva por cima.

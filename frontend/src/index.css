@@ -15,6 +15,16 @@
   --radius: 12px;
   /* Cards se destacam do fundo pela sombra, não pela borda */
   --shadow-card: 0 1px 2px rgb(16 24 40 / 0.04), 0 4px 16px rgb(16 24 40 / 0.06);
+
+  /* Casca do app (menu e área verde); o conteúdo usa as cores acima */
+  --shell-gradient: linear-gradient(180deg, #0ba17c 0%, #0a9a78 18%, #08906f 26%, #0a8064 33%,
+    #076d55 41%, #065843 49%, #054836 55%, #022f25 66%, #021913 78%, #010b0a 89%, #010302 100%);
+  /* Ícone do item ativo (contraste 4,6:1 na pílula) */
+  --shell-active: #0a8064;
+  /* Nome da marca, como no logo (carregada no main.jsx, só o peso 500) */
+  --font-brand: "Cormorant Garamond", Georgia, serif;
+  /* Abrir e recolher o menu */
+  --shell-motion: 0.35s cubic-bezier(0.22, 1, 0.36, 1);
 }
 
 * { box-sizing: border-box; }
