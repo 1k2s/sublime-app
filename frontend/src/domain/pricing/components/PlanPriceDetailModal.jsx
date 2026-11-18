@@ -1,5 +1,5 @@
 // Detalhe de uma versão de preço do plano (aberto pelo olho da tabela): um card por duração ou
-// frequência, com o valor. Só a versão vigente pode ser editada ("Editar plano")
+// frequência, com o valor. Versões abertas (vigente ou vencida) podem ser editadas ("Editar plano")
 import { Pencil } from "lucide-react";
 import { Badge } from "@/shared/components/Badge";
 import { Button } from "@/shared/components/Button";
@@ -8,13 +8,15 @@ import { formatDate } from "@/shared/utils/date";
 import { formatCurrency } from "@/shared/utils/money";
 import { hasMixedValidity } from "../display/formatPlanValidity";
 import { formatAxisTitle } from "../display/priceAxis";
-import { formatRowPeriod, getPriceStatusLabel } from "../display/priceStatus";
+import { formatRowPeriod, getPriceStatus } from "../display/priceStatus";
 import { findPriceByAxis } from "../utils/planAxes";
 import styles from "./PlanPriceDetailModal.module.css";
 
 export function PlanPriceDetailModal({ row, axes, pricingModel, groupName, onEdit, onClose }) {
-  // Vigente reajustada em datas diferentes: cada card mostra desde quando o seu valor vale
-  const showDatePerCard = row.isCurrent && hasMixedValidity(row.prices);
+  const status = getPriceStatus(row.status);
+  const isOpen = row.status !== "CLOSED";
+  // Versão aberta com datas diferentes ou vencida: mostra em cada card desde quando o valor vale
+  const showDatePerCard = isOpen && (hasMixedValidity(row.prices) || row.status === "EXPIRED");
 
   return (
     <Modal
@@ -27,7 +29,7 @@ export function PlanPriceDetailModal({ row, axes, pricingModel, groupName, onEdi
           <Button variant="outline" onClick={onClose}>
             Fechar
           </Button>
-          {row.isCurrent && (
+          {isOpen && (
             <Button onClick={onEdit}>
               <Pencil size={16} aria-hidden="true" /> Editar plano
             </Button>
@@ -47,7 +49,12 @@ export function PlanPriceDetailModal({ row, axes, pricingModel, groupName, onEdi
                   Sem preço nesta {pricingModel === "DURATION_BASED" ? "duração" : "frequência"}.
                 </span>
               )}
-              {price && showDatePerCard && <span className={styles.caption}>Desde {formatDate(price.validFrom)}</span>}
+              {price && showDatePerCard && (
+                <span className={styles.caption}>
+                  Desde {formatDate(price.validFrom)}
+                  {price.status === "EXPIRED" ? " · Vencido" : ""}
+                </span>
+              )}
             </section>
           );
         })}
@@ -65,7 +72,7 @@ export function PlanPriceDetailModal({ row, axes, pricingModel, groupName, onEdi
         <div>
           <dt>Status</dt>
           <dd>
-            <Badge variant={row.isCurrent ? "active" : "inactive"}>{getPriceStatusLabel(row.isCurrent)}</Badge>
+            <Badge variant={status.badge}>{status.label}</Badge>
           </dd>
         </div>
       </dl>

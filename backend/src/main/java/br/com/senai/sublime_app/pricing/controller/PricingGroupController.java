@@ -80,9 +80,10 @@ public class PricingGroupController {
     }
 
     @Operation(summary = "Histórico de preços do grupo", description = """
-            Todas as linhas do grupo, da mais recente para a mais antiga: as vigentes (`validTo`
-            nulo) e as encerradas por reajuste (`validTo` preenchido, exclusivo: a linha valeu até
-            o dia anterior). Usado pela tela de preços.
+            Todas as linhas do grupo, da mais recente para a mais antiga, cada uma com o `status`
+            resolvido na data de hoje: `CURRENT` (vigente, aberta há até 12 meses), `EXPIRED`
+            (vencida, aberta há mais de 12 meses sem reajuste) e `CLOSED` (encerrada por reajuste,
+            `validTo` exclusivo: a linha valeu até o dia anterior). Usado pela tela de preços.
             """)
     @ApiResponses({
             @ApiResponse(responseCode = "200", description = "Histórico retornado com sucesso", content = @Content(schema = @Schema(implementation = PricingGroupPriceTableResponseDTO.class))),

@@ -1,7 +1,7 @@
 // Tabela de preços de um grupo de atendimento: uma linha por versão do plano, com o status
-// (Vigente ou Encerrado) e o filtro por status. O olho abre o detalhe; o da versão vigente leva à
-// alteração dos valores. "Novo Preço / Reajustar" cadastra qualquer combinação (ex: um plano ou
-// uma duração que o grupo ainda não tem)
+// (Vigente, Vencido ou Encerrado) e o filtro por status. O olho abre o detalhe; versões abertas
+// (vigente ou vencida) levam à alteração dos valores. "Novo Preço / Reajustar" cadastra qualquer
+// combinação (ex: um plano ou uma duração que o grupo ainda não tem)
 import { useState } from "react";
 import { Plus, Users } from "lucide-react";
 import { Button } from "@/shared/components/Button";
@@ -47,7 +47,7 @@ export function PricingCatalogPage() {
   const [selectedGroupId, setSelectedGroupId] = useState(null);
   const [status, setStatus] = useState("CURRENT");
   // Linha aberta no modal (só a chave: a linha é lida da tabela, que se atualiza depois de salvar)
-  // e o modo: "view" (detalhe) ou "edit" (alteração dos valores, só da versão vigente)
+  // e o modo: "view" (detalhe) ou "edit" (alteração dos valores, em versões abertas: vigente ou vencida)
   const [openRow, setOpenRow] = useState(null);
   // null = modal fechado; objeto vazio = "Novo Preço / Reajustar"
   const [priceFormValues, setPriceFormValues] = useState(null);
@@ -58,12 +58,13 @@ export function PricingCatalogPage() {
   const historyQuery = usePricingGroupPriceHistory(group?.id ?? null);
   const rows = buildPriceRows(historyQuery.data?.prices ?? []);
   const visibleRows = filterPriceRows(rows, status);
-  const currentRows = rows.filter((row) => row.isCurrent);
-  // Colunas: os eixos das linhas visíveis. A versão vigente edita os eixos vigentes do grupo; uma
-  // encerrada mostra só os eixos que tinha
+  const openRows = rows.filter((row) => row.status !== "CLOSED");
+  // Colunas: os eixos das linhas visíveis. Versões abertas (vigente ou vencida) editam os eixos
+  // abertos do grupo; uma encerrada mostra só os eixos que tinha
   const tableAxes = listGroupAxes(visibleRows);
   const selectedRow = rows.find((row) => row.key === openRow?.key);
-  const modalAxes = selectedRow?.isCurrent ? listGroupAxes(currentRows) : listGroupAxes(selectedRow ? [selectedRow] : []);
+  const isSelectedRowOpen = selectedRow != null && selectedRow.status !== "CLOSED";
+  const modalAxes = isSelectedRowOpen ? listGroupAxes(openRows) : listGroupAxes(selectedRow ? [selectedRow] : []);
 
   const isLoading = groupsQuery.isLoading || historyQuery.isLoading;
 
@@ -148,7 +149,7 @@ export function PricingCatalogPage() {
         />
       )}
 
-      {selectedRow?.isCurrent && openRow.mode === "edit" && (
+      {isSelectedRowOpen && openRow.mode === "edit" && (
         <PlanPriceFormModal
           plan={selectedRow}
           axes={modalAxes}
