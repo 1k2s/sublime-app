@@ -5,6 +5,7 @@ import { NavLink, matchPath, useLocation } from "react-router-dom";
 import { LogOut } from "lucide-react";
 import { useAuth } from "@/domain/auth/context/useAuth";
 import { getRole } from "@/domain/auth/roles";
+import { BackgroundShapes } from "./BackgroundShapes";
 import { navigationItems } from "./navigationItems";
 import styles from "./AppSidebar.module.css";
 
@@ -145,6 +146,8 @@ export function AppSidebar() {
       <div className={styles.logoArea} aria-hidden="true">
         <img className={styles.backgroundLogo} src="/sublime-logo-symbol.png" alt="" />
       </div>
+
+      <BackgroundShapes placement="sidebar" className={styles.shapes} />
 
       <div className={styles.user}>
         <button type="button" className={styles.logout} aria-label="Sair" onClick={signOut}>

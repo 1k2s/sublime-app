@@ -1,10 +1,11 @@
 import { Pencil } from "lucide-react";
-import { Card } from "@/shared/components/Card";
-import { Badge } from "@/shared/components/Badge";
-import { ListMessage } from "@/shared/components/ListMessage";
 import { getRole } from "@/domain/auth/roles";
+import { AvatarName } from "@/shared/components/AvatarName";
+import { Badge } from "@/shared/components/Badge";
+import { DataTable } from "@/shared/components/DataTable";
+import { IconButton } from "@/shared/components/IconButton";
+import { ListMessage } from "@/shared/components/ListMessage";
 import { formatPercentage } from "@/shared/utils/money";
-import styles from "./ProviderTable.module.css";
 
 const MESSAGES = {
   loading: "Carregando prestadores...",
@@ -13,13 +14,6 @@ const MESSAGES = {
   empty: "Nenhum prestador cadastrado",
   emptyHint: "Clique em Novo prestador para começar.",
 };
-
-function getInitials(name = "") {
-  const parts = name.trim().split(/\s+/).filter(Boolean);
-  if (parts.length === 0) return "--";
-  if (parts.length === 1) return parts[0].slice(0, 2).toUpperCase();
-  return (parts[0][0] + parts[1][0]).toUpperCase();
-}
 
 export function ProviderTable({
   providers = [],
@@ -32,65 +26,42 @@ export function ProviderTable({
     return <ListMessage isLoading={isLoading} isError={isError} hasRecords={hasRecords} messages={MESSAGES} />;
   }
 
-  return (
-    <Card className={styles.tableCard}>
-      <table className={styles.table}>
-        <thead>
-          <tr>
-            <th className={styles.thName}>NOME</th>
-            <th>E-MAIL</th>
-            <th>PERFIL</th>
-            <th>COMISSÃO PADRÃO</th>
-            <th>COMISSÃO DE PACIENTES QUE TROUXE</th>
-            <th>STATUS</th>
-            <th className={styles.thAction}>AÇÕES</th>
-          </tr>
-        </thead>
-        <tbody>
-          {providers.map((provider) => {
-            const isActive = provider.active;
+  const columns = [
+    { key: "name", header: "Nome", cell: (provider) => <AvatarName name={provider.name} /> },
+    { key: "email", header: "E-mail", cell: (provider) => provider.email || "--" },
+    { key: "role", header: "Perfil", cell: (provider) => getRole(provider.role)?.label ?? "--" },
+    {
+      key: "commission",
+      header: "Comissão padrão",
+      cell: (provider) => formatPercentage(provider.commissionPercentage),
+    },
+    {
+      key: "referralCommission",
+      header: "Comissão de pacientes que trouxe",
+      cell: (provider) => formatPercentage(provider.referralCommissionPercentage),
+    },
+    {
+      key: "status",
+      header: "Status",
+      cell: (provider) => (
+        <Badge variant={provider.active ? "active" : "inactive"}>{provider.active ? "Ativo" : "Inativo"}</Badge>
+      ),
+    },
+    {
+      key: "actions",
+      header: "Ações",
+      align: "center",
+      cell: (provider) => (
+        <IconButton
+          label={`Ver ou editar ${provider.name}`}
+          title="Ver / Editar"
+          onClick={() => onViewDetails?.(provider)}
+        >
+          <Pencil size={16} />
+        </IconButton>
+      ),
+    },
+  ];
 
-            return (
-              <tr key={provider.id} className={styles.row}>
-                <td className={styles.tdName}>
-                  <div className={styles.nameCell}>
-                    <div className={styles.avatar}>
-                      {getInitials(provider.name)}
-                    </div>
-                    <span className={styles.nameText}>{provider.name}</span>
-                  </div>
-                </td>
-
-                <td className={styles.tdData}>{provider.email || "--"}</td>
-
-                <td className={styles.tdData}>{getRole(provider.role)?.label ?? "--"}</td>
-
-                <td className={styles.tdData}>{formatPercentage(provider.commissionPercentage)}</td>
-
-                <td className={styles.tdData}>{formatPercentage(provider.referralCommissionPercentage)}</td>
-
-                <td>
-                  <Badge variant={isActive ? "active" : "inactive"}>
-                    {isActive ? "Ativo" : "Inativo"}
-                  </Badge>
-                </td>
-
-                <td className={styles.thAction}>
-                  <button
-                    type="button"
-                    className={styles.actionButton}
-                    onClick={() => onViewDetails?.(provider)}
-                    aria-label={`Ver ou editar ${provider.name}`}
-                    title="Ver / Editar"
-                  >
-                    <Pencil size={16} />
-                  </button>
-                </td>
-              </tr>
-            );
-          })}
-        </tbody>
-      </table>
-    </Card>
-  );
+  return <DataTable columns={columns} rows={providers} />;
 }

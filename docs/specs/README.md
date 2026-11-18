@@ -5,7 +5,8 @@ Ela é o "contrato" da feature enquanto ela não está pronta.
 
 **Em andamento:**
 
-Nenhuma no momento.
+- [Layout das telas](layout-das-telas.md): cores do menu, fundo creme, tabela padrão e
+  cabeçalho das telas.
 
 As próximas estão nos "Próximos passos" do [`roadmap.md`](../roadmap.md).
 
