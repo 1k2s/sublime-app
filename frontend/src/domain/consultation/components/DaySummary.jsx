@@ -1,12 +1,13 @@
 // Resumo do dia no cabeçalho: a data, a quantidade de atendimentos e o repasse, como o backend
 // devolve (o front não soma)
 import { formatDate } from "@/shared/utils/date";
+import { PageLoader } from "@/shared/components/PageLoader";
 import { formatCurrency } from "@/shared/utils/money";
 import styles from "./DaySummary.module.css";
 
 export function DaySummary({ summary, isLoading = false }) {
   if (isLoading || !summary) {
-    return <p className={styles.loading}>Carregando o resumo do dia...</p>;
+    return <PageLoader variant="compact" label="Carregando o resumo do dia..." />;
   }
 
   const countLabel = summary.consultationCount === 1 ? "1 atendimento" : `${summary.consultationCount} atendimentos`;

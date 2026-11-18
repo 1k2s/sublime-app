@@ -4,12 +4,35 @@
   align-items: center;
   justify-content: center;
   gap: 4px;
+}
+
+.page {
   height: 100vh;
   background: var(--color-bg);
+
+  & .mark {
+    width: min(440px, 80vw);
+  }
+}
+
+.section {
+  padding: 32px 16px;
+
+  & .mark {
+    width: min(260px, 70%);
+  }
+
+  & .tagline {
+    font-size: 11px;
+    letter-spacing: 2px;
+  }
+}
+
+.compact .mark {
+  width: 110px;
 }
 
 .mark {
-  width: min(440px, 80vw);
   height: auto;
 }
 

@@ -3,6 +3,7 @@ import { useState } from "react";
 import { Plus } from "lucide-react";
 import { Button } from "@/shared/components/Button";
 import { PageHeader } from "@/shared/components/PageHeader";
+import { PageLoader } from "@/shared/components/PageLoader";
 import { PriceFormModal } from "../components/PriceFormModal";
 import { PriceTable } from "../components/PriceTable";
 import { usePlans, usePricingGroups, useTechniquePrices, useTechniques } from "../api/usePricing";
@@ -38,11 +39,11 @@ export function PricingCatalogPage() {
   }
 
   function renderContent() {
-    if (isLoading) return <p className={styles.message}>Carregando...</p>;
+    if (isLoading) return <PageLoader variant="section" label="Carregando os preços..." />;
     if (loadError) return <p className={styles.message}>Não foi possível carregar os preços.</p>;
     if (!group) return <p className={styles.message}>Nenhum grupo de preço cadastrado.</p>;
     if (!technique) return <p className={styles.message}>Este grupo ainda não tem técnica cadastrada.</p>;
-    if (pricesQuery.isLoading) return <p className={styles.message}>Carregando...</p>;
+    if (pricesQuery.isLoading) return <PageLoader variant="section" label="Carregando os preços..." />;
     if (prices.length === 0) return <p className={styles.message}>Nenhum preço vigente neste grupo.</p>;
     return <PriceTable prices={prices} pricingModel={group.pricingModel} onEdit={openEdit} />;
   }

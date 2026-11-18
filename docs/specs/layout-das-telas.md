@@ -22,10 +22,13 @@ Iniciada em 2026-11-18.
 
 - **Branch:** `feature/recontrucao-layout-telas`. PR para a `dev`, com merge commit.
 - **Implementado** (só frontend): as cores do menu, o fundo creme, a tabela padrão nas cinco
-  listagens e os losangos de enfeite (seção 5). Conferido por `npm run build` e `npm run lint`; **não testado pela
-  tela**.
-- **Falta:** o formato do cabeçalho das telas e os cards de resumo (seção 2) e a documentação de
-  conclusão (seção 9).
+  listagens, os losangos de enfeite e o carregamento com o nome da marca (seção 5). Conferido por
+  `npm run build` e `npm run lint`; **teste pela tela não feito** (seção 7).
+- **Falta:** o teste pela tela, o formato do cabeçalho das telas e os cards de resumo (seção 2),
+  as decisões da seção 8 e a documentação de conclusão (seção 9).
+- **Ambiente** (notado em 2026-11-18, numa máquina nova): depois de puxar, rodar `npm install`
+  (o `@fontsource/cormorant-garamond`) e criar o `frontend/.env` e o `backend/.env` a partir dos
+  `.env.example`.
 
 ## 2. Objetivo e escopo
 
@@ -81,8 +84,13 @@ Decisões de visual, com o motivo e o que foi comparado.
   contorno, se preenche e some, em loop de 2,8s, com "Fisioterapia especializada" embaixo, no
   fundo creme. Na fonte da marca (`--font-brand`), e não na Fraunces da prévia, para ser o mesmo
   nome do menu. Sem movimento (`prefers-reduced-motion`), fica parado e preenchido.
-- Aparece na entrada no app (o `HydrateFallback` do router), enquanto o layout e a primeira
-  tela carregam: costuma durar menos que um ciclo da animação.
+- Em todos os carregamentos de bloco, em três tamanhos (`variant`): `page`, na entrada no app
+  (o `HydrateFallback` do router); `section`, no lugar das listas (pelo `ListMessage`), da tabela
+  de Preços e do formulário de Configurações; `compact` (só o nome), no resumo do dia do
+  Lançamento, na liberação de retroativo e nos planos do cadastro de contrato. O `label` é o
+  texto que o leitor de tela lê (ex: "Carregando pacientes...").
+- Ficam com texto os carregamentos dentro de campos e botões ("Buscando...", "Calculando...",
+  "Aguarde..."): o nome desenhado não cabe neles.
 
 **Tabela padrão** (`shared/components/DataTable`)
 
@@ -145,6 +153,19 @@ Pela interface, com o backend no ar e os dados do seed.
 | 7 | Losangos: menu aberto e recolhido, rolar uma lista longa, janela estreita | no pé do menu só aberto; nos cantos do conteúdo, parados ao rolar e por trás dos cards; menores na janela estreita |
 
 ## 8. Pendências e pontos abertos
+
+- *Em aberto:* **carregamento com `prefers-reduced-motion`.** Hoje fica parado e preenchido, e não
+  mostra que algo carrega. Em máquinas com os efeitos de animação do Windows desligados (como a usada
+  nos testes de 2026-11-18) é sempre assim. Proposta: nesse modo, o nome pisca devagar (só
+  opacidade, sem deslocamento). Muda a regra "`prefers-reduced-motion` desliga as animações" do
+  `architecture.md` para "desliga os movimentos; o carregamento só pisca".
+- *Em aberto:* **fonte Fraunces**, a da prévia do carregamento e, ao que parece, a do título
+  "Prestadores" da referência: decidir com o cabeçalho das telas (hoje, a Cormorant Garamond).
+- *Em aberto:* o **logo cinza no meio do menu** (a referência não tem) e o grupo de losangos junto
+  do menu com ele recolhido.
+- **Links quebrados para o ADR 0035 de testes** (fora desta feature): o ADR virou o
+  `0036-testes-de-integracao-com-testcontainers.md`, e o `architecture.md`, o `development.md` e
+  o `roadmap.md` ainda apontam para o `0035`; o `check-docs` acusa os 5.
 
 - O `--color-border` continua no cinza frio (`#e4e9e6`); conferir na tela se combina com o
   creme ou se vai para um tom quente.

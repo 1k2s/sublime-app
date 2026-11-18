@@ -2,6 +2,7 @@
 import { useAuth } from "@/domain/auth/context/useAuth";
 import { Card } from "@/shared/components/Card";
 import { PageHeader } from "@/shared/components/PageHeader";
+import { PageLoader } from "@/shared/components/PageLoader";
 import { showError, showSuccess } from "@/shared/utils/alert";
 import { useMe, useUpdateMe } from "../api/useMe";
 import { SettingsForm } from "../components/SettingsForm";
@@ -32,7 +33,7 @@ export function SettingsPage() {
       <PageHeader title="Configurações" description="Seu e-mail de acesso e sua senha." />
 
       <Card>
-        {isLoading && <p className={styles.message}>Carregando...</p>}
+        {isLoading && <PageLoader variant="section" label="Carregando seus dados..." />}
         {isError && <p className={styles.message}>{error.message}</p>}
         {me && <SettingsForm defaultEmail={me.email} onSubmit={handleSubmit} isSubmitting={isSaving} />}
       </Card>
