@@ -8,7 +8,8 @@ import br.com.senai.sublime_app.pricing.domain.SessionFrequencyPriceEntity;
 
 // Formato único para linhas das duas tabelas de preço. Mesma lógica do exclusive arc:
 // só um dos eixos vem preenchido — durationMinutes (SessionDurationPrice) ou
-// weeklyFrequency (SessionFrequencyPrice).
+// weeklyFrequency (SessionFrequencyPrice). validTo nulo = vigente; preenchido = encerrada por um
+// reajuste (exclusivo: a linha valeu até o dia anterior; ver a convenção de datas no domain-model).
 public record SessionPriceResponseDTO(
 
         Long id,
@@ -18,7 +19,8 @@ public record SessionPriceResponseDTO(
         Integer durationMinutes,
         Integer weeklyFrequency,
         BigDecimal sessionValue,
-        LocalDate validFrom
+        LocalDate validFrom,
+        LocalDate validTo
 
 ) {
     public static SessionPriceResponseDTO fromEntity(SessionDurationPriceEntity entity) {
@@ -30,7 +32,8 @@ public record SessionPriceResponseDTO(
                 entity.getDurationMinutes(),
                 null,
                 entity.getSessionValue().amount(),
-                entity.getValidFrom());
+                entity.getValidFrom(),
+                entity.getValidTo());
     }
 
     public static SessionPriceResponseDTO fromEntity(SessionFrequencyPriceEntity entity) {
@@ -42,6 +45,7 @@ public record SessionPriceResponseDTO(
                 null,
                 entity.getWeeklyFrequency(),
                 entity.getSessionValue().amount(),
-                entity.getValidFrom());
+                entity.getValidFrom(),
+                entity.getValidTo());
     }
 }

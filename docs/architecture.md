@@ -221,6 +221,7 @@ de propor mudanças de schema.
 | Consulta com relação | `@EntityGraph` quando a resposta usa a relação (evita N+1) | `TechniqueRepository.findByActiveTrue`, `PlanRepository.findAll`, `ConsultationRepository.search` |
 | Consulta que o nome do método não expressa | `@Query` (JPQL) com `@Param`, só quando o método derivado não dá conta (ex: "ou" com `left join`, filtros opcionais `(:x is null or ...)`); senão, método derivado | `ContractRepository.findActiveCoveringDateByHolderOrBeneficiary`, `ConsultationRepository.search` |
 | Endpoint de apoio à tela | leitura que expõe uma regra do backend para o frontend não repetir | `GET /api/techniques/{id}/prices`, `POST /api/contracts/preview` |
+| Tabela de preços: por técnica ou por grupo | a técnica responde "quanto custa esta técnica" (contrato: `GET /api/techniques/{id}/prices`, o front não precisa saber que o preço mora no grupo); o grupo responde "qual é a tabela deste grupo" (tela de preços: `GET /api/pricing-groups/{id}/prices`, as vigentes, e `GET /api/pricing-groups/{id}/prices/history`, também as encerradas, com `validTo`). Os do grupo respondem mesmo sem técnica ativa: o preço pertence ao grupo ([ADR 0004](adr/0004-grupo-de-preco-e-duas-tabelas.md)) | `PricingService.findCurrentPrices`, `findPriceHistoryByGroup` |
 | "Hoje" | `LocalDate.now()`, sem fuso explícito: o fuso padrão da aplicação é o da clínica (`America/Sao_Paulo`), fixado no bloco `static` do `SublimeAppApplication`, antes do Spring subir, que roda também nos testes de integração (eles carregam a classe sem chamar o `main`). Vale para todo `now()` e para o `@PastOrPresent`; num servidor em UTC, depois das 21h o "hoje" já seria o dia seguinte ([ADR 0034](adr/0034-hoje-no-fuso-da-clinica.md), [ADR 0035](adr/0035-testes-de-integracao-com-testcontainers.md)) | `SublimeAppApplication`, `ContractResponseDTO` (`current`) |
 
 ## Formato dos erros
@@ -383,7 +384,7 @@ frontend/src/
 │   ├── http/                # apiClient.js (axios: baseURL, token, 401) e apiFieldErrors.js
 │   ├── utils/               # money, date, masks, alert (SweetAlert2), viacep, text (normalizeText)
 │   └── components/          # Button, Card, Input, Select, RichSelect, Combobox, FormField, Modal,
-│                            # FilterPills, ListMessage, Stepper, Badge, PageHeader, PageLoader...
+│                            # FilterPills, ListMessage, Skeleton, Stepper, Badge, PageHeader, PageLoader...
 └── domain/                  # um módulo por módulo do backend
     ├── auth/                # sessão, login, ProtectedRoute, roles.js (transversal)
     ├── user/
@@ -567,7 +568,9 @@ Contratos), escolhido em 2026-11-11 a partir do que cada uma fazia melhor:
   redireciona.
 - **Estados da tabela pelo `ListMessage`** (`shared/components`): carregando, erro da API, o
   filtro escondeu todos (`hasRecords`: a lista inteira não está vazia) ou nada cadastrado.
-  Cada tabela passa só os textos com o nome do que lista.
+  Cada tabela passa só os textos com o nome do que lista. Na tela de Preços, o carregando é um
+  **esqueleto da tabela** (`PriceTableSkeleton`, montado com o `Skeleton` de
+  `shared/components`): a mesma moldura, com blocos no lugar dos valores.
 - **Inativar e reativar:** um hook por endpoint (`useDeactivateXxx`, `useActivateXxx`), com
   `mutate(id, { onError })` na page e o `isPending` dos dois passado ao modal
   (`isTogglingStatus`), que desabilita os botões durante a requisição (evita o clique
@@ -603,7 +606,13 @@ Contratos), escolhido em 2026-11-11 a partir do que cada uma fazia melhor:
   (`var(--color-primary)`), para a paleta mudar num lugar só.
 - **Casca do app com tokens próprios:** o menu e a área verde usam as `--shell-*` do
   `index.css` (o degradê, o ícone ativo e o ritmo de abrir e recolher); o conteúdo usa só as
-  `--color-*`. A fonte da marca fica em `--font-brand`.
+  `--color-*`. A fonte da marca fica em `--font-brand` (só o peso 500 é carregado).
+- **Os componentes de `shared/` leem as cores das variáveis** (`--color-primary`,
+  `--color-primary-soft`...), nunca o valor escrito direto: assim uma tela pode redefinir as
+  variáveis no próprio contêiner e tudo dentro dela acompanha. A tela de Preços faz isso com o
+  verde da sidebar (`--shell-active`); os modais herdam porque são renderizados dentro da tela.
+- `Modal variant="soft"` (ex: o plano na tela de Preços): `eyebrow` com as etiquetas acima do
+  título, título maior, cabeçalho sem borda e rodapé com fundo.
 - **A largura das telas é do layout:** o `AppLayout` limita e centraliza o conteúdo (`.page`);
   a page não define `max-width`. Formulário curto limita só os campos, centralizados no cartão,
   que tem a largura da tela (ex: Configurações).

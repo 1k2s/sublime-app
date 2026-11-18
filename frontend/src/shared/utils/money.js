@@ -35,3 +35,9 @@ export function formatPercentage(value) {
     return "";
   }
 }
+
+// Valor da API no formato do campo de texto: 113 -> "113,00". Devolve "" para valor vazio
+export function toMoneyInputValue(value) {
+  if (value === null || value === undefined || value === "") return "";
+  return new Decimal(value).toFixed(2).replace(".", ",");
+}

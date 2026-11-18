@@ -1,0 +1,55 @@
+/* Bloco de carregamento: fundo cinza com uma faixa de brilho que atravessa da esquerda para a
+   direita. A faixa é um ::after movido por transform (mais leve que animar o background) */
+.skeleton {
+  position: relative;
+  display: block;
+  overflow: hidden;
+  width: 100%;
+  height: 14px;
+  background: #e6ebe9;
+}
+
+.skeleton::after {
+  position: absolute;
+  inset: 0;
+  background: linear-gradient(90deg, transparent 0%, rgb(255 255 255 / 0.75) 50%, transparent 100%);
+  transform: translateX(-100%);
+  animation: shimmer 1.3s ease-in-out infinite;
+  content: "";
+}
+
+.text {
+  border-radius: 6px;
+}
+
+.pill {
+  border-radius: 9999px;
+}
+
+.circle {
+  border-radius: 50%;
+}
+
+@keyframes shimmer {
+  to {
+    transform: translateX(100%);
+  }
+}
+
+/* Quem pede menos movimento no sistema (ex: "Efeitos de animação" desligado no Windows) vê o
+   bloco pulsar devagar, sem a faixa atravessando */
+@keyframes pulse {
+  50% {
+    opacity: 0.55;
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .skeleton {
+    animation: pulse 1.6s ease-in-out infinite;
+  }
+
+  .skeleton::after {
+    display: none;
+  }
+}

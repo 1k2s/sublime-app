@@ -16,8 +16,8 @@
 
 .input:focus {
   outline: none;
-  border-color: #5f7a58;
-  box-shadow: 0 0 0 3px #dfe8dc;
+  border-color: var(--color-primary);
+  box-shadow: 0 0 0 3px var(--color-primary-soft);
 }
 
 .invalid,

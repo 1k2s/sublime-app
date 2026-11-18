@@ -60,7 +60,8 @@ export function useContractDraft({ control, plans, techniques, pricingGroups }) 
   }
   const canAddItem = techniqueOptionsFor(-1).length > 0;
 
-  // Linhas de preço de cada técnica escolhida, numa leva só (mesmo cache do useTechniquePrices)
+  // Linhas de preço de cada técnica escolhida, numa leva só. A chave fica sob ["prices"]: as
+  // mutations de preço do pricing a invalidam
   const techniqueIds = [...new Set(items.map((item) => item?.techniqueId).filter(Boolean))];
   const pricesQueries = useQueries({
     queries: techniqueIds.map((techniqueId) => ({

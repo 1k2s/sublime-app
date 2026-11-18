@@ -1,6 +1,6 @@
 import { useState } from "react";
 import { FileText, XCircle } from "lucide-react";
-import { formatPriceAxis } from "@/domain/pricing/priceAxis";
+import { formatPriceAxis } from "@/domain/pricing/display/priceAxis";
 import { Badge } from "@/shared/components/Badge";
 import { Button } from "@/shared/components/Button";
 import { Modal } from "@/shared/components/Modal";

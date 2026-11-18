@@ -43,6 +43,18 @@
   border-color: var(--color-danger);
 }
 
+.trigger-leading {
+  display: flex;
+  flex-shrink: 0;
+  align-items: center;
+  justify-content: center;
+  width: 34px;
+  height: 34px;
+  border-radius: 10px;
+  background: var(--color-primary-soft);
+  color: var(--color-primary);
+}
+
 .trigger-text {
   display: flex;
   flex: 1;

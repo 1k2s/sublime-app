@@ -1,40 +1,30 @@
-.header {
-  margin-bottom: 24px;
+/* A tela de Preços usa o verde da sidebar (casca do app) no lugar da paleta do conteúdo: as
+   variáveis redefinidas aqui valem para tudo dentro da tela, inclusive os modais e o
+   PriceFormModal, que são renderizados dentro dela */
+.page {
+  --color-primary: var(--shell-active);
+  --color-primary-soft: #dcf1ea;
+
+  display: flex;
+  flex-direction: column;
+  gap: 24px;
 }
 
-.tabs {
+/* Grupo à esquerda e filtro de status à direita, alinhados pela base */
+.filters {
   display: flex;
   flex-wrap: wrap;
-  gap: 8px;
-  margin-bottom: 20px;
+  align-items: flex-end;
+  justify-content: space-between;
+  gap: 16px;
 }
 
-.tab {
-  height: 38px;
-  padding: 0 18px;
-  border: 1px solid var(--color-border);
-  border-radius: 999px;
-  background: var(--color-surface);
-  color: var(--color-text);
-  font: inherit;
-  font-size: 14px;
-  cursor: pointer;
+.groupPicker {
+  width: 100%;
+  max-width: 320px;
 }
 
-.tab:hover {
-  background: var(--color-bg);
-}
-
-.active,
-.active:hover {
-  border-color: var(--color-primary);
-  background: var(--color-primary);
-  color: var(--color-surface);
-  font-weight: 600;
-}
-
-.message {
-  padding: 32px;
-  text-align: center;
-  color: var(--color-muted);
+.groupSkeleton {
+  height: 66px;
+  border-radius: var(--radius);
 }

@@ -1,8 +1,12 @@
-.wrapper {
-  overflow-x: auto;
-  border: 1px solid var(--color-border);
-  border-radius: var(--radius);
+.card {
+  overflow: hidden;
+  border-radius: 16px;
   background: var(--color-surface);
+  box-shadow: var(--shadow-card);
+}
+
+.scroll {
+  overflow-x: auto;
 }
 
 .table {
@@ -13,27 +17,56 @@
 
 .table th {
   padding: 14px 20px;
-  text-align: left;
+  border-bottom: 1px solid var(--color-border);
+  background: var(--color-bg);
   color: var(--color-muted);
   font-size: 12px;
-  font-weight: 600;
-  letter-spacing: 0.04em;
-  text-transform: uppercase;
+  font-weight: 500;
+  text-align: left;
   white-space: nowrap;
 }
 
 .table td {
-  padding: 16px 20px;
+  padding: 18px 20px;
   border-top: 1px solid var(--color-border);
+  color: var(--color-text);
+  vertical-align: middle;
+}
+
+.table tbody tr:first-child td {
+  border-top: none;
 }
 
 .table tbody tr:hover {
   background: var(--color-bg);
 }
 
+.plan {
+  color: var(--color-title);
+  font-weight: 600;
+}
+
 .value {
-  font-weight: 700;
+  color: var(--color-title);
+  font-weight: 600;
+  font-variant-numeric: tabular-nums;
   white-space: nowrap;
+}
+
+.muted {
+  color: var(--color-muted);
+}
+
+/* Versão encerrada: valores em cinza, para a vigente se destacar quando as duas aparecem */
+.closed .plan,
+.closed .value {
+  color: var(--color-muted);
+  font-weight: 500;
+}
+
+.table .actions {
+  width: 1%;
+  text-align: center;
 }
 
 .action {
@@ -49,4 +82,9 @@
 .action:hover {
   background: var(--color-primary-soft);
   color: var(--color-primary);
+}
+
+.action:focus-visible {
+  outline: 2px solid var(--color-primary);
+  outline-offset: 2px;
 }

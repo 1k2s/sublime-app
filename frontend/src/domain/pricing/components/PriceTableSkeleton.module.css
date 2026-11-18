@@ -1,0 +1,65 @@
+.card {
+  overflow: hidden;
+  border-radius: 16px;
+  background: var(--color-surface);
+  box-shadow: var(--shadow-card);
+}
+
+.header,
+.row {
+  display: grid;
+  grid-template-columns: 1.4fr 1fr 1fr 1fr 40px;
+  align-items: center;
+  gap: 20px;
+  padding: 0 20px;
+}
+
+.header {
+  height: 46px;
+  border-bottom: 1px solid var(--color-border);
+  background: var(--color-bg);
+}
+
+.row {
+  height: 59px;
+}
+
+.row + .row {
+  border-top: 1px solid var(--color-border);
+}
+
+.headerText {
+  width: 50%;
+  height: 10px;
+}
+
+.plan {
+  width: 60%;
+}
+
+.value {
+  width: 55%;
+}
+
+.validity {
+  width: 75%;
+  height: 12px;
+}
+
+.icon {
+  justify-self: center;
+  width: 22px;
+  height: 22px;
+}
+
+/* Tela estreita: some a vigência, como a tabela que rola de lado mostraria primeiro */
+@media (max-width: 720px) {
+  .header,
+  .row {
+    grid-template-columns: 1.2fr 1fr 1fr 40px;
+  }
+
+  .validityColumn {
+    display: none;
+  }
+}
