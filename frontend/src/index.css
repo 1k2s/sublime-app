@@ -1,8 +1,15 @@
 :root {
-  --color-bg: #f9fbfa;
+  --color-bg: #f6f2e9;
   --color-surface: #ffffff;
+  /* Linhas da tabela: a listra das pares e a divisória entre elas */
+  --color-row-stripe: #faf7f0;
+  --color-row-line: #f0ebe0;
   --color-primary: #5f7a58;
   --color-primary-soft: #dfe8dc;
+  --color-primary-strong: #496345;
+  /* Tons de areia dos losangos de enfeite */
+  --color-sand: #c8a87f;
+  --color-sand-soft: #f0e6d5;
   --color-accent: #3f6fb5;
   /* Valor sugerido pela tela (ex: o último atendimento do paciente recente), que o usuário confirma */
   --color-suggestion-bg: #eef3fb;
@@ -17,10 +24,13 @@
   --shadow-card: 0 1px 2px rgb(16 24 40 / 0.04), 0 4px 16px rgb(16 24 40 / 0.06);
 
   /* Casca do app (menu e área verde); o conteúdo usa as cores acima */
-  --shell-gradient: linear-gradient(180deg, #0ba17c 0%, #0a9a78 18%, #08906f 26%, #0a8064 33%,
-    #076d55 41%, #065843 49%, #054836 55%, #022f25 66%, #021913 78%, #010b0a 89%, #010302 100%);
-  /* Ícone do item ativo (contraste 4,6:1 na pílula) */
-  --shell-active: #0a8064;
+  --shell-bg: #2e422a;
+  --shell-text: #e9efe5;
+  --shell-muted: #b8c9b4;
+  /* Faixa dos losangos no pé do menu */
+  --shell-band: #3e553a;
+  /* Nome e ícone do item ativo, na pílula clara */
+  --shell-active: #2e422a;
   /* Nome da marca, como no logo (carregada no main.jsx, só o peso 500) */
   --font-brand: "Cormorant Garamond", Georgia, serif;
   /* Abrir e recolher o menu */

@@ -5,6 +5,7 @@ import { useState } from "react";
 import { CalendarClock } from "lucide-react";
 import { Button } from "@/shared/components/Button";
 import { Input } from "@/shared/components/Input";
+import { PageLoader } from "@/shared/components/PageLoader";
 import { allowedCountSchema } from "../schemas/retroactiveGrantSchema";
 import styles from "./RetroactiveGrantSection.module.css";
 
@@ -35,15 +36,19 @@ export function RetroactiveGrantSection({ grant, isLoading = false, onGrant, isG
         <CalendarClock size={14} aria-hidden /> Lançamento retroativo
       </h4>
 
-      <p className={styles.status}>
-        {isLoading && "Carregando a liberação..."}
-        {!isLoading && grant && (
-          <>
-            Liberado hoje: <strong>restam {grant.remaining} de {grant.allowedCount}</strong>, até 23:59.
-          </>
-        )}
-        {!isLoading && !grant && "Sem liberação de retroativo hoje."}
-      </p>
+      {isLoading ? (
+        <PageLoader variant="compact" label="Carregando a liberação..." />
+      ) : (
+        <p className={styles.status}>
+          {grant ? (
+            <>
+              Liberado hoje: <strong>restam {grant.remaining} de {grant.allowedCount}</strong>, até 23:59.
+            </>
+          ) : (
+            "Sem liberação de retroativo hoje."
+          )}
+        </p>
+      )}
 
       <div className={styles.form}>
         <label className={styles.label} htmlFor="retroactive-grant-count">

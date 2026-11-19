@@ -3,6 +3,7 @@ import { zodResolver } from "@hookform/resolvers/zod";
 import { Layers, ListChecks, Plus, User } from "lucide-react";
 import { Button } from "@/shared/components/Button";
 import { FormField } from "@/shared/components/FormField";
+import { PageLoader } from "@/shared/components/PageLoader";
 import { applyApiFieldErrors } from "@/shared/http/apiFieldErrors";
 import { useContractDraft } from "../hooks/useContractDraft";
 import { contractSchema } from "../schemas/contractSchema";
@@ -145,7 +146,7 @@ export function ContractForm({
           </ContractSection>
 
           <ContractSection icon={Layers} title="Plano" description="Os valores dos itens se ajustam ao plano escolhido.">
-            {isCatalogLoading && <p className={styles["form-hint"]}>Carregando os planos...</p>}
+            {isCatalogLoading && <PageLoader variant="compact" label="Carregando os planos..." />}
             {isCatalogError && <p className={styles["form-error"]}>Não foi possível carregar os planos.</p>}
             <Controller
               name="planId"

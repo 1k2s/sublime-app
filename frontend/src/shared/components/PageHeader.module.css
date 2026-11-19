@@ -32,9 +32,9 @@
 }
 
 .page-header-back:hover {
-  border-color: #5f7a58;
-  background: #dfe8dc;
-  color: #5f7a58;
+  border-color: var(--color-primary);
+  background: var(--color-primary-soft);
+  color: var(--color-primary);
 }
 
 .page-header-title {

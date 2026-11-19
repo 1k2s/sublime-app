@@ -1,0 +1,42 @@
+.shapes {
+  display: block;
+  height: auto;
+  pointer-events: none;
+}
+
+.dark {
+  fill: var(--shell-bg);
+}
+
+.green {
+  fill: var(--color-primary);
+}
+
+.sage {
+  fill: var(--color-primary-soft);
+}
+
+.sand {
+  fill: var(--color-sand);
+}
+
+.cream {
+  fill: var(--color-sand-soft);
+}
+
+.outline {
+  fill: none;
+  stroke: var(--color-primary-strong);
+  stroke-width: 5;
+}
+
+/* No menu: faixa um pouco mais clara que o fundo e contorno no verde médio */
+.band {
+  fill: var(--shell-band);
+}
+
+.outlineOnShell {
+  fill: none;
+  stroke: var(--color-primary);
+  stroke-width: 4;
+}

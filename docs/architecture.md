@@ -221,7 +221,8 @@ de propor mudanças de schema.
 | Consulta com relação | `@EntityGraph` quando a resposta usa a relação (evita N+1) | `TechniqueRepository.findByActiveTrue`, `PlanRepository.findAll`, `ConsultationRepository.search` |
 | Consulta que o nome do método não expressa | `@Query` (JPQL) com `@Param`, só quando o método derivado não dá conta (ex: "ou" com `left join`, filtros opcionais `(:x is null or ...)`); senão, método derivado | `ContractRepository.findActiveCoveringDateByHolderOrBeneficiary`, `ConsultationRepository.search` |
 | Endpoint de apoio à tela | leitura que expõe uma regra do backend para o frontend não repetir | `GET /api/techniques/{id}/prices`, `POST /api/contracts/preview` |
-| "Hoje" | `LocalDate.now()`, sem fuso explícito: o fuso padrão da aplicação é o da clínica (`America/Sao_Paulo`), fixado no bloco `static` do `SublimeAppApplication`, antes do Spring subir, que roda também nos testes de integração (eles carregam a classe sem chamar o `main`). Vale para todo `now()` e para o `@PastOrPresent`; num servidor em UTC, depois das 21h o "hoje" já seria o dia seguinte ([ADR 0034](adr/0034-hoje-no-fuso-da-clinica.md), [ADR 0035](adr/0035-testes-de-integracao-com-testcontainers.md)) | `SublimeAppApplication`, `ContractResponseDTO` (`current`) |
+| Tabela de preços: por técnica ou por grupo | a técnica responde "quanto custa esta técnica" (contrato: `GET /api/techniques/{id}/prices`, o front não precisa saber que o preço mora no grupo); o grupo responde "qual é a tabela deste grupo" (tela de preços: `GET /api/pricing-groups/{id}/prices`, as vigentes, e `GET /api/pricing-groups/{id}/prices/history`, também as encerradas, com `validTo`). Os do grupo respondem mesmo sem técnica ativa: o preço pertence ao grupo ([ADR 0004](adr/0004-grupo-de-preco-e-duas-tabelas.md)) | `PricingService.findCurrentPrices`, `findPriceHistoryByGroup` |
+| "Hoje" | `LocalDate.now()`, sem fuso explícito: o fuso padrão da aplicação é o da clínica (`America/Sao_Paulo`), fixado no bloco `static` do `SublimeAppApplication`, antes do Spring subir, que roda também nos testes de integração (eles carregam a classe sem chamar o `main`). Vale para todo `now()` e para o `@PastOrPresent`; num servidor em UTC, depois das 21h o "hoje" já seria o dia seguinte ([ADR 0034](adr/0034-hoje-no-fuso-da-clinica.md), [ADR 0036](adr/0036-testes-de-integracao-com-testcontainers.md)) | `SublimeAppApplication`, `ContractResponseDTO` (`current`) |
 
 ## Formato dos erros
 
@@ -318,7 +319,7 @@ Em `backend/src/test`, no mesmo pacote da classe testada. Como rodar: "Rodando o
 | Tipo | Quando | Padrão | Precedente |
 |---|---|---|---|
 | Unidade | regra de entidade, VO ou enum | JUnit + AssertJ, **sem Spring e sem banco**; um método por regra, com `@DisplayName` em português e as três partes (prepara, executa, confere); erro conferido pela classe e pela **mensagem exata**; `@Nested` para agrupar por operação; o `id` (gerado pelo banco) preenchido pelo `ReflectionTestUtils` só quando a regra depende dele; **data recebida pronta**, nunca o `now()`: sem o Spring, o fuso da clínica não é aplicado | `PercentageTest`, `ProviderEntityTest` |
-| Integração | o que só aparece com a aplicação inteira: autorização, fluxo de um endpoint, constraint do banco | **`@IntegrationTest`**: MySQL do Testcontainers, perfil `test` e MockMvc, **sem rollback**: cada requisição tem a própria transação, como em produção ([ADR 0035](adr/0035-testes-de-integracao-com-testcontainers.md)). Cada teste cria os próprios dados, únicos (e-mails com `UUID`), e nunca supõe tabela vazia; o token sai do `POST /api/auth/login` real; a mudança de estado que o teste confere passa pela API, não pelo repositório; casos de uma tabela (ex: rotas por perfil) com `@ParameterizedTest`; **toda rota testada com 403 para um perfil tem o caso positivo** do perfil que acessa (um 403 sozinho não distingue "restrita" de "quebrada para todos"). A configuração da classe é só a `@IntegrationTest`: um `@MockitoBean`, um `@TestPropertySource` ou outro `@Import` criam um segundo contexto do Spring e, com ele, um segundo MySQL | `AuthorizationIntegrationTest` |
+| Integração | o que só aparece com a aplicação inteira: autorização, fluxo de um endpoint, constraint do banco | **`@IntegrationTest`**: MySQL do Testcontainers, perfil `test` e MockMvc, **sem rollback**: cada requisição tem a própria transação, como em produção ([ADR 0036](adr/0036-testes-de-integracao-com-testcontainers.md)). Cada teste cria os próprios dados, únicos (e-mails com `UUID`), e nunca supõe tabela vazia; o token sai do `POST /api/auth/login` real; a mudança de estado que o teste confere passa pela API, não pelo repositório; casos de uma tabela (ex: rotas por perfil) com `@ParameterizedTest`; **toda rota testada com 403 para um perfil tem o caso positivo** do perfil que acessa (um 403 sozinho não distingue "restrita" de "quebrada para todos"). A configuração da classe é só a `@IntegrationTest`: um `@MockitoBean`, um `@TestPropertySource` ou outro `@Import` criam um segundo contexto do Spring e, com ele, um segundo MySQL | `AuthorizationIntegrationTest` |
 
 O Maven roda os testes numa **JVM em UTC** (`argLine` do surefire no `pom.xml`), como um
 servidor ou o CI: o `SublimeAppApplicationTests` confere que a aplicação aplica o fuso da clínica
@@ -383,7 +384,7 @@ frontend/src/
 │   ├── http/                # apiClient.js (axios: baseURL, token, 401) e apiFieldErrors.js
 │   ├── utils/               # money, date, masks, alert (SweetAlert2), viacep, text (normalizeText)
 │   └── components/          # Button, Card, Input, Select, RichSelect, Combobox, FormField, Modal,
-│                            # FilterPills, ListMessage, Stepper, Badge, PageHeader, PageLoader...
+│                            # FilterPills, ListMessage, Stepper, Badge, DataTable, IconButton, PageHeader, PageLoader...
 └── domain/                  # um módulo por módulo do backend
     ├── auth/                # sessão, login, ProtectedRoute, roles.js (transversal)
     ├── user/
@@ -603,7 +604,13 @@ Contratos), escolhido em 2026-11-11 a partir do que cada uma fazia melhor:
   (`var(--color-primary)`), para a paleta mudar num lugar só.
 - **Casca do app com tokens próprios:** o menu e a área verde usam as `--shell-*` do
   `index.css` (o degradê, o ícone ativo e o ritmo de abrir e recolher); o conteúdo usa só as
-  `--color-*`. A fonte da marca fica em `--font-brand`.
+  `--color-*`. A fonte da marca fica em `--font-brand` (só o peso 500 é carregado).
+- **Os componentes de `shared/` leem as cores das variáveis** (`--color-primary`,
+  `--color-primary-soft`...), nunca o valor escrito direto: assim uma tela pode redefinir as
+  variáveis no próprio contêiner e tudo dentro dela acompanha. A tela de Preços faz isso com o
+  verde da sidebar (`--shell-active`); os modais herdam porque são renderizados dentro da tela.
+- `Modal variant="soft"` (ex: o plano na tela de Preços): `eyebrow` com as etiquetas acima do
+  título, título maior, cabeçalho sem borda e rodapé com fundo.
 - **A largura das telas é do layout:** o `AppLayout` limita e centraliza o conteúdo (`.page`);
   a page não define `max-width`. Formulário curto limita só os campos, centralizados no cartão,
   que tem a largura da tela (ex: Configurações).

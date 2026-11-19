@@ -14,6 +14,7 @@ import br.com.senai.sublime_app.pricing.domain.SessionFrequencyPriceEntity;
 import br.com.senai.sublime_app.pricing.domain.TechniqueEntity;
 import br.com.senai.sublime_app.pricing.dto.DurationPriceRequestDTO;
 import br.com.senai.sublime_app.pricing.dto.FrequencyPriceRequestDTO;
+import br.com.senai.sublime_app.pricing.dto.PricingGroupPriceTableResponseDTO;
 import br.com.senai.sublime_app.pricing.dto.SessionPriceResponseDTO;
 import br.com.senai.sublime_app.pricing.dto.TechniquePriceTableResponseDTO;
 import br.com.senai.sublime_app.pricing.repository.PlanRepository;
@@ -23,7 +24,7 @@ import br.com.senai.sublime_app.pricing.repository.SessionFrequencyPriceReposito
 import br.com.senai.sublime_app.pricing.repository.TechniqueRepository;
 import br.com.senai.sublime_app.shared.exception.ResourceNotFoundException;
 
-// Preços: a tabela vigente de uma técnica e o cadastro de valor (preço novo ou reajuste,
+// Preços: a tabela vigente de uma técnica, a tabela e o histórico de um grupo, e o cadastro de valor (preço novo ou reajuste,
 // no mesmo fluxo).
 @Service
 public class PricingService {
@@ -59,11 +60,49 @@ public class PricingService {
         TechniqueEntity technique = techniqueRepository.findById(techniqueId)
                 .orElseThrow(() -> new ResourceNotFoundException("Técnica não encontrada com id: " + techniqueId));
 
-        Long pricingGroupId = technique.getPricingGroup().getId();
+        return TechniquePriceTableResponseDTO.fromEntity(technique, findCurrentPrices(technique.getPricingGroup()));
+    }
+
+    /**
+     * Linhas vigentes do grupo (tela de preços). Responde mesmo quando o grupo não tem
+     * técnica ativa: o preço pertence ao grupo (ADR 0004).
+     */
+    @Transactional(readOnly = true)
+    public PricingGroupPriceTableResponseDTO findCurrentPriceTableByGroup(Long pricingGroupId) {
+        PricingGroupEntity pricingGroup = findPricingGroup(pricingGroupId);
+        return PricingGroupPriceTableResponseDTO.fromEntity(pricingGroup, findCurrentPrices(pricingGroup));
+    }
+
+    /**
+     * Histórico de preços do grupo: as linhas vigentes e as encerradas por reajuste
+     * (validTo preenchido), da mais recente para a mais antiga.
+     */
+    @Transactional(readOnly = true)
+    public PricingGroupPriceTableResponseDTO findPriceHistoryByGroup(Long pricingGroupId) {
+        PricingGroupEntity pricingGroup = findPricingGroup(pricingGroupId);
+        Long id = pricingGroup.getId();
+
+        // switch com retorno: ver findCurrentPrices
+        List<SessionPriceResponseDTO> prices = switch (pricingGroup.getPricingModel()) {
+            case DURATION_BASED -> sessionDurationPriceRepository
+                    .findByPricingGroupIdOrderByValidFromDescIdDesc(id).stream()
+                    .map(SessionPriceResponseDTO::fromEntity)
+                    .toList();
+            case FREQUENCY_BASED -> sessionFrequencyPriceRepository
+                    .findByPricingGroupIdOrderByValidFromDescIdDesc(id).stream()
+                    .map(SessionPriceResponseDTO::fromEntity)
+                    .toList();
+        };
+        return PricingGroupPriceTableResponseDTO.fromEntity(pricingGroup, prices);
+    }
+
+    // Linhas vigentes do grupo, buscando só na tabela correspondente ao pricingModel dele
+    private List<SessionPriceResponseDTO> findCurrentPrices(PricingGroupEntity pricingGroup) {
+        Long pricingGroupId = pricingGroup.getId();
 
         // switch com retorno obriga a tratar todos os valores do enum: um novo
         // PricingModel quebra a compilação aqui em vez de cair na tabela errada
-        List<SessionPriceResponseDTO> prices = switch (technique.getPricingGroup().getPricingModel()) {
+        return switch (pricingGroup.getPricingModel()) {
             case DURATION_BASED -> sessionDurationPriceRepository
                     .findByPricingGroupIdAndValidToIsNull(pricingGroupId).stream()
                     .map(SessionPriceResponseDTO::fromEntity)
@@ -73,8 +112,6 @@ public class PricingService {
                     .map(SessionPriceResponseDTO::fromEntity)
                     .toList();
         };
-
-        return TechniquePriceTableResponseDTO.fromEntity(technique, prices);
     }
 
     /**

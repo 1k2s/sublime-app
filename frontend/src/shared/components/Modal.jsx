@@ -1,6 +1,8 @@
 // Janela sobre o conteúdo. Fecha com Esc, clicando no fundo ou no X.
-// Opcionais: icon (ícone no círculo), titleExtra (ao lado do título, ex: Badge), description
-// (subtítulo) e footer (faixa de rodapé, com borda em cima).
+// Opcionais: icon (ícone no círculo), eyebrow (acima do título, ex: Badges), titleExtra (ao lado do
+// título, ex: Badge), description (subtítulo) e footer (faixa de rodapé, com borda em cima).
+// variant="soft": título maior, cabeçalho sem borda e rodapé com fundo (ex: o plano na tela de
+// Preços).
 // size="large": formulário longo (ex: cadastro de contrato). O conteúdo ocupa a altura toda e
 // cuida da própria rolagem e do próprio rodapé fixo.
 // closeOnBackdrop={false}: o clique no fundo não fecha (num formulário longo, um clique sem querer
@@ -12,11 +14,13 @@ import styles from "./Modal.module.css";
 export function Modal({
   title,
   icon: Icon,
+  eyebrow,
   titleExtra,
   description,
   footer,
   onClose,
   size = "default",
+  variant = "default",
   closeOnBackdrop = true,
   children,
 }) {
@@ -31,7 +35,9 @@ export function Modal({
   return (
     <div className={styles.backdrop} onMouseDown={closeOnBackdrop ? onClose : undefined}>
       <div
-        className={[styles.dialog, size === "large" && styles.large].filter(Boolean).join(" ")}
+        className={[styles.dialog, size === "large" && styles.large, variant === "soft" && styles.soft]
+          .filter(Boolean)
+          .join(" ")}
         role="dialog"
         aria-modal="true"
         aria-label={title}
@@ -44,6 +50,7 @@ export function Modal({
             </span>
           )}
           <div className={styles.heading}>
+            {eyebrow && <div className={styles.eyebrow}>{eyebrow}</div>}
             <div className={styles.titleRow}>
               <h2 className={styles.title}>{title}</h2>
               {titleExtra}
