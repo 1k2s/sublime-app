@@ -23,8 +23,3 @@
   width: 100%;
   max-width: 320px;
 }
-
-.groupSkeleton {
-  height: 66px;
-  border-radius: var(--radius);
-}

@@ -222,7 +222,7 @@ de propor mudanças de schema.
 | Consulta que o nome do método não expressa | `@Query` (JPQL) com `@Param`, só quando o método derivado não dá conta (ex: "ou" com `left join`, filtros opcionais `(:x is null or ...)`); senão, método derivado | `ContractRepository.findActiveCoveringDateByHolderOrBeneficiary`, `ConsultationRepository.search` |
 | Endpoint de apoio à tela | leitura que expõe uma regra do backend para o frontend não repetir | `GET /api/techniques/{id}/prices`, `POST /api/contracts/preview` |
 | Tabela de preços: por técnica ou por grupo | a técnica responde "quanto custa esta técnica" (contrato: `GET /api/techniques/{id}/prices`, o front não precisa saber que o preço mora no grupo); o grupo responde "qual é a tabela deste grupo" (tela de preços: `GET /api/pricing-groups/{id}/prices`, as vigentes, e `GET /api/pricing-groups/{id}/prices/history`, também as encerradas, com `validTo`). Os do grupo respondem mesmo sem técnica ativa: o preço pertence ao grupo ([ADR 0004](adr/0004-grupo-de-preco-e-duas-tabelas.md)) | `PricingService.findCurrentPrices`, `findPriceHistoryByGroup` |
-| "Hoje" | `LocalDate.now()`, sem fuso explícito: o fuso padrão da aplicação é o da clínica (`America/Sao_Paulo`), fixado no bloco `static` do `SublimeAppApplication`, antes do Spring subir, que roda também nos testes de integração (eles carregam a classe sem chamar o `main`). Vale para todo `now()` e para o `@PastOrPresent`; num servidor em UTC, depois das 21h o "hoje" já seria o dia seguinte ([ADR 0034](adr/0034-hoje-no-fuso-da-clinica.md), [ADR 0035](adr/0035-testes-de-integracao-com-testcontainers.md)) | `SublimeAppApplication`, `ContractResponseDTO` (`current`) |
+| "Hoje" | `LocalDate.now()`, sem fuso explícito: o fuso padrão da aplicação é o da clínica (`America/Sao_Paulo`), fixado no bloco `static` do `SublimeAppApplication`, antes do Spring subir, que roda também nos testes de integração (eles carregam a classe sem chamar o `main`). Vale para todo `now()` e para o `@PastOrPresent`; num servidor em UTC, depois das 21h o "hoje" já seria o dia seguinte ([ADR 0034](adr/0034-hoje-no-fuso-da-clinica.md), [ADR 0036](adr/0036-testes-de-integracao-com-testcontainers.md)) | `SublimeAppApplication`, `ContractResponseDTO` (`current`) |
 
 ## Formato dos erros
 
@@ -319,7 +319,7 @@ Em `backend/src/test`, no mesmo pacote da classe testada. Como rodar: "Rodando o
 | Tipo | Quando | Padrão | Precedente |
 |---|---|---|---|
 | Unidade | regra de entidade, VO ou enum | JUnit + AssertJ, **sem Spring e sem banco**; um método por regra, com `@DisplayName` em português e as três partes (prepara, executa, confere); erro conferido pela classe e pela **mensagem exata**; `@Nested` para agrupar por operação; o `id` (gerado pelo banco) preenchido pelo `ReflectionTestUtils` só quando a regra depende dele; **data recebida pronta**, nunca o `now()`: sem o Spring, o fuso da clínica não é aplicado | `PercentageTest`, `ProviderEntityTest` |
-| Integração | o que só aparece com a aplicação inteira: autorização, fluxo de um endpoint, constraint do banco | **`@IntegrationTest`**: MySQL do Testcontainers, perfil `test` e MockMvc, **sem rollback**: cada requisição tem a própria transação, como em produção ([ADR 0035](adr/0035-testes-de-integracao-com-testcontainers.md)). Cada teste cria os próprios dados, únicos (e-mails com `UUID`), e nunca supõe tabela vazia; o token sai do `POST /api/auth/login` real; a mudança de estado que o teste confere passa pela API, não pelo repositório; casos de uma tabela (ex: rotas por perfil) com `@ParameterizedTest`; **toda rota testada com 403 para um perfil tem o caso positivo** do perfil que acessa (um 403 sozinho não distingue "restrita" de "quebrada para todos"). A configuração da classe é só a `@IntegrationTest`: um `@MockitoBean`, um `@TestPropertySource` ou outro `@Import` criam um segundo contexto do Spring e, com ele, um segundo MySQL | `AuthorizationIntegrationTest` |
+| Integração | o que só aparece com a aplicação inteira: autorização, fluxo de um endpoint, constraint do banco | **`@IntegrationTest`**: MySQL do Testcontainers, perfil `test` e MockMvc, **sem rollback**: cada requisição tem a própria transação, como em produção ([ADR 0036](adr/0036-testes-de-integracao-com-testcontainers.md)). Cada teste cria os próprios dados, únicos (e-mails com `UUID`), e nunca supõe tabela vazia; o token sai do `POST /api/auth/login` real; a mudança de estado que o teste confere passa pela API, não pelo repositório; casos de uma tabela (ex: rotas por perfil) com `@ParameterizedTest`; **toda rota testada com 403 para um perfil tem o caso positivo** do perfil que acessa (um 403 sozinho não distingue "restrita" de "quebrada para todos"). A configuração da classe é só a `@IntegrationTest`: um `@MockitoBean`, um `@TestPropertySource` ou outro `@Import` criam um segundo contexto do Spring e, com ele, um segundo MySQL | `AuthorizationIntegrationTest` |
 
 O Maven roda os testes numa **JVM em UTC** (`argLine` do surefire no `pom.xml`), como um
 servidor ou o CI: o `SublimeAppApplicationTests` confere que a aplicação aplica o fuso da clínica
@@ -384,7 +384,7 @@ frontend/src/
 │   ├── http/                # apiClient.js (axios: baseURL, token, 401) e apiFieldErrors.js
 │   ├── utils/               # money, date, masks, alert (SweetAlert2), viacep, text (normalizeText)
 │   └── components/          # Button, Card, Input, Select, RichSelect, Combobox, FormField, Modal,
-│                            # FilterPills, ListMessage, Skeleton, Stepper, Badge, PageHeader, PageLoader...
+│                            # FilterPills, ListMessage, Stepper, Badge, DataTable, IconButton, PageHeader, PageLoader...
 └── domain/                  # um módulo por módulo do backend
     ├── auth/                # sessão, login, ProtectedRoute, roles.js (transversal)
     ├── user/
@@ -568,9 +568,7 @@ Contratos), escolhido em 2026-11-11 a partir do que cada uma fazia melhor:
   redireciona.
 - **Estados da tabela pelo `ListMessage`** (`shared/components`): carregando, erro da API, o
   filtro escondeu todos (`hasRecords`: a lista inteira não está vazia) ou nada cadastrado.
-  Cada tabela passa só os textos com o nome do que lista. Na tela de Preços, o carregando é um
-  **esqueleto da tabela** (`PriceTableSkeleton`, montado com o `Skeleton` de
-  `shared/components`): a mesma moldura, com blocos no lugar dos valores.
+  Cada tabela passa só os textos com o nome do que lista.
 - **Inativar e reativar:** um hook por endpoint (`useDeactivateXxx`, `useActivateXxx`), com
   `mutate(id, { onError })` na page e o `isPending` dos dois passado ao modal
   (`isTogglingStatus`), que desabilita os botões durante a requisição (evita o clique
