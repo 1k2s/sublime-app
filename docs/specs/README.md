@@ -5,7 +5,8 @@ Ela é o "contrato" da feature enquanto ela não está pronta.
 
 **Em andamento:**
 
-Nenhuma no momento.
+- [`contrato-aditivo.md`](contrato-aditivo.md): tela do aditivo do contrato (prorrogar,
+  incluir e remover itens, parcelas), com prévia antes de salvar.
 
 As próximas estão nos "Próximos passos" do [`roadmap.md`](../roadmap.md).
 
