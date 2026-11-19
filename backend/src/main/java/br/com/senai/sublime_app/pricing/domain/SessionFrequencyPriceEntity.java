@@ -2,6 +2,7 @@ package br.com.senai.sublime_app.pricing.domain;
 
 import java.time.LocalDate;
 
+import br.com.senai.sublime_app.pricing.enums.PriceStatus;
 import br.com.senai.sublime_app.pricing.enums.PricingModel;
 import br.com.senai.sublime_app.shared.exception.BusinessRuleException;
 import jakarta.persistence.Column;
@@ -70,9 +71,14 @@ public class SessionFrequencyPriceEntity {
         this.validFrom = validFrom;
     }
 
-    // Linha vigente = ainda não encerrada por um reajuste (validTo = null)
+    // Linha aberta = ainda não encerrada por um reajuste (validTo = null)
     public boolean isCurrent() {
         return validTo == null;
+    }
+
+    // Status na data (CURRENT, EXPIRED após 12 meses sem reajuste ou CLOSED). Regra em PriceStatus.
+    public PriceStatus statusOn(LocalDate date) {
+        return PriceStatus.resolve(validFrom, validTo, date);
     }
 
     // Encerra a linha num reajuste. validTo é exclusivo, então a linha nova abre na mesma data.

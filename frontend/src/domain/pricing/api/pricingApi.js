@@ -22,6 +22,13 @@ export async function getTechniquePrices(techniqueId) {
   return data;
 }
 
+// Histórico de preços do grupo (tela de preços): as linhas vigentes e as encerradas por reajuste
+// (validTo preenchido); responde mesmo sem técnica ativa no grupo
+export async function getPricingGroupPriceHistory(pricingGroupId) {
+  const { data } = await apiClient.get(`/pricing-groups/${pricingGroupId}/prices/history`);
+  return data;
+}
+
 // Preço novo ou reajuste: o backend fecha a vigência anterior e abre a nova com validFrom = hoje
 export async function createDurationPrice(payload) {
   const { data } = await apiClient.post("/prices/duration", payload);

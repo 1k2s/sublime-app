@@ -557,6 +557,18 @@ Validações do cadastro: o `pricingModel` do grupo corresponde à tabela usada
 (duração: `SINGLE_SESSION` ou `PACKAGE`; frequência: `MONTHLY_FEE` — ver
 `PlanType` em `Plan`); valor maior que zero.
 
+**Status da linha de preço (`PriceStatus`):** resolvido pelo backend na leitura
+(`statusOn(LocalDate.now())`) e retornado em `SessionPriceResponseDTO.status`, para a
+tela não repetir a comparação de datas:
+- `CURRENT` (**Vigente**): `validTo` nulo e dentro de 12 meses desde `validFrom`
+  (`today <= validFrom + 12 meses`).
+- `EXPIRED` (**Vencido**): `validTo` nulo e mais de 12 meses desde `validFrom`
+  (`validFrom.plusMonths(12).isBefore(today)`). Sinaliza na tabela de preços que o
+  valor está sem reajuste há mais de um ano e merece revisão; a linha continua aberta
+  (`isCurrent() == true`), utilizável em contratos e lançamentos, e ao ser reajustada
+  fecha normalmente (`validTo` = hoje) dando lugar à nova linha `CURRENT`.
+- `CLOSED` (**Encerrado**): `validTo` preenchido (substituída por um reajuste).
+
 **Percentual de desconto nunca é persistido.** É sempre calculado em tempo de
 leitura: `1 − (valorDoPlano / valorDeReferência)`, onde a referência é o Avulso da
 mesma técnica/grupo quando existir, ou o Mensal quando não existir Avulso (caso do
