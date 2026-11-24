@@ -20,7 +20,8 @@ Iniciada em 2026-11-18.
 
 ## 1. Status
 
-- **Branch:** `feature/recontrucao-layout-telas`. PR para a `dev`, com merge commit.
+- **Branch:** `feature/recontrucao-layout-telas`, junto com a tela de preços na
+  `merge/estruturacao-layout`. PR para a `dev`, com merge commit.
 - **Implementado** (só frontend): as cores do menu, o fundo creme, a tabela padrão nas cinco
   listagens, os losangos de enfeite e o carregamento com o nome da marca (seção 5). Conferido por
   `npm run build` e `npm run lint`; **teste pela tela não feito** (seção 7).
@@ -163,9 +164,6 @@ Pela interface, com o backend no ar e os dados do seed.
   "Prestadores" da referência: decidir com o cabeçalho das telas (hoje, a Cormorant Garamond).
 - *Em aberto:* o **logo cinza no meio do menu** (a referência não tem) e o grupo de losangos junto
   do menu com ele recolhido.
-- **Links quebrados para o ADR 0035 de testes** (fora desta feature): o ADR virou o
-  `0036-testes-de-integracao-com-testcontainers.md`, e o `architecture.md`, o `development.md` e
-  o `roadmap.md` ainda apontam para o `0035`; o `check-docs` acusa os 5.
 
 - O `--color-border` continua no cinza frio (`#e4e9e6`); conferir na tela se combina com o
   creme ou se vai para um tom quente.

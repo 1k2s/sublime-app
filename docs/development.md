@@ -103,8 +103,9 @@ os valores:
 Copy-Item backend/.env.example backend/.env   # depois edite o backend/.env
 ```
 
-- O `application.properties` importa o arquivo (`spring.config.import=optional:file:.env[.properties]`).
-  O caminho é relativo à pasta de onde a aplicação sobe: rode a partir de `backend/`.
+- O `application.properties` importa o arquivo (`spring.config.import`) procurando em `.env`
+  e em `backend/.env`, relativos à pasta de onde a aplicação sobe: funciona tanto com o
+  `./mvnw spring-boot:run` em `backend/` quanto com o Run da IDE, que sobe na raiz.
 - Sem o arquivo, valem as variáveis de ambiente do sistema (é como funciona num servidor):
   `$env:JWT_SECRET = "..."` no PowerShell, por exemplo.
 - **Nunca commite o `.env`.** Uma variável nova entra também no `.env.example`, com um

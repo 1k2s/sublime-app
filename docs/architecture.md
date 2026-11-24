@@ -382,7 +382,7 @@ frontend/src/
 │   └── layout/              # AppLayout, AppSidebar, navigationItems.js
 ├── shared/                  # genérico, sem regra de negócio
 │   ├── http/                # apiClient.js (axios: baseURL, token, 401) e apiFieldErrors.js
-│   ├── utils/               # money, date, masks, alert (SweetAlert2), viacep, text (normalizeText)
+│   ├── utils/               # money, date, masks, alert (SweetAlert2), viacep, text (normalizeText, getInitials)
 │   └── components/          # Button, Card, Input, Select, RichSelect, Combobox, FormField, Modal,
 │                            # FilterPills, ListMessage, Stepper, Badge, DataTable, IconButton, PageHeader, PageLoader...
 └── domain/                  # um módulo por módulo do backend
