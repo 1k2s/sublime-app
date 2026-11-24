@@ -11,7 +11,7 @@ import java.util.regex.Pattern;
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Test;
 
-// Os testes e o desenvolvimento rodam na mesma versão do MySQL (ADR 0035): a imagem do
+// Os testes e o desenvolvimento rodam na mesma versão do MySQL (ADR 0036): a imagem do
 // TestcontainersConfiguration tem de ser a do docker-compose.yml, na raiz do repositório
 class MySqlImageTest {
 
