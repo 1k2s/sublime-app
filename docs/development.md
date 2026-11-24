@@ -75,7 +75,7 @@ Em `backend/`. Padrões de como escrever: "Testes do backend", no
 | Um método | `./mvnw test -Dtest=PercentageTest#appliesPercentageWithHalfUpRounding` |
 
 - **O Docker precisa estar no ar** (o Docker Desktop): os testes de integração sobem um MySQL
-  próprio em container ([ADR 0035](adr/0035-testes-de-integracao-com-testcontainers.md)). O
+  próprio em container ([ADR 0036](adr/0036-testes-de-integracao-com-testcontainers.md)). O
   `docker compose up` não é necessário, e o banco de desenvolvimento (`sublime_db`) nunca é
   tocado. A primeira execução baixa a imagem do MySQL.
 - O perfil `test` (`src/test/resources/application-test.properties`) tem o segredo do JWT e o
@@ -103,8 +103,9 @@ os valores:
 Copy-Item backend/.env.example backend/.env   # depois edite o backend/.env
 ```
 
-- O `application.properties` importa o arquivo (`spring.config.import=optional:file:.env[.properties]`).
-  O caminho é relativo à pasta de onde a aplicação sobe: rode a partir de `backend/`.
+- O `application.properties` importa o arquivo (`spring.config.import`) procurando em `.env`
+  e em `backend/.env`, relativos à pasta de onde a aplicação sobe: funciona tanto com o
+  `./mvnw spring-boot:run` em `backend/` quanto com o Run da IDE, que sobe na raiz.
 - Sem o arquivo, valem as variáveis de ambiente do sistema (é como funciona num servidor):
   `$env:JWT_SECRET = "..."` no PowerShell, por exemplo.
 - **Nunca commite o `.env`.** Uma variável nova entra também no `.env.example`, com um

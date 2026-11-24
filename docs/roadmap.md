@@ -28,7 +28,7 @@ feature em andamento fica na spec dela, em [`specs/`](specs/).
 
 ## Estado atual (Fase 1)
 
-*Atualizado em 2026-11-07.*
+*Atualizado em 2026-11-18.*
 
 | Módulo | Situação |
 |---|---|
@@ -36,7 +36,8 @@ feature em andamento fica na spec dela, em [`specs/`](specs/).
 | `user` | implementado: soft delete e reativação, e-mail único (409), senha com hash BCrypt (mínimo 8), senha opcional na alteração, senha provisória com troca obrigatória no primeiro acesso (coluna `password_change_required`; [ADR 0025](adr/0025-primeiro-acesso-com-senha-provisoria.md), [ADR 0029](adr/0029-senha-provisoria-por-coluna.md)), admin padrão protegido ([ADR 0027](adr/0027-admin-padrao-protegido.md)), Configurações do próprio usuário (`/api/users/me`) |
 | `auth` | implementado no backend e no front: login com JWT, rotas protegidas (exceto login, primeiro acesso e Swagger), corte imediato do acesso ao inativar, mudar o perfil ou redefinir a senha, Swagger com "Authorize" ([ADR 0023](adr/0023-autenticacao-jwt-resource-server.md), [ADR 0024](adr/0024-sessao-frontend-localstorage.md)); **autorização por perfil** (2026-11-07): tabela de acesso no `SecurityConfig` com o `ADMIN` como padrão e o `CurrentUser` para as regras de dados ([ADR 0026](adr/0026-acesso-por-perfil-centralizado.md)) |
 | `provider` | implementado: dois percentuais (padrão 40/45), usuário ativo obrigatório na criação e na reativação ([ADR 0031](adr/0031-prestador-com-usuario-revisto.md)) |
-| `pricing` | implementado: grupos, técnicas (com reativação), planos (`PlanType`, `termWeeks`, de-para), preços com reajuste historizado |
+
+| `pricing` | implementado: grupos, técnicas (com reativação), planos (`PlanType`, `termWeeks`, de-para), preços com reajuste historizado; **tabela e histórico por grupo** (2026-11-17: `GET /api/pricing-groups/{id}/prices` e `.../prices/history`; o `validTo` entra na resposta das linhas de preço); **status da linha de preço** (2026-11-18: `PriceStatus` Vigente, Vencido ou Encerrado, resolvido pelo backend em `status`; ver "Status da linha de preço" no [`domain-model.md`](domain-model.md)) |
 | `contract` | implementado: cabeçalho + `ContractItem`, vigência calculada (`SessionFrequency`), aditivos, opções do plano do Grupo, endpoints de apoio, beneficiário de no máximo um contrato vigente e diferente do titular, `current` na resposta (vigente hoje), **valor total e parcelas** (2026-11-12; coluna `installments`, prévia `POST /api/contracts/preview`; [ADR 0032](adr/0032-valor-e-parcelas-do-contrato.md)) |
 | `consultation` | implementado: lançamento com contratos vinculados e escolha livre, resolução de preço (casos 1 a 3), `pricingSource`, comissão pela origem, repasse `HALF_UP`, saldo pela cadeia de versões, soft delete sem `PUT`, endpoints de apoio (`launch-options` com as durações válidas, `session-balance`, `patients`, `recent-patients`, `day-summary`); prestador do login para o `PROVIDER`, que só vê e inativa os próprios lançamentos; `launchedByUserId`; **o `PROVIDER` só lança e desfaz com a data de hoje**, e o retroativo usa a liberação do admin (2026-11-13; tabela `retroactive_launch_grant`, no `provider`; [ADR 0033](adr/0033-lancamento-retroativo-com-liberacao.md)); "hoje" no fuso da clínica ([ADR 0034](adr/0034-hoje-no-fuso-da-clinica.md)) |
 | **frontend** | **em andamento**: ver a seção [Frontend](#frontend) |
@@ -71,7 +72,7 @@ feature em andamento fica na spec dela, em [`specs/`](specs/).
   no [`development.md`](development.md)); sem `JWT_SECRET`, não sobe.
 - **Testes automatizados no backend** (2026-11-13): unidade do `Percentage` e do
   `ProviderEntity` e a infraestrutura de integração com o MySQL do Testcontainers
-  ([ADR 0035](adr/0035-testes-de-integracao-com-testcontainers.md)), com o primeiro teste de
+  ([ADR 0036](adr/0036-testes-de-integracao-com-testcontainers.md)), com o primeiro teste de
   integração (`AuthorizationIntegrationTest`: 401 sem token e com token adulterado, rotas por
   perfil, login recusado, primeiro acesso e corte do acesso do usuário inativado). O resto,
   ainda manual (ver "Próximos passos").
@@ -88,13 +89,18 @@ feature em andamento fica na spec dela, em [`specs/`](specs/).
       itens, o `group-plan-options`, renegociar as parcelas na prorrogação e como a lista mostra
       as versões (a substituída por aditivo aparece como Inativo). O detalhe do contrato ganha o
       "Editar". Até lá, prorrogar só pelo Swagger.
+   2. **Cadastro do catálogo** (spec em [`specs/cadastro-do-catalogo.md`](specs/cadastro-do-catalogo.md),
+      2026-11-24): renomear técnica, grupo e plano; inativar e reativar grupo e plano; telas de
+      cadastro; as técnicas de cada grupo na tabela de Preços. Hoje a clínica só mexe em preço
+      pela tela. **Aguardando** as decisões em aberto da spec e as prévias.
 2. **Testes automatizados no backend** (decidido em 2026-11-07; pausado em 2026-11-11 e
    **retomado** em 2026-11-13, com a infraestrutura): cada feature exige dezenas de casos manuais, refeitos a
    cada merge da `dev`, e as regras mais arriscadas são financeiras (resolução de preço,
    comissão, repasse, saldo).
    - **Feito** (2026-11-13): unidade do `Percentage` e do `ProviderEntity` (as 7 regras);
-     infraestrutura de integração (`@IntegrationTest`, [ADR 0035](adr/0035-testes-de-integracao-com-testcontainers.md));
-     e uma amostra da autorização por perfil (`AuthorizationIntegrationTest`).
+     infraestrutura de integração (`@IntegrationTest`, [ADR 0036](adr/0036-testes-de-integracao-com-testcontainers.md));
+     e uma amostra da autorização por perfil (`AuthorizationIntegrationTest`). Em 2026-11-18,
+     unidade do `PriceStatus` (Vigente, Vencido e Encerrado, com o limite dos 12 meses).
    - **Próximo:** testes de unidade das outras entidades com regra de risco (resolução de
      preço, comissão no lançamento, saldo, vigência e parcelas do contrato).
    - Depois, mais **testes de integração**: o lançamento (os três casos de preço, o
@@ -153,7 +159,6 @@ Frontend: ver a seção [Frontend](#frontend).
 
 ## Melhorias futuras (anotadas, sem prioridade)
 
-- `PUT` de grupo, técnica e plano (renomear).
 - Reajuste de preço agendado (`validFrom` futuro).
 - Categorias de prestador (Padrão, Estagiário...) com o par de percentuais, se
   surgirem muitas faixas.
@@ -210,7 +215,7 @@ Convenções na seção "Frontend" do [`architecture.md`](architecture.md).
 
 ### Estado atual
 
-*Atualizado em 2026-11-07; a revisar no inventário.*
+*Atualizado em 2026-11-18; a revisar no inventário.*
 
 Levantado pelos arquivos de `frontend/src/`; **o comportamento de cada tela e se as
 chamadas batem com a API real ainda não foram conferidos.**
@@ -219,7 +224,7 @@ chamadas batem com a API real ainda não foram conferidos.**
 |---|---|
 | `auth` | **concluído e testado pela tela** (2026-11-07): login real, primeiro acesso (a tela troca sozinha para a definição da senha), sessão no `localStorage` que expira pela `expiresAt` e cai num 401, cache limpo ao sair, **abas sincronizadas** (2026-11-15: uma sessão por navegador, e as abas abertas acompanham quem entra ou sai; [ADR 0035](adr/0035-sessao-sincronizada-entre-abas.md); **testado pela tela** com duas abas: sair, entrar com outro perfil, trocar o e-mail e abrir aba nova), tela inicial por perfil (`HomeRedirect`), **rotas e menu por papel** (`ProtectedRoute` com `roles`), mensagem da API no `error.message` (interceptor do `apiClient`). Ver "Rotas e sessão" no [`architecture.md`](architecture.md) |
 | `patient` | listagem com filtros e busca, modal de detalhes, cadastro em wizard (dados pessoais com a origem do paciente, endereço com ViaCEP, confirmação), ligado à API real (PR #33) |
-| `pricing` | catálogo de preços (tabela, busca de técnica, modal de preço) |
+| `pricing` | **Tabela de Preços** (`/pricing`, só `ADMIN`; 2026-11-17), no verde da sidebar: grupo escolhido no `RichSelect`, uma linha por versão do plano e uma duração (ou frequência) por coluna, a partir do histórico do grupo (`GET /api/pricing-groups/{id}/prices/history`); coluna **Status** com "Vigente", "Vencido" (linha aberta há mais de 12 meses sem reajuste, resolvido pelo backend em `status`) ou "Encerrado" (linha encerrada por reajuste; as encerradas no mesmo dia formam uma linha; o período fica no detalhe); filtro Todos / Vigentes / Vencidos / Encerrados (abre em Vigentes); tabela no `DataTable` das listagens, com o carregando da marca (`ListMessage`); detalhe pelo olho e **alteração dos valores** das versões abertas (vigente ou vencida; um `POST` por valor alterado); "Novo Preço / Reajustar" para qualquer combinação (ex: plano ou duração nova). Conferida por build e lint; **não testada pela tela** |
 | `consultation` | tela de Lançamento (`/consultations`, os dois perfis; 2026-11-13), ligada à API: **barra fixa usada toda pelo teclado** (`Combobox`: paciente, técnica, contrato só com dois, duração com as válidas do backend, status; o Enter pula de campo, e do status leva ao Lançar), **um atendimento por vez**, com aviso de sucesso; pacientes recentes como **sugestão** (técnica e duração em azul); só o aviso de saldo (≤ 2 ou esgotado); data **Hoje** ou **Retroativo** (com liberação do admin); lista de hoje com rolagem própria e "Desfazer" com confirmação; repasse do dia do backend; o `ADMIN` escolhe o prestador. **Testada pela API e pela tela** (2026-11-13) |
 | `contract` | tela de Contratos (`/contracts`; 2026-11-13), ligada à API, no modelo real (um item por grupo de preço): listagem com o status Vigente, Vencido ou Inativo (`current` da API), detalhe com o valor total e as parcelas, inativar, e cadastro em **modal grande com rodapé fixo** (plano no `RichSelect` com o alternador Individual \| Familiar, itens em linhas, prévia `POST /api/contracts/preview` com o fim, os valores e as parcelas); erros por campo da API. Primeiro módulo com `display/`, `utils/` e `hooks/` (ver "Dentro de cada módulo" no [`architecture.md`](architecture.md)). **Testada pela API e pela tela** (2026-11-12 e 2026-11-13) |
 | `provider` | tela de Prestadores (`/providers`, só `ADMIN`; 2026-11-11): listagem, detalhes (com o status do usuário vinculado) e cadastro/edição em **modal**. O cadastro **vincula um usuário existente** (ativo e sem prestador); percentual vazio usa o padrão do backend; erros por campo da API. No detalhe, a **liberação de lançamento retroativo** (2026-11-13, testada pela tela). Ligada à API; os casos de teste do cadastro ainda não foram rodados |
@@ -252,9 +257,9 @@ chamadas batem com a API real ainda não foram conferidos.**
    ordem de cadastro (cada uma depende dos dados da anterior): o aditivo do contrato, depois os
    dashboards; Prestadores, Contratos e Lançamento já estão prontas. O que cada uma fecha e as
    decisões já tomadas: itens 1 e 4 dos [Próximos passos](#próximos-passos) do projeto.
-2. **Inventário** das telas que não entram no item 1 (ex: catálogo de preços): o que cada
-   uma faz e se as chamadas batem com o contrato real da API (Swagger). Atualizar esta
-   seção com o resultado.
+2. **Inventário** das telas que não entram no item 1: o que cada uma faz e se as chamadas
+   batem com o contrato real da API (Swagger). Atualizar esta seção com o resultado. Preços já
+   foi refeita e conferida contra o backend (2026-11-17).
 3. **Nova identidade visual do portal** (levantado em 2026-11-14). **Feito:** a casca do app e o
    menu lateral, com o logo da marca (2026-11-17). **Falta:** decidir a **cor do conteúdo** (o
    conteúdo segue com a paleta atual, `#5f7a58`; só o menu usa o verde novo, `#0BA17C`),
@@ -287,13 +292,20 @@ Checklist da Fase 1 no front (herdado do guia original):
 - **Organização dos módulos em `display/`, `utils/` e `hooks/`** (decidida em 2026-11-13, feita
   no `contract`, no `consultation` e no `provider`; ver "Dentro de cada módulo" no
   [`architecture.md`](architecture.md)): levar para cada módulo quando ele for mexido. Arquivos
-  ainda na raiz: `roles.js` (auth), `priceAxis.js` (pricing), `filterPatients.js` e
-  `filterUsers.js`. Onde um componente tiver muita conta além do layout, ela vai para um hook em
+  ainda na raiz: `roles.js` (auth), `filterPatients.js` e `filterUsers.js`. Onde um componente tiver muita conta além do layout, ela vai para um hook em
   `hooks/`.
 - **Visual global em cada tela** (fundo e bordas frias, cards com sombra, menu e título; feito
   em 2026-11-12 e valendo para todas as telas): conferir, com a tela de Contratos como base,
-  Pacientes, Usuários, Prestadores, Preços e Configurações, quando cada uma for mexida (o
-  Lançamento já nasceu no visual novo).
+  Pacientes, Usuários, Prestadores e Configurações, quando cada uma for mexida (o Lançamento
+  e Preços já estão no visual novo).
+- **Tela de Preços: o que falta** (2026-11-17): o teste pela tela (tabela dos quatro grupos,
+  filtro por status com uma linha vencida, detalhe, alteração de um e de dois valores, valor vazio na duração sem preço, erro da API no
+  segundo valor); o `PriceFormModal` ("Novo Preço / Reajustar") ainda mostra o erro da API dentro
+  do formulário, fora do padrão (`showError` na page e erros por campo), e repete no front a
+  regra de quais planos cada grupo aceita (`isPlanAllowed`, cópia do `PlanType.isPricedBy`).
+- **Cadastro de grupo, técnica e plano pela tela**: na spec
+  [`cadastro-do-catalogo.md`](specs/cadastro-do-catalogo.md) (item 1 dos Próximos passos do
+  projeto). Até lá, só pelo Swagger ou pelo seed.
 - **Avisos do sistema ao usuário** (notado nos testes de 2026-11-13): quando a sessão cai (401:
   vencida, usuário inativado, perfil alterado), o `signOut` volta para o login sem dizer o
   motivo. Levantar onde cabe um aviso (modal ou o `shared/utils/alert.js`): a sessão

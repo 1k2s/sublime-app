@@ -15,6 +15,11 @@ public interface SessionFrequencyPriceRepository extends JpaRepository<SessionFr
     @EntityGraph(attributePaths = "plan")
     List<SessionFrequencyPriceEntity> findByPricingGroupIdAndValidToIsNull(Long pricingGroupId);
 
+    // Todas as linhas de um grupo, vigentes e encerradas (histórico da tela de preços), da mais
+    // recente para a mais antiga. O plano vem junto (EntityGraph), como na busca das vigentes.
+    @EntityGraph(attributePaths = "plan")
+    List<SessionFrequencyPriceEntity> findByPricingGroupIdOrderByValidFromDescIdDesc(Long pricingGroupId);
+
     // Linha vigente de uma combinação (grupo, plano, frequência). Pela regra de unicidade
     // existe no máximo uma: vazio = preço novo; presente = reajuste (fechar e criar outra).
     Optional<SessionFrequencyPriceEntity> findByPricingGroupIdAndPlanIdAndWeeklyFrequencyAndValidToIsNull(

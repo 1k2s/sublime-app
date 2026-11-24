@@ -1,14 +1,12 @@
-// Campo de texto padrão com suporte opcional a ícone à esquerda (icon).
+// Campo de texto padrão com suporte opcional a ícone (icon) ou texto (prefix, ex: "R$") à esquerda.
 // O ref chega como prop (React 19), funcionando nativamente com o register do React Hook Form.
 import styles from "./Input.module.css";
 
-export function Input({ invalid = false, icon: Icon, className, containerClassName, ...props }) {
-  if (Icon) {
+export function Input({ invalid = false, icon: Icon, prefix, className, containerClassName, ...props }) {
+  if (Icon || prefix) {
     return (
       <div className={[styles.inputWrapper, invalid && styles.invalidWrapper, containerClassName].filter(Boolean).join(" ")}>
-        <span className={styles.iconSlot}>
-          <Icon size={18} />
-        </span>
+        <span className={styles.iconSlot}>{Icon ? <Icon size={18} /> : prefix}</span>
         <input
           className={[styles.inputWithIcon, className].filter(Boolean).join(" ")}
           aria-invalid={invalid || undefined}

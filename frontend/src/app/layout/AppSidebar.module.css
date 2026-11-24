@@ -95,9 +95,7 @@
   height: 100%;
   padding: 20px 0 18px;
   overflow: hidden;
-  background:
-    linear-gradient(90deg, transparent 0, rgb(0 0 0 / 0.14) var(--nav-width)),
-    var(--shell-gradient);
+  background: var(--shell-bg);
   transition:
     --panel-width var(--shell-motion),
     --shape var(--shell-motion),
@@ -145,7 +143,7 @@
 }
 
 .brandName {
-  color: #ffffff;
+  color: var(--shell-text);
   font-family: var(--font-brand);
   font-size: 28px;
   font-weight: 500;
@@ -216,7 +214,7 @@
   overflow: hidden;
   border-radius: 999px 0 0 999px;
   background: linear-gradient(90deg, var(--fill-start) 0%, var(--fill-mid) 55%, var(--fill-end) 100%);
-  color: rgb(255 255 255 / 0.95);
+  color: var(--shell-text);
   font-size: 16px;
   font-weight: 600;
   text-decoration: none;
@@ -228,13 +226,13 @@
     border-radius var(--shell-motion);
 
   &:focus-visible {
-    outline: 2px solid rgb(255 255 255 / 0.85);
+    outline: 2px solid var(--shell-text);
     outline-offset: -2px;
   }
 
   &.active {
     background: none;
-    color: var(--color-title);
+    color: var(--shell-active);
     font-size: 18px;
     font-weight: 700;
     cursor: default;
@@ -258,7 +256,7 @@
 .icon {
   display: flex;
   flex: none;
-  color: #ffffff;
+  color: var(--shell-text);
   transition: transform 0.25s ease;
 
   .active & {
@@ -381,6 +379,16 @@
   }
 }
 
+/* Losangos no pé do menu, atrás do usuário (z-index -1, como o logo). Largura do menu aberto:
+   recolhido, o painel corta o que passa, e não sobra nenhuma forma à vista */
+.shapes {
+  position: absolute;
+  z-index: -1;
+  bottom: 0;
+  left: 0;
+  width: var(--nav-open-width);
+}
+
 /* Rodapé: o sair fica na coluna dos ícones, e os dados do usuário entram ao lado */
 .user {
   display: flex;
@@ -401,14 +409,14 @@
 
 .userEmail {
   overflow: hidden;
-  color: #ffffff;
+  color: var(--shell-text);
   font-size: 12px;
   font-weight: 600;
   text-overflow: ellipsis;
 }
 
 .userRole {
-  color: rgb(209 250 229 / 0.8);
+  color: var(--shell-muted);
   font-size: 11px;
 }
 
@@ -423,7 +431,7 @@
   border: 0;
   border-radius: 50%;
   background: rgb(255 255 255 / 0.1);
-  color: #ffffff;
+  color: var(--shell-text);
   cursor: pointer;
 
   &:hover {
@@ -431,7 +439,7 @@
   }
 
   &:focus-visible {
-    outline: 2px solid #ffffff;
+    outline: 2px solid var(--shell-text);
     outline-offset: -2px; /* dentro: o painel corta o que passa da borda */
   }
 }
