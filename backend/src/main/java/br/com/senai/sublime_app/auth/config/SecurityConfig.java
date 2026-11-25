@@ -52,14 +52,15 @@ public class SecurityConfig {
                 // Página de erro interna do Spring: sem isto, um erro numa rota pública
                 // viraria 401
                 .requestMatchers("/error").permitAll()
-                // ADMIN e PROVIDER: só o que as telas do prestador usam (Lançamentos e
-                // Configurações). Rota a rota, sem curinga: endpoint novo não abre sozinho.
+                // ADMIN e PROVIDER: só o que as telas do prestador usam (Lançamentos, Dashboard
+                // e Configurações). Rota a rota, sem curinga: endpoint novo não abre sozinho.
                 // A restrição aos dados do próprio prestador fica nos services.
                 .requestMatchers(HttpMethod.POST, "/api/consultations").hasAnyRole(ADMIN, PROVIDER)
                 .requestMatchers(HttpMethod.GET, "/api/consultations", CONSULTATION_BY_ID,
                         "/api/consultations/launch-options", "/api/consultations/session-balance",
                         "/api/consultations/patients", "/api/consultations/recent-patients",
-                        "/api/consultations/day-summary").hasAnyRole(ADMIN, PROVIDER)
+                        "/api/consultations/day-summary", "/api/consultations/earnings-summary",
+                        "/api/consultations/earnings").hasAnyRole(ADMIN, PROVIDER)
                 .requestMatchers(HttpMethod.DELETE, CONSULTATION_BY_ID).hasAnyRole(ADMIN, PROVIDER)
                 .requestMatchers(HttpMethod.GET, "/api/techniques").hasAnyRole(ADMIN, PROVIDER)
                 .requestMatchers(HttpMethod.GET, "/api/users/me").hasAnyRole(ADMIN, PROVIDER)
