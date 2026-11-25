@@ -20,8 +20,13 @@ Iniciada em 2026-11-24.
 
 ## 1. Status
 
-- **Só a spec** (2026-11-24): nenhum código escrito. Faltam as decisões marcadas como *em
-  aberto* na seção 3 e a escolha das prévias (seção 5).
+- **Técnicas na tabela de Preços: implementadas** (2026-11-24, só frontend, na branch
+  `feature/implementando-filtro-tabela-preco`): os filtros de grupo e de técnica, a coluna
+  "Técnica" e a rolagem só na tabela (seção 3). Conferido por `npm run build` e
+  `npm run lint`; **teste pela tela não feito**.
+- **Falta todo o resto:** o backend, as telas de cadastro e o grupo inativo na tela de Preços.
+  Faltam também as decisões marcadas como *em aberto* na seção 3 e a prévia das telas de
+  cadastro (seção 5).
 - **O que já existe** no `pricing`:
   - criar técnica, grupo e plano (`POST`);
   - inativar e reativar técnica (`DELETE` e `PATCH .../activate`);
@@ -142,17 +147,37 @@ inativos em cadastro novo.
 
 **Técnicas na tabela de Preços**
 
-- A tela mostra as técnicas do grupo escolhido. O dado vem de `GET /api/techniques`, que já
-  traz o `pricingGroupId` de cada técnica. O backend não muda.
+- O dado vem de `GET /api/techniques`, que já traz o `pricingGroupId` de cada técnica. O
+  backend não muda.
 - Só as técnicas ativas: as inativas não entram em contrato nem em lançamento novo.
-- *Em aberto:* o formato. Três prévias comparadas em 2026-11-18:
-  - **A**, uma faixa "Estes valores valem para N técnicas" entre os filtros e a tabela
-    (recomendada: a menor mudança, e deixa claro que o reajuste vale para todas);
-  - **B**, cartões de grupo no lugar do seletor;
-  - **C**, o catálogo inteiro sem seletor.
-- Descartado: uma coluna "Técnica" com uma linha por técnica e plano. Ela repetiria cada
-  valor em todas as técnicas do grupo e sugeriria que dá para reajustar só uma técnica, o que
-  o modelo não permite.
+- **Formato decidido (2026-11-24, implementado):**
+  - **Coluna "Técnica"**, com uma linha por técnica ativa e versão do plano. Cada valor se
+    repete em todas as técnicas do grupo.
+    - A decisão foi do usuário. Ela substitui a que tinha descartado a coluna, por mostrar a
+      técnica direto na linha.
+    - Risco aceito: a tela pode dar a entender que dá para reajustar uma técnica só. O
+      detalhe e a alteração continuam sendo do grupo (mostram o nome dele), e o reajuste vale
+      para todas as técnicas dele.
+  - **Filtros "Grupo de atendimento" e "Técnica"**, lado a lado, os dois começando em "Todos".
+    - Com o grupo em "Todos", a tabela mostra o catálogo inteiro, com a coluna "Grupo" e as
+      colunas dos dois modelos de preço (duração e frequência). A célula fica "—" quando o
+      grupo da linha não tem aquele eixo.
+    - A lista de técnicas segue o grupo escolhido. Com o grupo em "Todos", ela mostra todas,
+      separadas pelo grupo.
+    - Trocar o grupo volta a técnica para "Todas". Escolher uma técnica leva o filtro de
+      grupo para o grupo dela (com isso, a coluna "Grupo" sai). Voltar a técnica para "Todas"
+      mantém o grupo.
+    - Sem aviso de "estes valores valem também para...": o usuário dispensou.
+  - **Grupo sem técnica ativa** continua na tabela, com "—" na coluna "Técnica", para o preço
+    dele não sumir.
+  - **Rolagem:** só a tabela rola, com o cabeçalho das colunas parado. O título e os filtros
+    ficam fixos.
+  - Comparadas na prévia de 2026-11-24: uma tabela só com a coluna "Grupo" ou uma seção por
+    grupo, antes de o usuário pedir a coluna "Técnica". As prévias A, B e C de 2026-11-18
+    ficaram de fora.
+- O "Todos" busca o histórico de cada grupo, uma requisição por grupo
+  (`usePricingGroupPriceHistories`, que divide o cache com o hook de um grupo). São poucos
+  grupos. Se o catálogo crescer, vale criar um endpoint com o histórico de todos.
 - *Em aberto:* **plano sem preço no grupo.** Hoje o plano sem linha no grupo some da tabela.
   Ex: o Evolução Familiar no Individual Especializado e no Em Dupla; vender esse plano com
   Quiropraxia dá 400 no contrato. Todo plano de pacote (`PACKAGE`) deve ter preço em todos os
@@ -197,14 +222,15 @@ inativos em cadastro novo.
 
 ## 5. Desenho do frontend
 
-Antes do código, as prévias (CLAUDE.md): a tabela de Preços (A, B ou C, já feitas) e as telas
-de cadastro (a fazer).
+Antes do código, as prévias (CLAUDE.md): a tabela de Preços (feita e implementada, ver a
+seção 3) e as telas de cadastro (a fazer).
 
 | Arquivo | Mudança |
 |---|---|
 | `domain/pricing/api/pricingApi.js`, `usePricing.js` | renomear (os três), inativar e reativar (grupo e plano), criar técnica, grupo e plano; `useAllTechniques` (`GET /api/techniques/all`) |
-| `domain/pricing/pages/PricingCatalogPage.jsx` | as técnicas do grupo (versão escolhida); selo "Inativo" e sem "Novo Preço / Reajustar" no grupo inativo |
-| `domain/pricing/components/` | a faixa de técnicas (se for a A); os modais de cadastro e de renomear |
+| `domain/pricing/pages/PricingCatalogPage.jsx` | **feito:** filtros de grupo e de técnica com "Todos" e a rolagem só na tabela. **Falta:** o selo "Inativo" e tirar o "Novo Preço / Reajustar" no grupo inativo |
+| `domain/pricing/components/` | **feito:** colunas "Grupo" e "Técnica" no `PriceTable`. **Falta:** os modais de cadastro e de renomear |
+| `domain/pricing/utils/techniquePriceRows.js` | **feito:** as linhas por técnica e os filtros |
 | `domain/pricing/pages/` (nova) | o cadastro do catálogo. *A definir na prévia:* uma tela com abas Técnicas, Grupos e Planos, ou três telas. No padrão "Telas de listagem" do [`architecture.md`](../architecture.md) (filtro na page, modal pelo `id`, `ListMessage`, um hook por endpoint para inativar e reativar) |
 | `app/router.jsx`, `app/layout/navigationItems.js` | a rota nova, só `ADMIN` |
 
@@ -220,7 +246,7 @@ de cadastro (a fazer).
   ativas, plano de contrato vigente, Avulso, equivalente inativo, quem cadastra, plano sem
   preço no grupo.
 - [ ] Migration: V5 ou edição da V1 e V4.
-- [ ] Prévia da tabela de Preços: A, B ou C.
+- [x] Prévia da tabela de Preços (2026-11-24: coluna "Técnica" e os filtros, ver a seção 3).
 - [ ] Prévias das telas de cadastro; escolha.
 
 **Backend**
@@ -236,7 +262,9 @@ de cadastro (a fazer).
 
 **Frontend**
 
-- [ ] Técnicas na tabela de Preços (versão escolhida) e o grupo inativo.
+- [x] Técnicas na tabela de Preços: coluna, filtros e rolagem só na tabela.
+- [ ] Teste pela tela das técnicas na tabela de Preços.
+- [ ] Grupo inativo na tela de Preços.
 - [ ] Telas de cadastro (versão escolhida).
 - [ ] `npm run build` e `npm run lint`.
 

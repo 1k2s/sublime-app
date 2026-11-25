@@ -135,6 +135,7 @@ export function RichSelect({
                   aria-selected={isSelected}
                   className={[
                     styles.option,
+                    option.group && styles["option-grouped"],
                     index === activeIndex && styles["option-active"],
                     isSelected && styles["option-selected"],
                   ]
