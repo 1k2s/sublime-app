@@ -1,4 +1,6 @@
+import { useEffect } from "react";
 import { AlertTriangle, Trash2 } from "lucide-react";
+import { ContractBadge } from "./ContractBadge";
 import { Select } from "@/shared/components/Select";
 import { formatCurrency } from "@/shared/utils/money";
 import { SESSION_FREQUENCY_OPTIONS } from "../display/sessionFrequencies";
@@ -44,7 +46,8 @@ function Cell({ error, children }) {
 //   o próprio plano do contrato) e frequência semanal.
 // A linha de preço, o valor e o aviso vêm prontos do formulário (resolveItemLine); as sessões e
 // o total do item, da prévia do backend (itemValue). As listas só oferecem opções válidas, como
-// ajuda: o backend confere de novo
+// ajuda: o backend confere de novo. No aditivo: isNew (grupo que a versão atual não tem) e balance
+// (o saldo de sessões do item mantido, do session-balance)
 export function ContractItemFields({
   index,
   item = {},
@@ -63,6 +66,8 @@ export function ContractItemFields({
   itemValue = null,
   canRemove = false,
   onRemove,
+  isNew = false,
+  balance = null,
 }) {
   const name = (field) => `items.${index}.${field}`;
   const position = `do item ${index + 1}`;
@@ -71,6 +76,16 @@ export function ContractItemFields({
   const isDuration = item.pricingModel === "DURATION_BASED";
   const durations = prices ? distinctValues(prices, "durationMinutes") : [];
   const weeklyFrequencies = prices ? distinctValues(prices, "weeklyFrequency") : [];
+
+  // Uma opção só de plano do Grupo (ex: vigência curta, só o Mensal): já vem escolhida, sem o
+  // clique numa lista de uma opção. Só preenche o vazio: uma escolha feita não é trocada
+  const singleGroupPlanId =
+    isGroup && plan?.type === "PACKAGE" && groupPlanOptions.length === 1 ? String(groupPlanOptions[0].id) : null;
+  useEffect(() => {
+    if (singleGroupPlanId && !item.groupPlanId) {
+      setValue(`items.${index}.groupPlanId`, singleGroupPlanId, { shouldValidate: true });
+    }
+  }, [singleGroupPlanId, item.groupPlanId, index, setValue]);
 
   // Trocar a técnica muda o grupo: o resto do item deixa de valer
   const techniqueField = register(name("techniqueId"), {
@@ -116,7 +131,7 @@ export function ContractItemFields({
   }
 
   return (
-    <div className={styles.item}>
+    <div className={[styles.item, isNew && styles.added].filter(Boolean).join(" ")}>
       <div className={styles.row}>
         <Cell error={errors.techniqueId?.message}>
           <Select aria-label={`Técnica ${position}`} invalid={Boolean(errors.techniqueId)} {...techniqueField}>
@@ -212,6 +227,19 @@ export function ContractItemFields({
           <span />
         )}
       </div>
+
+      {/* Só no aditivo: o item de um grupo novo, ou o saldo do item mantido (todas as versões) */}
+      {(isNew || balance) && (
+        <p className={styles.amendment}>
+          {isNew ? (
+            <ContractBadge variant="suggestion">Novo</ContractBadge>
+          ) : (
+            <>
+              Restam <strong>{balance.remainingSessions}</strong> de {balance.sessionCount} sessões
+            </>
+          )}
+        </p>
+      )}
 
       {resolution.issue && (
         <p className={styles.issue}>

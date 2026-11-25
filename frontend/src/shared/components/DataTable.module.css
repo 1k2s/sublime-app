@@ -57,6 +57,37 @@
   }
 }
 
+/* variant="light": cabeçalho claro, nos tons dos modais (o fundo da moldura, rótulos em cinza e uma borda
+   mais marcada embaixo); linhas brancas, sem listra; com o mouse em cima, um cinza claro neutro (não
+   verde: as etiquetas verdes continuam se destacando) e uma barra verde à esquerda */
+.light {
+  & th {
+    border-bottom: 2px solid var(--color-table-head-line);
+    background: var(--color-table-head);
+    color: var(--color-muted);
+  }
+
+  & tbody tr:nth-child(even) {
+    background: none;
+  }
+
+  /* A linha aberta (selectedRowKey) fica como no hover enquanto o detalhe está aberto */
+  & tbody tr:hover,
+  & tbody tr.selected {
+    background: #f4f5f4;
+  }
+
+  & tbody tr:hover td:first-child,
+  & tbody tr.selected td:first-child {
+    box-shadow: inset 3px 0 0 var(--color-primary);
+  }
+}
+
+/* onRowClick: a linha inteira é clicável */
+.clickable tbody tr {
+  cursor: pointer;
+}
+
 .left {
   text-align: left;
 }

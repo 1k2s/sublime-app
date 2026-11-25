@@ -4,6 +4,9 @@
   /* Linhas da tabela: a listra das pares e a divisória entre elas */
   --color-row-stripe: #faf7f0;
   --color-row-line: #f0ebe0;
+  /* Tabela clara (variant="light" do DataTable): o cabeçalho claro e a borda embaixo dele */
+  --color-table-head: #fbfcfb;
+  --color-table-head-line: #c9d2cc;
   --color-primary: #5f7a58;
   --color-primary-soft: #dfe8dc;
   --color-primary-strong: #496345;

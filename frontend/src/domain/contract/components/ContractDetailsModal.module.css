@@ -4,108 +4,246 @@
   gap: 20px;
 }
 
-.grid {
+.badges {
+  display: inline-flex;
+  flex-wrap: wrap;
+  gap: 6px;
+}
+
+/* Abas Contrato | Histórico: as duas com a mesma largura, para a linha da ativa deslizar entre
+   elas só com o transform */
+.tabs {
+  --tab-width: 140px;
+
+  position: relative;
   display: grid;
-  grid-template-columns: repeat(2, 1fr);
-  gap: 16px;
-  margin: 0;
+  grid-template-columns: repeat(2, var(--tab-width));
+  border-bottom: 1px solid var(--color-border);
 }
 
-.field {
-  display: flex;
-  flex-direction: column;
-  gap: 4px;
-  min-width: 0;
-}
-
-.label {
-  font-size: 12px;
+.tab {
+  padding: 8px 14px;
+  border: none;
+  background: none;
   color: var(--color-muted);
-}
-
-.value {
-  margin: 0;
+  font: inherit;
   font-size: 14px;
   font-weight: 500;
+  cursor: pointer;
+  transition: color 0.2s ease;
+}
+
+.tab:hover {
   color: var(--color-text);
-  overflow-wrap: anywhere;
 }
 
-.items {
-  display: flex;
-  flex-direction: column;
-  gap: 10px;
-}
-
-.sectionTitle {
-  margin: 0;
-  font-size: 13px;
+.tabActive {
+  color: var(--color-primary);
   font-weight: 600;
-  letter-spacing: 0.05em;
-  text-transform: uppercase;
-  color: var(--color-muted);
 }
 
-.itemList {
+.tabIndicator {
+  position: absolute;
+  bottom: -1px;
+  left: 0;
+  width: var(--tab-width);
+  height: 2px;
+  background: var(--color-primary);
+  transition: transform 0.25s ease;
+}
+
+.tabIndicatorSecond {
+  transform: translateX(100%);
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .tab,
+  .tabIndicator {
+    transition: none;
+  }
+}
+
+/* Conteúdo da aba: altura fixa, igual nas duas; o que cresce (itens, versões) rola por dentro */
+.panel {
   display: flex;
   flex-direction: column;
+  /* acompanha a altura da tela: de 360px (telas menores) até 640px (monitores grandes) */
+  height: clamp(360px, 58vh, 640px);
+  min-height: 0;
+}
+
+/* Versão aberta do histórico: ocupa a aba, e os itens rolam */
+.version {
+  display: flex;
+  flex: 1;
+  flex-direction: column;
+  gap: 16px;
+  min-height: 0;
+}
+
+.versionTitle {
+  display: flex;
+  flex-shrink: 0;
+  align-items: center;
   gap: 8px;
+  padding-bottom: 10px;
+  border-bottom: 1px solid var(--color-border);
+  font-size: 15px;
+}
+
+/* Linha do tempo das versões (versão aberta do histórico): da original para a atual; com muitos
+   aditivos, rola na horizontal */
+.timeline {
+  position: relative;
+  display: flex;
+  flex-shrink: 0;
   margin: 0;
-  padding: 0;
+  padding: 2px 0 4px;
+  overflow-x: auto;
   list-style: none;
 }
 
-.item {
+.step {
+  position: relative;
   display: flex;
-  align-items: center;
-  justify-content: space-between;
-  gap: 16px;
-  padding: 12px;
-  border: 1px solid var(--color-border);
-  border-radius: var(--radius);
+  flex: 1 0 96px;
+  justify-content: center;
 }
 
-.itemText {
-  display: flex;
-  flex-direction: column;
-  gap: 2px;
-  min-width: 0;
+/* O traço que liga um ponto ao anterior, atrás dos pontos */
+.step::before {
+  content: "";
+  position: absolute;
+  top: 10px;
+  left: -50%;
+  width: 100%;
+  height: 2px;
+  background: var(--color-border);
 }
 
-.itemTitle {
-  font-size: 14px;
-  font-weight: 600;
+.step:first-child::before {
+  display: none;
+}
+
+.stepButton {
+  position: relative;
+  z-index: 1;
+  display: grid;
+  justify-items: center;
+  gap: 4px;
+  padding: 0 6px;
+  border: none;
+  background: none;
   color: var(--color-text);
+  font: inherit;
+  cursor: pointer;
 }
 
-.itemGroup {
-  font-weight: 400;
-  color: var(--color-muted);
-}
-
-.itemDetail {
-  font-size: 13px;
-  color: var(--color-muted);
-}
-
-.itemValues {
-  display: flex;
-  flex-shrink: 0;
-  flex-direction: column;
-  align-items: flex-end;
-  gap: 2px;
-}
-
-.itemTotal {
+.stepButton strong {
+  color: var(--color-title);
   font-size: 12px;
-  color: var(--color-muted);
 }
 
-.itemValue {
-  flex-shrink: 0;
-  font-size: 14px;
-  font-weight: 600;
-  color: var(--color-primary);
+.stepButton span:last-child {
+  color: var(--color-muted);
+  font-size: 11px;
+}
+
+.stepDot {
+  width: 20px;
+  height: 20px;
+  border: 2px solid var(--color-primary);
+  border-radius: 50%;
+  background: var(--color-surface);
+}
+
+/* A versão atual, preenchida */
+.stepCurrent .stepDot {
+  background: var(--color-primary);
+}
+
+/* A versão aberta: o nome em azul; a bolinha azul é o marker, por cima do ponto */
+.stepOpen .stepButton strong {
+  color: var(--color-accent);
+}
+
+.stepButton:hover .stepDot {
+  box-shadow: 0 0 0 4px var(--color-primary-soft);
+}
+
+/* A bolinha azul da versão aberta: fica sobre o ponto dela e desliza até o novo ponto ao trocar.
+   Os passos têm a mesma largura (no mínimo 96px), então a posição sai do índice */
+.marker {
+  position: absolute;
+  top: 2px;
+  left: calc((var(--step-index) + 0.5) * max(96px, 100% / var(--step-count)));
+  z-index: 2;
+  width: 20px;
+  height: 20px;
+  margin-left: -10px;
+  border-radius: 50%;
+  background: var(--color-accent);
+  box-shadow: 0 0 0 4px var(--color-suggestion-bg);
+  pointer-events: none;
+  transition: left 0.4s ease-in-out;
+}
+
+/* Diminui no caminho e volta ao tamanho ao chegar (duas animações iguais, alternadas, para
+   reiniciar a cada troca) */
+.markerMoveA {
+  animation: marker-shrink-a 0.4s ease-in-out;
+}
+
+.markerMoveB {
+  animation: marker-shrink-b 0.4s ease-in-out;
+}
+
+@keyframes marker-shrink-a {
+  0%,
+  100% {
+    transform: scale(1);
+  }
+  50% {
+    transform: scale(0.45);
+  }
+}
+
+@keyframes marker-shrink-b {
+  0%,
+  100% {
+    transform: scale(1);
+  }
+  50% {
+    transform: scale(0.45);
+  }
+}
+
+/* O conteúdo da versão entra com o mesmo efeito da entrada das telas (contentEnter do AppLayout):
+   sobe um pouco e aparece, rápido no começo */
+.versionContent {
+  display: flex;
+  flex: 1;
+  flex-direction: column;
+  gap: 16px;
+  min-height: 0;
+  animation: version-in 0.25s cubic-bezier(0.22, 1, 0.36, 1);
+}
+
+@keyframes version-in {
+  from {
+    opacity: 0;
+    transform: translateY(12px);
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .marker,
+  .markerMoveA,
+  .markerMoveB,
+  .versionContent {
+    transition: none;
+    animation: none;
+  }
 }
 
 .confirmBox {

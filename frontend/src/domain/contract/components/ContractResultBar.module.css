@@ -49,6 +49,20 @@
 
 .actions {
   display: flex;
+  align-items: center;
   gap: 12px;
   margin-left: auto;
+}
+
+/* Aditivo: o valor da versão atual, riscado, antes do novo */
+.before {
+  color: var(--color-muted);
+  font-size: 14px;
+  font-weight: 500;
+}
+
+/* Aditivo sem nenhuma alteração, ao lado do "Prosseguir" inativo */
+.note {
+  color: var(--color-muted);
+  font-size: 13px;
 }

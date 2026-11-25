@@ -1,5 +1,5 @@
 // Formatação de datas (chegam da API em ISO 8601)
-import { format, isValid, parse, parseISO } from "date-fns";
+import { addDays, format, isValid, parse, parseISO } from "date-fns";
 import { ptBR } from "date-fns/locale";
 
 function toDate(value) {
@@ -40,4 +40,10 @@ export function toDateTimeInputValue(date) {
 // Date -> "2026-10-06", formato de data da API e do <input type="date">
 export function toDateInputValue(date) {
   return format(date, "yyyy-MM-dd");
+}
+
+// "2026-10-06" + 1 dia -> "2026-10-07". Devolve "" para valor vazio ou inválido
+export function addDaysToIsoDate(value, days) {
+  const date = toDate(value);
+  return date ? format(addDays(date, days), "yyyy-MM-dd") : "";
 }

@@ -3,3 +3,10 @@
   flex-direction: column;
   gap: 24px;
 }
+
+/* Estado e "Aditivo N" ao lado do título do aditivo */
+.badges {
+  display: inline-flex;
+  flex-wrap: wrap;
+  gap: 6px;
+}

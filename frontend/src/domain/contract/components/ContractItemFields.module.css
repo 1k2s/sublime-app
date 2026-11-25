@@ -27,6 +27,15 @@
   border-top: 1px solid var(--color-border);
 }
 
+/* Aditivo: o item de um grupo novo, em destaque */
+.added {
+  margin: 4px 0;
+  padding: 10px 12px;
+  border: 1px solid var(--color-suggestion-border);
+  border-radius: 8px;
+  background: var(--color-suggestion-bg);
+}
+
 .cell {
   display: flex;
   flex-direction: column;
@@ -91,6 +100,19 @@
 .remove:hover {
   background: #fee2e2;
   color: #b91c1c;
+}
+
+.amendment {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  margin: 0;
+  color: var(--color-muted);
+  font-size: 13px;
+}
+
+.amendment strong {
+  color: var(--color-text);
 }
 
 .issue {

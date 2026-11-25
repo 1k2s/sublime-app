@@ -7,6 +7,7 @@ import br.com.senai.sublime_app.pricing.domain.PlanEntity;
 import br.com.senai.sublime_app.pricing.domain.Money;
 import br.com.senai.sublime_app.pricing.domain.PricingGroupEntity;
 import br.com.senai.sublime_app.pricing.enums.PlanType;
+import br.com.senai.sublime_app.pricing.enums.PricingModel;
 import br.com.senai.sublime_app.shared.exception.BusinessRuleException;
 import br.com.senai.sublime_app.shared.exception.ConflictException;
 import jakarta.persistence.CascadeType;
@@ -249,7 +250,7 @@ public class ContractEntity {
     // Item incluído = grupo novo (sem anterior). Item removido = grupo que não veio.
     private void addItems(List<ContractItemDraft> drafts, ContractEntity previous) {
         validateItemsNotEmptyAndOnePerGroup(drafts);
-        validateItemsMatchPlan(drafts);
+        validateItemsMatchPlan(drafts, previous);
         for (ContractItemDraft draft : drafts) {
             ContractItemEntity previousItem = previous != null
                     ? previous.findItemOf(draft.pricingGroup()).orElse(null)
@@ -272,23 +273,29 @@ public class ContractEntity {
     }
 
     // Prazo do contrato em semanas: maior prazo entre os itens por duração (o Grupo
-    // não entra — acompanha o contrato). Contrato só com Grupo (plano de mensalidade):
-    // prazo do plano (termWeeks). Público e estático para a prévia do formulário
+    // não entra — acompanha o contrato). Plano de mensalidade: o prazo do plano (termWeeks)
+    // ou, se algum item por duração passar dele, o desse item; as sessões do item são as do
+    // pacote equivalente (planFor). Público e estático para a prévia do formulário
     // (POST /api/contracts/preview) usar exatamente a mesma conta.
     public static int durationWeeksFor(PlanEntity plan, List<SessionFrequency> durationItemFrequencies) {
         validateContractable(plan);
-        if (plan.getType() == PlanType.MONTHLY_FEE) {
-            return plan.getTermWeeks();
-        }
-        if (durationItemFrequencies == null || durationItemFrequencies.isEmpty()) {
+        List<SessionFrequency> frequencies = durationItemFrequencies != null ? durationItemFrequencies : List.of();
+        boolean isMonthlyFee = plan.getType() == PlanType.MONTHLY_FEE;
+        if (!isMonthlyFee && frequencies.isEmpty()) {
             throw new BusinessRuleException(
                     "Contrato de pacote precisa de pelo menos um item por duração. Contrato só com Pilates em Grupo usa um plano de mensalidade.");
         }
-        durationItemFrequencies.forEach(frequency -> ContractItemEntity.validateFitsMaxTerm(frequency, plan));
-        return durationItemFrequencies.stream()
-                .mapToInt(frequency -> frequency.weeksToComplete(plan.getSessionCount()))
+        int planWeeks = isMonthlyFee ? plan.getTermWeeks() : 0;
+        if (frequencies.isEmpty()) {
+            return planWeeks;
+        }
+        PlanEntity durationPlan = plan.planFor(PricingModel.DURATION_BASED);
+        frequencies.forEach(frequency -> ContractItemEntity.validateFitsMaxTerm(frequency, durationPlan));
+        int itemsWeeks = frequencies.stream()
+                .mapToInt(frequency -> frequency.weeksToComplete(durationPlan.getSessionCount()))
                 .max()
                 .getAsInt();
+        return Math.max(planWeeks, itemsWeeks);
     }
 
     // endDate inclusivo: início + prazo − 1 dia (ex: 03/11 + 12 semanas → 25/01)
@@ -427,33 +434,64 @@ public class ContractEntity {
 
     // Os itens precisam ser compatíveis com o plano do contrato:
     // - plano de pacote: itens por duração usam linhas DESTE plano e pelo menos um
-    //   item é por duração (contrato só com Grupo tem plano de mensalidade);
-    // - plano de mensalidade: só o item do Grupo, com linha DESTE plano — por isso um
-    //   contrato só com Grupo não recebe item por duração (exigiria trocar o plano).
+    //   item é por duração (o contrato só com o Grupo tem plano de mensalidade);
+    // - plano de mensalidade: o item do Grupo usa linha DESTE plano e é obrigatório; itens
+    //   por duração usam linhas do pacote EQUIVALENTE (de-para, planFor), o caminho inverso
+    //   do item do Grupo no pacote.
     // O plano do item do Grupo num contrato de pacote é validado no service (depende
-    // do catálogo de planos).
-    private void validateItemsMatchPlan(List<ContractItemDraft> drafts) {
+    // do catálogo de planos). No aditivo, o item com a mesma linha da versão anterior é
+    // aceito como está (o de-para pode ter mudado depois).
+    private void validateItemsMatchPlan(List<ContractItemDraft> drafts, ContractEntity previous) {
         if (plan.getType() == PlanType.PACKAGE && drafts.stream().noneMatch(ContractItemDraft::isDurationBased)) {
             throw new BusinessRuleException(
                     "Contrato de pacote precisa de pelo menos um item por duração. Contrato só com Pilates em Grupo usa um plano de mensalidade.");
         }
+        if (plan.getType() == PlanType.MONTHLY_FEE && drafts.stream().allMatch(ContractItemDraft::isDurationBased)) {
+            throw new BusinessRuleException(
+                    "Contrato com plano de mensalidade precisa do item do Pilates em Grupo. Para ficar só com itens por duração, faça um contrato novo com um plano de pacote.");
+        }
         for (ContractItemDraft draft : drafts) {
-            validateItemMatchesPlan(draft);
+            if (!hasSameLineAsPrevious(draft, previous)) {
+                validateItemMatchesPlan(draft);
+            }
         }
     }
 
+    // Item por duração: linha do plano do contrato (pacote) ou do equivalente dele (mensalidade).
+    // Item do Grupo num contrato de mensalidade: linha do próprio plano do contrato
     private void validateItemMatchesPlan(ContractItemDraft draft) {
-        if (plan.getType() == PlanType.MONTHLY_FEE && draft.isDurationBased()) {
-            throw new BusinessRuleException(
-                    "Contrato com plano de mensalidade só aceita o item do Pilates em Grupo. Para incluir outros grupos, faça um contrato novo com um plano de pacote.");
+        PlanEntity requiredPlan;
+        if (draft.isDurationBased()) {
+            requiredPlan = plan.planFor(PricingModel.DURATION_BASED);
+        } else if (plan.getType() == PlanType.MONTHLY_FEE) {
+            requiredPlan = plan;
+        } else {
+            return;
         }
         Long linePlanId = draft.isDurationBased()
                 ? draft.durationPrice().getPlan().getId()
                 : draft.frequencyPrice().getPlan().getId();
-        boolean mustUseContractPlan = draft.isDurationBased() || plan.getType() == PlanType.MONTHLY_FEE;
-        if (mustUseContractPlan && !linePlanId.equals(plan.getId())) {
-            throw new BusinessRuleException("O preço do item precisa ser do plano do contrato (" + plan.getName() + ").");
+        if (!linePlanId.equals(requiredPlan.getId())) {
+            throw new BusinessRuleException(requiredPlan.getId().equals(plan.getId())
+                    ? "O preço do item precisa ser do plano do contrato (" + plan.getName() + ")."
+                    : "O preço do item precisa ser do plano " + requiredPlan.getName() + " (equivalente do "
+                            + plan.getName() + ").");
         }
+    }
+
+    // A mesma linha travada no item do mesmo grupo da versão anterior. Compara ids: relação
+    // LAZY pode vir como proxy do Hibernate
+    private static boolean hasSameLineAsPrevious(ContractItemDraft draft, ContractEntity previous) {
+        if (previous == null) {
+            return false;
+        }
+        return previous.findItemOf(draft.pricingGroup())
+                .map(previousItem -> draft.isDurationBased()
+                        ? previousItem.getSessionDurationPrice() != null
+                                && previousItem.getSessionDurationPrice().getId().equals(draft.durationPrice().getId())
+                        : previousItem.getSessionFrequencyPrice() != null
+                                && previousItem.getSessionFrequencyPrice().getId().equals(draft.frequencyPrice().getId()))
+                .orElse(false);
     }
 
     // Prorrogação: o fim pedido precisa ser depois do fim atual (nunca encolhe)

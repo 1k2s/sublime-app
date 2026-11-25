@@ -31,3 +31,21 @@
     transition: none;
   }
 }
+
+.soft {
+  transition: background-color 0.15s ease, color 0.15s ease, transform 0.15s ease;
+
+  &:hover:not(:disabled) {
+    background: var(--color-primary-soft);
+    color: var(--color-primary);
+    transform: scale(1.12);
+  }
+
+  @media (prefers-reduced-motion: reduce) {
+    transition: none;
+
+    &:hover:not(:disabled) {
+      transform: none;
+    }
+  }
+}

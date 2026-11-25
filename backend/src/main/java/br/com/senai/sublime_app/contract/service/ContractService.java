@@ -239,7 +239,7 @@ public class ContractService {
 
     // Num contrato de pacote, o plano da linha do item do Grupo precisa estar nas
     // opções. No aditivo, item do Grupo sem mudança de linha é aceito como está.
-    // Contrato só com Grupo (plano de mensalidade): a entidade já exige que a linha
+    // Contrato de plano de mensalidade: a entidade já exige que a linha do item do Grupo
     // seja do plano do contrato.
     private void validateGroupItemPlan(ContractEntity contract, ContractEntity previous) {
         if (contract.getPlan().getType() != PlanType.PACKAGE) {
@@ -273,7 +273,7 @@ public class ContractService {
         }
     }
 
-    // Contrato só com Grupo: a única opção é o próprio plano do contrato. Contrato de
+    // Contrato de mensalidade: a única opção é o próprio plano do contrato. Contrato de
     // pacote: mensalidades ativas até a primeira que cubra a vigência (inclui as de
     // mesmo prazo, ex: Semestral e Semestral Familiar). Se nenhuma cobrir (vigência
     // estendida por prorrogação), todas valem.
@@ -293,7 +293,7 @@ public class ContractService {
     }
 
     // Sugestão: o equivalente do de-para (contrato de pacote) ou o próprio plano
-    // (contrato só com Grupo), desde que esteja nas opções
+    // (contrato de mensalidade), desde que esteja nas opções
     private static Long suggestedGroupPlanId(PlanEntity contractPlan, List<PlanEntity> options) {
         PlanEntity suggestion = contractPlan.getType() == PlanType.MONTHLY_FEE
                 ? contractPlan

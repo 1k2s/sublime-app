@@ -1,12 +1,13 @@
 import { Eye } from "lucide-react";
 import { AvatarName } from "@/shared/components/AvatarName";
-import { Badge } from "@/shared/components/Badge";
+import { ContractBadge } from "./ContractBadge";
 import { DataTable } from "@/shared/components/DataTable";
 import { IconButton } from "@/shared/components/IconButton";
 import { ListMessage } from "@/shared/components/ListMessage";
 import { formatDate } from "@/shared/utils/date";
 import { formatCurrency } from "@/shared/utils/money";
 import { getContractStatus } from "../display/contractStatus";
+import { getVersionLabel, hasAmendment } from "../display/contractVersions";
 import styles from "./ContractTable.module.css";
 
 // As técnicas dos itens (um item por grupo de preço)
@@ -22,12 +23,14 @@ const MESSAGES = {
   emptyHint: "Clique em Novo contrato para começar.",
 };
 
-// contracts: já com patientName e beneficiaryName (withPatientNames)
+// contracts: já com patientName e beneficiaryName (withPatientNames). selectedContractId: o
+// contrato aberto (detalhe ou aditivo), marcado na lista
 export function ContractTable({
   contracts = [],
   isLoading = false,
   isError = false,
   hasRecords = false,
+  selectedContractId = null,
   onViewDetails,
   className,
 }) {
@@ -75,9 +78,15 @@ export function ContractTable({
     {
       key: "status",
       header: "Status",
+      // O estado e, se houve aditivo, o selo "Aditivo N" (a versão original fica só com o estado)
       cell: (contract) => {
         const status = getContractStatus(contract);
-        return <Badge variant={status.badge}>{status.label}</Badge>;
+        return (
+          <div className={styles.badges}>
+            <ContractBadge variant={status.badge}>{status.label}</ContractBadge>
+            {hasAmendment(contract) && <ContractBadge>{getVersionLabel(contract)}</ContractBadge>}
+          </div>
+        );
       },
     },
     {
@@ -86,6 +95,7 @@ export function ContractTable({
       align: "center",
       cell: (contract) => (
         <IconButton
+          variant="soft"
           label={`Ver contrato de ${contract.patientName ?? "paciente"}`}
           title="Ver detalhes"
           onClick={() => onViewDetails?.(contract)}
@@ -96,5 +106,16 @@ export function ContractTable({
     },
   ];
 
-  return <DataTable columns={columns} rows={contracts} className={className} />;
+  // Variante clara, nos tons dos modais do contrato. A linha inteira abre o detalhe (o botão do olho
+  // continua, para o teclado; o clique nele também chega à linha, e abre o mesmo detalhe)
+  return (
+    <DataTable
+      columns={columns}
+      rows={contracts}
+      variant="light"
+      onRowClick={(contract) => onViewDetails?.(contract)}
+      selectedRowKey={selectedContractId}
+      className={className}
+    />
+  );
 }

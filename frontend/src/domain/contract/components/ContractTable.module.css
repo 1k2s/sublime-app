@@ -11,6 +11,12 @@
   font-weight: 700;
 }
 
+.badges {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 6px;
+}
+
 .installments {
   color: var(--color-muted);
   font-size: 12px;

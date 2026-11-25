@@ -48,6 +48,8 @@ export const contractSchema = z
     paymentMethod: requiredSelect("Selecione a forma de pagamento."),
     // Vazio = o máximo do contrato (o backend calcula: os meses do contrato, até 12)
     installments: z.string().optional(),
+    // Só no aditivo: prorrogar até (opcional; o backend confere que passa do fim atual)
+    endDate: z.string().optional(),
     items: z.array(contractItem).min(1, "Inclua pelo menos um item."),
   })
   .superRefine((values, ctx) => {

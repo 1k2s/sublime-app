@@ -21,14 +21,25 @@ prévia do resultado antes de salvar.
 
 *Atualizado em 2026-11-25.*
 
-- **Branch:** `feature/contrato-aditivo`, a partir da `dev`; PR para a `dev` com "merge commit".
-- **Feito:** a análise (parte 1), o desenho (parte 2: API, telas, saldo de sessões, casos de
-  teste) e o **backend** (R1 a R5, com testes de unidade em `ContractEntityAmendmentTest`).
-- **Em duas branches:** o backend vai para a `dev` por esta (`feature/contrato-aditivo`); o
-  frontend segue numa branch nova a partir da `dev` atualizada, porque a `dev` mudou o layout das
-  telas (inclusive `ContractTable`, `ContractForm` e `ContractDetailsModal`). A spec fica em
-  andamento até o front terminar; os documentos de referência mudam na conclusão (seção 9).
-- **Próximo:** o frontend (seção 5). Falta rodar os casos da API (seção 7) com o banco zerado.
+- **Pausado em 2026-11-25** (troca de computador), com o código pronto e testado; falta a
+  conclusão (tarefas da seção 6).
+- **Em duas branches, PRs para a `dev` com "merge commit":**
+  - **`feature/contrato-aditivo`**: o backend R1 a R5, **já na `dev`** (PR #56), com o aviso
+    "zerem o banco local" (colunas novas na `V1`).
+  - **`feature/contrato-aditivo-front`** (atual, criada da `dev` depois do #56): o frontend (seção
+    5), a R6 no backend (item por duração em contrato de mensalidade) e os ajustes do teste da
+    tela. A conclusão (documentação e ADRs) entra neste PR.
+- **Feito:** a análise, o desenho, o backend (R1 a R6, testes de unidade em
+  `ContractEntityAmendmentTest` e `ContractEntityMonthlyFeeTest`) e o frontend (`npm run build` e
+  `npm run lint`), **testado pela tela**, com os ajustes registrados na seção 5. **Pela API, todos
+  os casos dos blocos A, B, C, D e F passaram** (por script, com o banco zerado).
+- **Para continuar noutro computador:** zerar o banco local (`docker compose down -v` e `up -d`)
+  e subir o backend. Os scripts de dados e dos casos da API foram usados só nesta sessão e **não
+  estão no repositório**; para testar de novo pela tela, cadastre os dados pela própria tela ou
+  pelo Swagger (pré-requisitos da seção 7).
+- **Próximo:** a conclusão (seção 6, "Conclusão"), em partes: `domain-model.md` → `architecture.md`
+  → ADRs → `roadmap.md`, remoção da spec e conferências; depois o commit e o PR desta branch. A
+  decisão da tabela clara (seção 8) pode ficar para depois.
 - **O que o backend tinha antes da feature** (ver "Versionamento (aditivos)" em `Contract`, no
   [`domain-model.md`](../domain-model.md)):
   - `POST /api/contracts/{id}/amendments`: gera a nova versão com o estado completo (item que
@@ -149,7 +160,7 @@ usa a **nova** (`ContractService.validateGroupItemPlan`). A prévia (R1) traz as
 nenhuma tela usa o endpoint.
 
 **R5. Aditivo sem alteração é recusado** (aprovada em 2026-11-25): a API recusa o aditivo igual à
-versão atual, com 400 "Nenhuma alteração no contrato.". A tela já bloqueia ("Revisar aditivo"
+versão atual, com 400 "Nenhuma alteração no contrato.". A tela já bloqueia ("Prosseguir"
 inativo, com "Nenhuma alteração"; seção 5).
 - **O que conta como alteração** (comparado com a versão atual): algum item incluído ou removido;
   num item mantido, outra técnica, outra linha de preço ou outra frequência; outro beneficiário;
@@ -163,6 +174,34 @@ inativo, com "Nenhuma alteração"; seção 5).
   divergirem num caso de borda, o confirmar devolve o 400 com a mensagem, e o admin volta ao
   formulário.
 
+**R6. Item por duração em contrato de mensalidade** (aprovada em 2026-11-25, no teste da tela): o
+contrato de plano de mensalidade (só com o Pilates em Grupo) passa a aceitar itens por duração, na
+criação e no aditivo. Antes, ele aceitava só o item do Grupo, e incluir outra técnica exigia um
+contrato novo.
+- **Linha do item:** do **plano equivalente** do de-para (`PlanEntity.planFor`: Mensal →
+  Essencial, Trimestral → Evolução, Semestral → Transformação, Anual → Vitalidade, Familiares →
+  Familiares), fixo. Plano sem equivalente: 400 (a mensagem do `planFor`). É o caminho inverso do
+  item do Grupo no pacote, e o mesmo que o lançamento já usa para uma sessão por duração de quem só
+  tem o Grupo.
+- **Vigência:** o maior prazo entre o do plano de mensalidade (`termWeeks`) e o dos itens por
+  duração (sessões do pacote equivalente na frequência). No aditivo, vale a regra que já existe: o
+  item incluído conta da data do aditivo e pode estender o fim.
+- **No aditivo, o item com a mesma linha da versão anterior é aceito sem reconferir o plano**
+  (`ContractEntity.hasSameLineAsPrevious`). *Por quê:* o de-para pode mudar depois (o admin troca o
+  equivalente do plano); sem isso, um item antigo, com a linha do equivalente de antes, travaria todo
+  aditivo seguinte do contrato. Mesma ideia do preço e da técnica do item mantido, aceitos como estão.
+- **O item do Grupo continua obrigatório** no contrato de mensalidade (400 sem ele), espelhando o
+  "pacote precisa de pelo menos um item por duração": para ficar só com itens por duração, contrato
+  novo de pacote.
+- *Por quê:* no teste, o contrato da Carla (Trimestral) não deixava incluir nenhuma técnica, e
+  "faça outro contrato" não é como a clínica trabalha. O de-para já existe nos dois lados para esse
+  cruzamento.
+- *Descartadas:* escolher o pacote numa lista, como o plano do Grupo no pacote (o de-para já é a
+  regra da clínica, sem mais uma escolha na tela); só no aditivo (a regra é da entidade e vale na
+  criação); permitir o contrato de mensalidade sem o item do Grupo.
+- Substitui em parte os ADRs 0008 ("contrato só com Grupo usa plano de mensalidade"), 0009
+  (vigência do contrato só com Grupo) e 0011 (sem exceção para o contrato só com Grupo).
+
 ## 4. Desenho do backend
 
 Módulo `contract`:
@@ -175,6 +214,7 @@ Módulo `contract`:
 | `ContractResponseDTO` | `amendmentNumber`, `createdAt` e `superseded` (R3) |
 | `ContractGroupPlanOptionsResponseDTO` | removido (R4) |
 | `ContractEntity` | `amend` recebe e valida as parcelas (R2), recusa o aditivo sem alteração (R5) e grava o `amendmentNumber` (R3); a conta do fim do aditivo fica pública e estática (R1); campos `amendmentNumber` e `createdAt` (preenchido no `create` e no `amend` com "hoje", passado pelo service, como o `amend` já recebe a data do aditivo) |
+| `ContractEntity` (R6) | `durationWeeksFor`: no plano de mensalidade, o maior entre o `termWeeks` e o prazo dos itens por duração (sessões do pacote equivalente); `validateItemMatchesPlan`: item por duração com linha do `plan.planFor(DURATION_BASED)`; `validateItemsMatchPlan`: plano de mensalidade exige o item do Grupo; item com a mesma linha da versão anterior aceito como está (`hasSameLineAsPrevious`) |
 | `ContractService` | prévia do aditivo (R1); listagem só das atuais, `versions` e o `superseded` (R3); sai o `groupPlanOptionsFor(Long)` (R4) |
 | `ContractRepository` | consulta das versões atuais (`not exists`) e "existe sucessora" (R3) |
 | `V1__initial_schema.sql` | colunas `amendment_number INT NOT NULL DEFAULT 0` e `created_at DATE NOT NULL` em `contract` (R3; migration editável, [ADR 0028](../adr/0028-migrations-editaveis-ate-versao-estavel.md): aviso "zerem o banco local" no PR) |
@@ -185,7 +225,7 @@ Desenho aprovado em 2026-11-25, a partir das prévias comparadas (versões desca
 seção).
 
 **Fluxo:** lista → botão de ações → detalhe (aba Contrato) → "Editar" → passo 1 (formulário) →
-"Revisar aditivo" → passo 2 (revisão) → "Confirmar aditivo" → tudo fecha, com a mensagem "Aditivo
+"Prosseguir" → passo 2 (revisão) → "Confirmar aditivo" → tudo fecha, com a mensagem "Aditivo
 salvo." e a lista atualizada (como o cadastro).
 
 **Passo 1, formulário do aditivo** (modal grande, o mesmo do cadastro, já preenchido):
@@ -195,7 +235,7 @@ salvo." e a lista atualizada (como o cadastro).
 - "Vigência e pagamento": "Prorrogar até" (opcional), forma de pagamento e parcelas (das opções da
   prévia do aditivo, R1).
 - Rodapé fixo com o "antes → depois" do fim e do total (com as parcelas), da prévia do aditivo.
-- Botões: "Cancelar" e "Revisar aditivo →". **Sem nenhuma alteração, "Revisar aditivo" fica
+- Botões: "Cancelar" e "Prosseguir →". **Sem nenhuma alteração, "Prosseguir" fica
   inativo, com "Nenhuma alteração" ao lado.**
 
 **Passo 2, revisão** (modal, título "Revisar aditivo · {titular}", sem subtítulo):
@@ -223,11 +263,42 @@ Inativo) e, se houver aditivo, o selo "Aditivo N". A versão original fica só c
 **Detalhe, com abas:**
 - **Contrato:** a versão atual, com o "Criado em" junto dos outros dados (plano, pagamento, início,
   fim, valor, parcelas, beneficiário) e os itens. Rodapé: "Inativar", "Fechar" e "Editar".
-- **Histórico (N):** as versões da mais nova para a mais antiga (número, data de criação, fim,
-  total e selo "Atual" ou "Substituída"), em lista com altura máxima que rola dentro da aba.
-  Rodapé: "← Voltar" (para a aba Contrato) e "Fechar".
-- **Versão aberta** (clique numa linha do histórico): título com o número e o selo, os dados (com o
-  "Criado em") e os itens. Rodapé: "← Voltar" (para a lista) e "Fechar".
+- **Histórico (N):** abre direto na versão mais nova (o que o último aditivo mudou), com a linha do
+  tempo das versões no topo (ver abaixo) para abrir as outras: título com o número e o selo ("Atual"
+  ou "Substituída"), os dados (com o "Criado em") e os itens. Rodapé: "← Voltar" (para a aba
+  Contrato) e "Fechar". *Mudou no teste da tela:* antes, a aba abria numa lista de versões e cada
+  linha abria a versão; com a linha do tempo, a lista ficou sobrando.
+- **O que mudou, marcado na versão aberta** (decidido em 2026-11-25, no teste da tela): comparada
+  com a versão anterior a ela (Aditivo 1 × Original, Aditivo 2 × Aditivo 1...). Os dados que mudaram
+  (forma de pagamento, fim, beneficiário, total, parcelas) ficam em azul (os tokens de sugestão),
+  com "antes: {valor}" embaixo; o item incluído ou alterado fica em azul com o selo "Novo" ou
+  "Alterado"; o item removido aparece no fim, riscado, com o selo "Removido". O Original e a aba
+  Contrato não têm marcação. Só exibição (`display/versionChanges.js`), com o critério de item da R5.
+- **Altura fixa nas duas abas:** o modal não muda de tamanho ao trocar de aba; a lista de itens (aba
+  Contrato e versão aberta) e a de versões rolam por dentro.
+- **Versão aberta com a linha do tempo** (escolhida em 2026-11-25 entre três prévias: barra com
+  moldura, linha do tempo, faixa escura no lugar das abas): no topo, as versões da original para a
+  atual, com a aberta em azul; clicar noutra abre aquela versão. Os dados e os itens ficam em
+  molduras de fundo claro, separadas: borda sólida na versão atual (também na aba Contrato) e
+  tracejada nas versões anteriores. *Por quê:* a versão aberta tinha o mesmo desenho da aba
+  Contrato, e parecia outra aba.
+- **Tabela da lista de Contratos mais leve** (escolhida em 2026-11-25 entre três prévias:
+  cabeçalho claro, cabeçalho verde suave, só linhas): cabeçalho claro (o fundo da moldura do
+  detalhe; um bege testado na tela não ficou bom) com rótulos em cinza e
+  borda de 2px embaixo; linhas brancas, sem listra; com o mouse em cima, cinza claro neutro (o verde
+  se confundia com o das etiquetas) e barra verde à esquerda; a linha inteira abre o detalhe
+  (`onRowClick` do `DataTable`, com o cursor de mão), e a linha do contrato aberto fica marcada
+  como no hover enquanto o detalhe ou o aditivo está aberto (`selectedRowKey`). O botão do olho usa
+  o `IconButton variant="soft"` (no hover, o verde das etiquetas e o ícone maior); a etiqueta
+  "Vigente" usa o mesmo verde da "Aditivo N". *Por quê:* o cabeçalho verde escuro e as listras pesavam perto dos modais. Criada como
+  **variante da tabela compartilhada** (`DataTable variant="light"`), usada só na `ContractTable`;
+  a tabela padrão das outras listagens não muda agora. **Se aprovada em Contratos, a variante vira
+  o padrão da `DataTable`** (todas as listagens), decisão que mexe na tabela padrão da spec
+  [`layout-das-telas.md`](layout-das-telas.md); pendência na seção 8.
+- **Padrões do módulo** (2026-11-25): etiquetas em retângulo com cantos arredondados
+  (`ContractBadge`, `shape="rounded"` do `Badge`); o plano do Grupo com uma opção só já vem
+  escolhido (cadastro e aditivo); o paciente escolhido (titular, beneficiário) em negrito, com
+  "Remover" que põe o cursor na busca.
 - **O histórico é só para consultar.** Voltar ao estado de uma versão anterior é fazer um novo
   aditivo com aquele conteúdo (ex: para voltar ao Aditivo 2, cria-se o Aditivo 4). A API já só
   altera a versão ativa.
@@ -245,6 +316,25 @@ Inativo) e, se houver aditivo, o selo "Aditivo N". A versão original fica só c
 | `components/ContractTable.jsx` | selo "Aditivo N" |
 | `pages/ContractPage.jsx` | fluxo do "Editar" até a mensagem de sucesso |
 | `api/contractApi.js` (`getSessionBalance`) | saldo de sessões por item, lido do endpoint do `consultation` (exceção ao mapa, seção 8) |
+
+**Como ficou** (2026-11-25, depois do teste da tela):
+
+| Arquivo | O que tem |
+|---|---|
+| `api/contractApi.js`, `api/useContracts.js` | `amendContract`, `getAmendmentPreview`, `listContractVersions`, `getSessionBalance`; `useAmendContract`, `useAmendmentPreview`, `useContractVersions`, `useContractSessionBalance`; `useContractPreview` com `enabled` |
+| `components/ContractDetailsModal.jsx` | abas com a linha deslizante; Histórico com a linha do tempo (bolinha que desliza) e a versão aberta; Inativar e Editar na aba Contrato |
+| `components/ContractVersionDetails.jsx` (novo) | dados e itens de uma versão, com as marcações do que mudou e a moldura (`frame`: sólida ou tracejada) |
+| `components/ContractAmendmentReview.jsx` (novo) | passo 2, as "Alterações" em azul |
+| `components/ContractBadge.jsx` (novo) | o `Badge` do módulo, retangular (`shape="rounded"`) |
+| `components/ContractForm.jsx`, `ContractItemFields.jsx`, `ContractTermSection.jsx`, `ContractResultBar.jsx` | modo aditivo (prop `contract`): dados travados, beneficiário, saldo e "Novo" nos itens, "Prorrogar até", antes → depois, "Prosseguir"; plano do Grupo com uma opção já escolhido |
+| `components/PatientPicker.jsx` | nome em negrito; "Remover" põe o cursor na busca |
+| `components/ContractTable.jsx` | selo "Aditivo N"; tabela clara, linha clicável e marcada, olho com hover suave |
+| `hooks/useContractDraft.js` | `amendedContract`: prévia do aditivo, linha travada do item mantido, pedido do aditivo, `formItems` |
+| `display/amendmentChanges.js`, `display/versionChanges.js`, `display/contractVersions.js` (novos) | as "Alterações" do aditivo; o que mudou entre duas versões; rótulo e selo da versão |
+| `display/contractStatus.js` | "Vigente" no verde do "Aditivo N" |
+| `utils/amendmentFormValues.js` (novo), `utils/resolveItemLine.js` | formulário preenchido com a versão atual; `resolveAmendedItemLine` (linha travada) e o pacote equivalente na mensalidade (R6) |
+| `pages/ContractPage.jsx` | fluxo Editar → passo 1 → passo 2 → "Aditivo salvo."; Cancelar volta ao detalhe |
+| **Compartilhados** | `Badge` (`variant="suggestion"`, `shape="rounded"`), `Modal` (`size="medium"`), `DataTable` (`variant="light"`, `onRowClick`, `selectedRowKey`), `IconButton` (`variant="soft"`), `date.js` (`addDaysToIsoDate`); tokens `--color-table-head` e `--color-table-head-line` no `index.css` |
 
 **Descartados nas prévias:** o aditivo em duas colunas (versão atual × nova; aperta em tela de
 notebook); o aditivo sem revisão (o erro só se corrige com outro aditivo); o "Aditivo N" em texto
@@ -268,18 +358,38 @@ muitos aditivos e não abre cada versão).
 - [x] Testes de unidade das regras novas (`ContractEntityAmendmentTest`: parcelas no aditivo,
       aditivo sem alteração, número e data da versão, fim do aditivo).
 
-**Frontend:**
-- [ ] "Editar" no detalhe e formulário do aditivo com a prévia.
-- [ ] Lista com um contrato por linha e histórico das versões no detalhe.
+**Frontend** (branch `feature/contrato-aditivo-front`; feito e testado pela tela em 2026-11-25):
+- [x] "Editar" no detalhe e formulário do aditivo com a prévia.
+- [x] Lista com um contrato por linha e histórico das versões no detalhe.
 
-**Conclusão:** casos de teste (seção 7), documentação (seção 9), ADRs (seção 10).
+**R6, item por duração em contrato de mensalidade** (feito em 2026-11-25, na branch do front):
+- [x] Backend: `ContractEntity` e testes (`ContractEntityMonthlyFeeTest`).
+- [x] Front: todas as técnicas em qualquer plano (`useContractDraft`); linha do pacote equivalente
+      (`resolveItemLine`).
+
+**Ajustes do teste da tela** (feitos em 2026-11-25; seção 5): histórico com linha do tempo e
+molduras, alterações marcadas, altura fixa e tamanho do detalhe, padrões do módulo (etiquetas,
+plano do Grupo, paciente escolhido), tabela clara, Cancelar voltando ao detalhe.
+- [x] Casos de teste: pela tela (bloco E) e pela API (blocos A, B, C, D e F).
+
+**Conclusão** (pendente; fazer em partes, cada uma revisada antes da seguinte):
+- [ ] Parte 1, [`domain-model.md`](../domain-model.md): as regras R1 a R6 (seção 9).
+- [ ] Parte 2, [`architecture.md`](../architecture.md): a exceção ao mapa de módulos e as
+      variantes novas dos componentes compartilhados (seção 9).
+- [ ] Parte 3, ADRs (seção 10) e os status dos substituídos (0032, 0008, 0009, 0011).
+- [ ] Parte 4, [`roadmap.md`](../roadmap.md) (inclui as pendências da seção 8 sem decisão),
+      remover esta spec e a entrada no [`specs/README.md`](README.md); conferências do "Ao concluir
+      uma tarefa" (build, lint, compile, `check-docs`, nomes removidos, "ainda não"/"hoje" nas
+      referências, Swagger).
+- [ ] Commit e descrição do PR desta branch (notas na seção 9).
+- [ ] *Pode ficar para depois:* decidir se a tabela clara vira o padrão das listagens (seção 8).
 
 ## 7. Casos de teste
 
 **Pré-requisitos:** banco zerado (colunas novas na `V1`) com o catálogo semeado; um ADMIN e um
 PROVIDER; pacientes ativos A (titular), B (para beneficiário) e C (titular de outro contrato).
-Contrato 1: paciente A, plano Trimestral (12 semanas, máximo de 3 parcelas), dois itens por
-duração, 3 parcelas, com alguns atendimentos lançados. Contrato 2: só com o Pilates em Grupo
+Contrato 1: paciente A, plano Evolução (12 sessões a 1x por semana = 12 semanas, máximo de 3
+parcelas), dois itens por duração, 3 parcelas, com alguns atendimentos lançados. Contrato 2: só com o Pilates em Grupo
 (plano de mensalidade). Pela API (Swagger ou testes de integração) e pela tela.
 
 **A. Parcelas no aditivo (R2)**
@@ -335,10 +445,11 @@ duração, 3 parcelas, com alguns atendimentos lançados. Contrato 2: só com o 
 |---|---|---|
 | E1 | Lista | uma linha por contrato; selo do estado e, se houver aditivo, "Aditivo N"; a versão original só com o estado |
 | E2 | Ações → detalhe | aba Contrato com a versão atual e o "Criado em"; rodapé Inativar, Fechar e Editar |
-| E3 | Aba Histórico com vários aditivos | lista da mais nova para a mais antiga, rolando dentro da aba; rodapé Voltar e Fechar |
-| E4 | Abrir uma versão no histórico | título com número e selo "Substituída", dados com o "Criado em" e itens; sem Editar nem Inativar; Voltar volta à lista |
+| E3 | Aba Histórico com vários aditivos | abre na versão mais nova, com a linha do tempo da original à atual; rodapé Voltar (para a aba Contrato) e Fechar |
+| E4 | Abrir outra versão pela linha do tempo | a versão em azul na linha; título com número e selo "Substituída", dados e itens em molduras, com o "Criado em"; sem Editar nem Inativar |
+| E4b | Abrir o Aditivo 1 e o Aditivo 2 da Elisa | no 1, marcados a forma de pagamento e as parcelas (com "antes: ..."); no 2, o fim e as parcelas; o Original sem marcação; trocar de aba não muda o tamanho do modal |
 | E5 | Editar | passo 1 preenchido; titular, plano, início e fim atual travados; saldo de sessões em cada item |
-| E6 | Passo 1 sem nenhuma mudança | "Revisar aditivo" inativo, com "Nenhuma alteração" |
+| E6 | Passo 1 sem nenhuma mudança | "Prosseguir" inativo, com "Nenhuma alteração" |
 | E7 | Incluir um item | o item marcado "Novo"; o rodapé mostra o fim e o total antes → depois |
 | E8 | Revisar: só prorrogação | "Alterações" com só "Novo fim" |
 | E9 | Revisar: só a forma de pagamento | só "Nova forma de pagamento" |
@@ -348,6 +459,15 @@ duração, 3 parcelas, com alguns atendimentos lançados. Contrato 2: só com o 
 | E13 | Confirmar | tudo fecha; "Aditivo salvo."; a lista mostra o "Aditivo N" novo |
 | E14 | Erro da API ao confirmar (ex: beneficiário em outro contrato vigente) | a mensagem da API aparece; Voltar leva ao formulário para corrigir |
 | E15 | Contrato vencido (ativo, fim no passado) | pode ser editado; prorrogado, volta a "Vigente" |
+
+**F. Item por duração em contrato de mensalidade (R6)**
+
+| # | Caso | Esperado |
+|---|---|---|
+| F1 | Aditivo da Carla (Trimestral): incluir RPG 60 min 1x por semana | técnicas por duração na lista; valor do RPG pelo Evolução; fim = o maior entre o atual e hoje + 12 semanas; 201 ao confirmar |
+| F2 | Cadastro com Trimestral + Pilates em Grupo + RPG quinzenal | fim em 24 semanas (passa das 13 do Trimestral); máximo de 6 parcelas |
+| F3 | Contrato de mensalidade só com item por duração (cadastro, ou aditivo que remove o Grupo) | 400 "Contrato com plano de mensalidade precisa do item do Pilates em Grupo..." |
+| F4 | Pela API, item por duração com a linha de outro pacote (ex: Essencial num Trimestral) | 400 "O preço do item precisa ser do plano Evolução (equivalente do Trimestral)." |
 
 ## 8. Pendências e pontos abertos
 
@@ -393,6 +513,12 @@ o módulo `contract` não pode importar o `consultation` (mapa de módulos no
   item); mudar o endpoint para `/api/contracts/{id}/session-balance` (o `contract` dependeria do
   `consultation`, ou a rota ficaria num controller que não é o dono).
 
+**Tabela clara como padrão das listagens** (em aberto, 2026-11-25): a `DataTable variant="light"`
+está só em Contratos. Se for aprovada, ela vira o padrão da `DataTable` (Pacientes, Prestadores,
+Usuários, Preços), a variante sai e a spec [`layout-das-telas.md`](layout-das-telas.md) (tabela
+padrão com cabeçalho no verde do menu e listra) é atualizada. Na conclusão, sem decisão, vai para o
+[`roadmap.md`](../roadmap.md).
+
 **Numeração do ADR dos testes de integração** (0035 → 0036 no texto, nos links e nos
 comentários): corrigida aqui e também na `dev` (commits 660c42d e c28a9e2), com o mesmo conteúdo.
 Não entra nas notas do PR.
@@ -402,24 +528,38 @@ Não entra nas notas do PR.
 - [`domain-model.md`](../domain-model.md), `Contract`: "Valor e parcelas" (o aditivo escolhe as
   parcelas, R2), "Versionamento (aditivos)" (número do aditivo gravado, versão substituída,
   listagem só das atuais e `/versions`, R3) e os endpoints de apoio (a prévia do aditivo, R1; sai o
-  `group-plan-options`, R4). O `group-plan-options` também aparece nas linhas 598 e 774 do
+  `group-plan-options`, R4). O `group-plan-options` também aparece nas linhas 610 e 786 do
   `domain-model.md` e no item do aditivo no `roadmap.md`; o ADR 0010 o cita, mas ADR aceito não é
   editado.
 - [`architecture.md`](../architecture.md), seção "Frontend": a exceção ao mapa de módulos (a
   camada `api/` pode ler, pelo endpoint, um dado publicado por um módulo acima; nunca escreve nem
-  repete a regra; precedente: o saldo de sessões no aditivo); e o que a tela trouxer de padrão
-  novo.
+  repete a regra; precedente: o saldo de sessões no aditivo); e os padrões novos: o `Modal
+  size="medium"` (detalhe com abas), as variantes dos compartilhados (`Badge` `suggestion` e
+  `shape`, `DataTable` `light`/`onRowClick`/`selectedRowKey`, `IconButton` `soft`) e o azul de
+  sugestão para "novo ou alterado" (aditivo e histórico).
 - [`roadmap.md`](../roadmap.md): o aditivo concluído; o esboço do `billing` (seção 8) no lugar
   de "`Payment`" e "Saldo do paciente"; o que a feature deixou para depois (seção 2).
-- ADRs da seção 10; o ADR 0032 com o status "aceito (em parte substituído por NNNN)".
+- [`domain-model.md`](../domain-model.md), R6: "Plano do item" e "Contrato de pacote precisa..."
+  em `ContractItem` (linhas 643-652), "Contrato só com Grupo" em "Vigência e frequência" (757), o
+  "Sem exceção" do plano em "Versionamento" (869-871) e os usos do de-para em `Plan` (414-421).
+- ADRs da seção 10; o ADR 0032 com o status "aceito (em parte substituído por NNNN)"; os ADRs
+  0008, 0009 e 0011 com "em parte substituído" pelo ADR da R6.
 - Remover esta spec e a entrada em [`specs/README.md`](README.md).
 
 **Para a descrição do PR** (além do que mudou, das decisões e do que foi testado):
-- **Aviso: zerem o banco local** (colunas `amendment_number` e `created_at` na `V1__initial_schema.sql`,
-  migration editável pelo [ADR 0028](../adr/0028-migrations-editaveis-ate-versao-estavel.md)).
-- **Mudança na API:** `GET /api/contracts` passa a trazer só a versão atual de cada contrato;
-  sai o `GET /api/contracts/{id}/group-plan-options`; o aditivo passa a exigir `installments` e
-  recusa o aditivo sem alteração (400).
+- *PR do backend (#56, já na `dev`):* o aviso "zerem o banco local" (colunas `amendment_number` e
+  `created_at` na `V1__initial_schema.sql`, migration editável pelo
+  [ADR 0028](../adr/0028-migrations-editaveis-ate-versao-estavel.md)) e as mudanças na API (lista só
+  da versão atual, `group-plan-options` removido, `installments` obrigatório e aditivo sem
+  alteração recusado).
+- *PR desta branch (`feature/contrato-aditivo-front`):*
+  - **Mudança na regra (R6):** contrato de plano de mensalidade passa a aceitar itens por duração,
+    pelo pacote equivalente; o item do Grupo continua obrigatório nele. Sem migration.
+  - **Componentes compartilhados com variantes novas**, sem mudar o padrão das outras telas:
+    `Badge` (`suggestion`, `shape="rounded"`), `Modal` (`size="medium"`), `DataTable` (`light`,
+    `onRowClick`, `selectedRowKey`), `IconButton` (`soft`). O `PatientPicker` ("Remover", nome em
+    negrito) vale também no cadastro de contrato.
+  - **Em aberto:** a tabela clara como padrão de todas as listagens (seção 8).
 
 ## 10. ADRs a registrar
 
@@ -429,3 +569,6 @@ Não entra nas notas do PR.
   da criação; o cálculo no front; o pedido do aditivo na prévia.
 - **Lista pela versão atual, com o número do aditivo gravado** (R3). *Descartadas:* todas as
   versões na lista; contar a cadeia a cada leitura; consulta recursiva no SQL.
+- **Item por duração em contrato de mensalidade, pelo pacote equivalente** (R6), substituindo em
+  parte os ADRs 0008, 0009 e 0011. *Descartadas:* escolher o pacote numa lista; só no aditivo;
+  contrato de mensalidade sem o item do Grupo.

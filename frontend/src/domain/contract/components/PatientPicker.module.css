@@ -1,3 +1,4 @@
+/* O paciente escolhido, no mesmo estilo dos outros campos (Input) */
 .picker {
   display: flex;
   align-items: center;
@@ -5,9 +6,11 @@
   gap: 12px;
   height: 44px;
   padding: 0 4px 0 14px;
-  border: 1px solid #5f7a58;
-  border-radius: 12px;
-  background: #dfe8dc;
+  border: 1px solid var(--color-border);
+  border-radius: var(--radius);
+  background: var(--color-surface);
+  color: var(--color-text);
+  font-size: 14px;
 }
 
 .picker-info {
@@ -17,6 +20,7 @@
   min-width: 0;
 }
 
+/* O escolhido em negrito, como o plano escolhido no RichSelect */
 .picker-name {
   overflow: hidden;
   font-weight: 600;
@@ -25,7 +29,7 @@
 }
 
 .picker-cpf {
-  color: #6b7280;
+  color: var(--color-muted);
   font-size: 13px;
   white-space: nowrap;
 }
