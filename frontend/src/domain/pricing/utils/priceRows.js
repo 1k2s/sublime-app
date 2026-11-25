@@ -43,9 +43,3 @@ export function buildPriceRows(prices) {
       return b.validTo.localeCompare(a.validTo);
     });
 }
-
-// Filtro de status da tela: "ALL", "CURRENT" (vigentes), "EXPIRED" (vencidos) ou "CLOSED" (encerrados)
-export function filterPriceRows(rows, status) {
-  if (status === "ALL") return rows;
-  return rows.filter((row) => row.status === status);
-}

@@ -1,5 +1,5 @@
 // Hooks de leitura (com cache) e escrita (com invalidação) do módulo pricing
-import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
+import { useMutation, useQueries, useQuery, useQueryClient } from "@tanstack/react-query";
 import {
   createDurationPrice,
   createFrequencyPrice,
@@ -28,6 +28,18 @@ export function usePricingGroupPriceHistory(pricingGroupId) {
     queryKey: ["prices", "group", pricingGroupId, "history"],
     queryFn: () => getPricingGroupPriceHistory(pricingGroupId),
     enabled: pricingGroupId != null,
+  });
+}
+
+// O histórico de vários grupos (tela de preços com "Todos"): uma requisição por grupo, na mesma
+// chave do usePricingGroupPriceHistory, para dividir o cache e a invalidação com ele.
+// Devolve um resultado por grupo, na ordem dos ids
+export function usePricingGroupPriceHistories(pricingGroupIds) {
+  return useQueries({
+    queries: pricingGroupIds.map((pricingGroupId) => ({
+      queryKey: ["prices", "group", pricingGroupId, "history"],
+      queryFn: () => getPricingGroupPriceHistory(pricingGroupId),
+    })),
   });
 }
 

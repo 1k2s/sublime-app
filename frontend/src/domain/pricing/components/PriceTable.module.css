@@ -3,6 +3,18 @@
   font-weight: 600;
 }
 
+/* Grupo: no tom do texto, abaixo da técnica e do plano. Grupo e técnica quebram linha para a
+   tabela caber na largura */
+.text {
+  color: var(--color-text);
+}
+
+/* Técnica: em destaque, como o plano, por ser o que identifica a linha */
+.technique {
+  color: var(--color-title);
+  font-weight: 600;
+}
+
 .value {
   color: var(--color-title);
   font-weight: 700;
