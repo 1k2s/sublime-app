@@ -31,10 +31,18 @@ public record ContractResponseDTO(
         boolean current,
         // versão anterior deste contrato (aditivo); null na primeira versão
         Long previousContractId,
+        // 0 na versão original, 1 no primeiro aditivo...: a tela mostra "Aditivo N" sem conta
+        int amendmentNumber,
+        // dia em que a versão foi criada (cadastro ou aditivo)
+        LocalDate createdAt,
+        // substituída por um aditivo (inativa por isso, e não inativada): calculado, não gravado
+        boolean superseded,
         List<ContractItemResponseDTO> items
 
 ) {
-    public static ContractResponseDTO fromEntity(ContractEntity entity) {
+    // superseded vem de quem monta a resposta: na listagem é sempre falso (só vêm as
+    // versões atuais); nas versões, sai da posição na cadeia; no detalhe, de uma consulta
+    public static ContractResponseDTO fromEntity(ContractEntity entity, boolean superseded) {
         Installments installments = entity.getInstallmentValues();
         return new ContractResponseDTO(
                 entity.getId(),
@@ -52,6 +60,9 @@ public record ContractResponseDTO(
                 entity.isActive(),
                 entity.isCurrentOn(LocalDate.now()),
                 entity.getPreviousContract() != null ? entity.getPreviousContract().getId() : null,
+                entity.getAmendmentNumber(),
+                entity.getCreatedAt(),
+                superseded,
                 entity.getItems().stream().map(ContractItemResponseDTO::fromEntity).toList());
     }
 }

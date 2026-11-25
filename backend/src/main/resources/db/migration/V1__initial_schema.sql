@@ -149,6 +149,10 @@ CREATE TABLE session_frequency_price (
 CREATE TABLE contract (
     id                   BIGINT      NOT NULL AUTO_INCREMENT,
     active               BIT(1)      NOT NULL,
+    -- número do aditivo: 0 na versão original, anterior + 1 em cada aditivo (nunca muda)
+    amendment_number     INT         NOT NULL DEFAULT 0,
+    -- dia em que a versão foi criada (cadastro ou aditivo), no fuso da clínica
+    created_at           DATE        NOT NULL,
     end_date             DATE        NOT NULL,
     -- número de parcelas: de 1 até os meses do contrato (regra na entidade); 12 no máximo
     installments         INT         NOT NULL,

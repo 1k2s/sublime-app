@@ -32,4 +32,16 @@ public interface ContractRepository extends JpaRepository<ContractEntity, Long> 
             """)
     List<ContractEntity> findActiveCoveringDateByHolderOrBeneficiary(@Param("patientId") Long patientId,
             @Param("date") LocalDate date);
+
+    // Versão atual de cada contrato: a que nenhum aditivo substituiu (nenhuma versão aponta
+    // para ela). Inclui a inativada, que continua na lista como "Inativo".
+    @Query("""
+            select c from ContractEntity c
+            where not exists (select 1 from ContractEntity next where next.previousContract = c)
+            """)
+    List<ContractEntity> findAllCurrentVersions();
+
+    // Versão substituída: existe um aditivo apontando para ela (previous_contract_id é UNIQUE,
+    // com índice)
+    boolean existsByPreviousContractId(Long contractId);
 }

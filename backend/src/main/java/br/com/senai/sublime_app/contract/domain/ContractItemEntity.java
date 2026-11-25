@@ -26,6 +26,8 @@ import lombok.EqualsAndHashCode;
 import lombok.Getter;
 import lombok.NoArgsConstructor;
 
+import java.util.Objects;
+
 // Entidade interna do agregado Contract: um item por grupo de preço contratado.
 // Não tem repositório nem service próprios — só o ContractEntity cria itens (o
 // construtor de negócio não é público). Ver domain-model.md, "ContractItem".
@@ -95,10 +97,22 @@ public class ContractItemEntity {
         return ContractItemValue.of(sessionDurationPrice, sessionFrequencyPrice);
     }
 
-    // Semanas para completar as sessões do plano no ritmo do item. Só faz sentido
-    // em item por duração — usado no cálculo do fim do contrato.
-    public int weeksToComplete() {
-        return frequency.weeksToComplete(sessionDurationPrice.getPlan().getSessionCount());
+    // Mesma técnica, mesma linha de preço e mesma frequência: o item não mudou no aditivo
+    // (ver "Versionamento (aditivos)" no domain-model). Compara ids: relação LAZY pode vir
+    // como proxy do Hibernate.
+    boolean hasSameTermsAs(ContractItemEntity other) {
+        return technique.getId().equals(other.technique.getId())
+                && Objects.equals(durationPriceId(), other.durationPriceId())
+                && Objects.equals(frequencyPriceId(), other.frequencyPriceId())
+                && frequency == other.frequency;
+    }
+
+    private Long durationPriceId() {
+        return sessionDurationPrice != null ? sessionDurationPrice.getId() : null;
+    }
+
+    private Long frequencyPriceId() {
+        return sessionFrequencyPrice != null ? sessionFrequencyPrice.getId() : null;
     }
 
     // Linha vigente, ou a mesma já travada no item anterior (o contrato mantém o
