@@ -2,7 +2,8 @@
 // pode ser separada em grupos. Fechado, mostra a opção escolhida (título, detalhe e etiquetas).
 // Teclado: setas navegam, Enter escolhe, Esc fecha; clicar fora também fecha.
 // options: [{ value, label, description?, tags?: string[], group? }] (o grupo vira um título na
-// lista quando muda de uma opção para a seguinte). value: o value escolhido (ou "")
+// lista quando muda de uma opção para a seguinte). value: o value escolhido (ou "").
+// icon: ícone (lucide) num quadrado à esquerda do campo fechado
 import { useEffect, useId, useRef, useState } from "react";
 import { Check, ChevronDown } from "lucide-react";
 import styles from "./RichSelect.module.css";
@@ -11,6 +12,7 @@ export function RichSelect({
   id,
   value,
   options = [],
+  icon: Icon,
   placeholder = "Selecione",
   emptyMessage = "Nenhuma opção",
   onChange,
@@ -95,6 +97,11 @@ export function RichSelect({
         onClick={() => (isOpen ? setIsOpen(false) : open())}
         onKeyDown={handleKeyDown}
       >
+        {Icon && (
+          <span className={styles["trigger-leading"]}>
+            <Icon size={18} aria-hidden />
+          </span>
+        )}
         {selected ? (
           <>
             <span className={styles["trigger-text"]}>
@@ -128,6 +135,7 @@ export function RichSelect({
                   aria-selected={isSelected}
                   className={[
                     styles.option,
+                    option.group && styles["option-grouped"],
                     index === activeIndex && styles["option-active"],
                     isSelected && styles["option-selected"],
                   ]

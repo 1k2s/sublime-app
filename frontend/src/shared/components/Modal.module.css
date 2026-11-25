@@ -125,3 +125,41 @@
   overflow: hidden;
   background: var(--color-bg);
 }
+
+.eyebrow {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 6px;
+  margin-bottom: 8px;
+}
+
+/* Variante suave: título maior, cabeçalho sem borda e rodapé com fundo */
+.soft {
+  border-radius: 20px;
+}
+
+.soft .header {
+  align-items: flex-start;
+  padding-bottom: 4px;
+  border-bottom: none;
+}
+
+.soft .title {
+  color: var(--color-title);
+  font-size: 24px;
+  font-weight: 700;
+  letter-spacing: -0.01em;
+}
+
+.soft .body {
+  padding-top: 16px;
+}
+
+.soft .footer {
+  display: flex;
+  justify-content: flex-end;
+  flex-wrap: wrap;
+  gap: 12px;
+  border-top: none;
+  background: var(--color-bg);
+}
