@@ -112,12 +112,13 @@ feature em andamento fica na spec dela, em [`specs/`](specs/).
    runner do GitHub já tem o Docker, que o Testcontainers usa), build e lint do front e
    `node scripts/check-docs.mjs`, com o resultado no PR.
    CD (deploy automático) fica para quando houver a versão 1 no ar.
-4. **Dashboards**, com spec própria. **Do prestador:** os rendimentos dele (soma dos repasses)
+4. **Dashboards** (spec em [`specs/dashboards.md`](specs/dashboards.md), 2026-11-24: o
+   rendimento conta só os realizados, pela data do lançamento; gráficos com o ECharts).
+   **Do prestador:** os rendimentos dele (soma dos repasses)
    no dia, na semana e no mês, e os **atendimentos dele com filtros, inclusive por data**: é
    onde ele vê os retroativos, que a tela de Lançamento não mostra (ela é só de hoje). **Do
    admin:** os mesmos dados de todos os prestadores, com o filtro por prestador (decidido em
-   2026-11-13). Decidido em 2026-11-06 que o `PROVIDER` vê só os próprios. Em aberto para a
-   spec: o que conta como rendimento (quais status, por qual data). O total do dia da tela de
+   2026-11-13). Decidido em 2026-11-06 que o `PROVIDER` vê só os próprios. O total do dia da tela de
    Lançamento já é do backend (`day-summary`: os ativos de hoje, nos três status). Cobre o item
    "Histórico de atendimentos com filtro por período" do checklist do front.
 
