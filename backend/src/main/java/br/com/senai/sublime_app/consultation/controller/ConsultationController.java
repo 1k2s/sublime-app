@@ -1,10 +1,13 @@
 package br.com.senai.sublime_app.consultation.controller;
 
+import br.com.senai.sublime_app.consultation.domain.ConsultationStatus;
 import br.com.senai.sublime_app.consultation.dto.ConsultationPatientResponseDTO;
 import br.com.senai.sublime_app.consultation.dto.ConsultationRequestDTO;
 import br.com.senai.sublime_app.consultation.dto.ConsultationResponseDTO;
 import br.com.senai.sublime_app.consultation.dto.ContractSessionBalanceResponseDTO;
 import br.com.senai.sublime_app.consultation.dto.DaySummaryResponseDTO;
+import br.com.senai.sublime_app.consultation.dto.EarningsResponseDTO;
+import br.com.senai.sublime_app.consultation.dto.EarningsSummaryResponseDTO;
 import br.com.senai.sublime_app.consultation.dto.LaunchOptionResponseDTO;
 import br.com.senai.sublime_app.consultation.dto.RecentPatientResponseDTO;
 import br.com.senai.sublime_app.consultation.service.ConsultationService;
@@ -70,7 +73,9 @@ public class ConsultationController {
     }
 
     @Operation(summary = "Listar atendimentos", description = """
-            Ativos e inativos, do mais recente para o mais antigo; filtros opcionais.
+            Ativos e inativos, do mais recente para o mais antigo (pela data do atendimento);
+            filtros opcionais. Dois períodos: `from`/`to` pela data do atendimento e
+            `launchedFrom`/`launchedTo` pela do lançamento (a do rendimento, usada no dashboard).
 
             **Perfis:** ADMIN e PROVIDER (só os dele).
             """)
@@ -86,8 +91,62 @@ public class ConsultationController {
             @RequestParam(required = false) @DateTimeFormat(iso = DateTimeFormat.ISO.DATE) LocalDate from,
             @Parameter(description = "Data final do atendimento, inclusiva (AAAA-MM-DD)", example = "2026-10-31")
             @RequestParam(required = false) @DateTimeFormat(iso = DateTimeFormat.ISO.DATE) LocalDate to,
+            @Parameter(description = "Data inicial do lançamento, inclusiva (AAAA-MM-DD)", example = "2026-10-01")
+            @RequestParam(required = false) @DateTimeFormat(iso = DateTimeFormat.ISO.DATE) LocalDate launchedFrom,
+            @Parameter(description = "Data final do lançamento, inclusiva (AAAA-MM-DD)", example = "2026-10-31")
+            @RequestParam(required = false) @DateTimeFormat(iso = DateTimeFormat.ISO.DATE) LocalDate launchedTo,
+            @Parameter(description = "Status do atendimento", example = "ATTENDED")
+            @RequestParam(required = false) ConsultationStatus status,
             CurrentUser currentUser) {
-        return ResponseEntity.ok(consultationService.search(providerId, patientId, from, to, currentUser));
+        return ResponseEntity.ok(consultationService.search(providerId, patientId, from, to, launchedFrom, launchedTo,
+                status, currentUser));
+    }
+
+    @Operation(summary = "Resumo do rendimento", description = """
+            O rendimento de hoje, da semana (segunda a domingo) e do mês do calendário, no fuso
+            da clínica, com os limites de cada período (`from`/`to`). Rendimento = repasse dos
+            atendimentos realizados (`ATTENDED`) ativos, pela data do lançamento; as faltas
+            cobradas (`NO_SHOW` e `CANCELED_LATE`) vêm à parte. Regras: "Rendimento" em
+            Consultation, no `docs/domain-model.md`.
+
+            **Perfis:** ADMIN (com o `providerId`, só aquele; sem, todos) e PROVIDER (sempre o dele).
+            """)
+    @ApiResponses({
+            @ApiResponse(responseCode = "200", description = "Resumo do rendimento", content = @Content(schema = @Schema(implementation = EarningsSummaryResponseDTO.class))),
+            @ApiResponse(responseCode = "403", description = "Usuário PROVIDER sem prestador vinculado", content = @Content),
+            @ApiResponse(responseCode = "404", description = "Prestador não encontrado", content = @Content)
+    })
+    @GetMapping("/earnings-summary")
+    public ResponseEntity<EarningsSummaryResponseDTO> findEarningsSummary(
+            @Parameter(description = "Prestador (só o ADMIN informa; vazio = todos)", example = "1") @RequestParam(required = false) Long providerId,
+            CurrentUser currentUser) {
+        return ResponseEntity.ok(consultationService.findEarningsSummary(providerId, currentUser));
+    }
+
+    @Operation(summary = "Rendimento do período", description = """
+            O rendimento de um período qualquer, pela data do lançamento, com as faltas cobradas
+            à parte e o repasse total (os dois somados). Para o ADMIN sem `providerId`, também o
+            rendimento de cada prestador (`byProvider`: os ativos, mesmo zerados, e os inativos
+            com lançamento no período). Regras: "Rendimento" em Consultation, no
+            `docs/domain-model.md`.
+
+            **Perfis:** ADMIN (com o `providerId`, só aquele; sem, todos) e PROVIDER (sempre o dele).
+            """)
+    @ApiResponses({
+            @ApiResponse(responseCode = "200", description = "Rendimento do período", content = @Content(schema = @Schema(implementation = EarningsResponseDTO.class))),
+            @ApiResponse(responseCode = "400", description = "Data inicial depois da final", content = @Content),
+            @ApiResponse(responseCode = "403", description = "Usuário PROVIDER sem prestador vinculado", content = @Content),
+            @ApiResponse(responseCode = "404", description = "Prestador não encontrado", content = @Content)
+    })
+    @GetMapping("/earnings")
+    public ResponseEntity<EarningsResponseDTO> findEarnings(
+            @Parameter(description = "Prestador (só o ADMIN informa; vazio = todos)", example = "1") @RequestParam(required = false) Long providerId,
+            @Parameter(description = "Data inicial do lançamento, inclusiva (AAAA-MM-DD)", required = true, example = "2026-11-01")
+            @RequestParam @DateTimeFormat(iso = DateTimeFormat.ISO.DATE) LocalDate from,
+            @Parameter(description = "Data final do lançamento, inclusiva (AAAA-MM-DD)", required = true, example = "2026-11-30")
+            @RequestParam @DateTimeFormat(iso = DateTimeFormat.ISO.DATE) LocalDate to,
+            CurrentUser currentUser) {
+        return ResponseEntity.ok(consultationService.findEarnings(providerId, from, to, currentUser));
     }
 
     @Operation(summary = "Pacientes do lançamento", description = """
@@ -146,9 +205,9 @@ public class ConsultationController {
     }
 
     @Operation(summary = "Resumo do dia do prestador", description = """
-            Hoje (no fuso da clínica): a quantidade de atendimentos ativos, o repasse somado
-            (nos três status) e quantos lançamentos retroativos a liberação de hoje ainda
-            permite.
+            Hoje (no fuso da clínica), pela regra do rendimento: os atendimentos realizados
+            (`ATTENDED`) ativos lançados hoje e o repasse somado, as faltas cobradas à parte e
+            quantos lançamentos retroativos a liberação de hoje ainda permite.
 
             **Perfis:** ADMIN (informa o `providerId`) e PROVIDER (sempre o dele).
             """)
