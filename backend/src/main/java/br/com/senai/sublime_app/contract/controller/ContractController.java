@@ -1,11 +1,11 @@
 package br.com.senai.sublime_app.contract.controller;
 
+import br.com.senai.sublime_app.contract.dto.ContractAmendmentPreviewRequestDTO;
 import br.com.senai.sublime_app.contract.dto.ContractAmendmentRequestDTO;
 import br.com.senai.sublime_app.contract.dto.ContractPreviewRequestDTO;
 import br.com.senai.sublime_app.contract.dto.ContractPreviewResponseDTO;
 import br.com.senai.sublime_app.contract.dto.ContractRequestDTO;
 import br.com.senai.sublime_app.contract.dto.ContractResponseDTO;
-import br.com.senai.sublime_app.contract.dto.ContractGroupPlanOptionsResponseDTO;
 import br.com.senai.sublime_app.contract.service.ContractService;
 import io.swagger.v3.oas.annotations.Operation;
 import io.swagger.v3.oas.annotations.Parameter;
@@ -63,10 +63,12 @@ public class ContractController {
     }
 
     @Operation(summary = "Listar contratos", description = """
-            Retorna todos os contratos cadastrados, incluindo ativos e inativos (versões
-            anteriores). `current`: vigente hoje (ativo e com o fim a partir de hoje); ativo com
-            `current` falso = vencido. `totalValue` e o valor das parcelas são calculados pelas
-            linhas de preço travadas nos itens.
+            Retorna um contrato por linha: só a **versão atual** de cada um (a que nenhum aditivo
+            substituiu), incluindo as inativadas. As versões anteriores ficam em
+            `GET /api/contracts/{id}/versions`. `current`: vigente hoje (ativo e com o fim a partir
+            de hoje); ativo com `current` falso = vencido. `amendmentNumber`: 0 na versão original,
+            N no aditivo N. `totalValue` e o valor das parcelas são calculados pelas linhas de
+            preço travadas nos itens.
             """)
     @ApiResponses({
             @ApiResponse(responseCode = "200", description = "Lista retornada com sucesso", content = @Content(schema = @Schema(implementation = ContractResponseDTO.class)))
@@ -76,7 +78,10 @@ public class ContractController {
         return ResponseEntity.ok(contractService.findAll());
     }
 
-    @Operation(summary = "Buscar contrato por ID", description = "Retorna o cabeçalho e os itens de um contrato, com o `current` (vigente hoje; ver \"Listar contratos\").")
+    @Operation(summary = "Buscar contrato por ID", description = """
+            Retorna o cabeçalho e os itens de uma versão do contrato, com o `current` (vigente
+            hoje; ver "Listar contratos") e o `superseded` (substituída por um aditivo).
+            """)
     @ApiResponses({
             @ApiResponse(responseCode = "200", description = "Contrato encontrado", content = @Content(schema = @Schema(implementation = ContractResponseDTO.class))),
             @ApiResponse(responseCode = "404", description = "Contrato não encontrado", content = @Content)
@@ -85,6 +90,23 @@ public class ContractController {
     public ResponseEntity<ContractResponseDTO> findById(
             @Parameter(description = "Identificador do contrato", required = true, example = "1") @PathVariable Long id) {
         return ResponseEntity.ok(contractService.findById(id));
+    }
+
+    @Operation(summary = "Versões do contrato (histórico)", description = """
+            Retorna a versão informada e todas as anteriores, da mais nova para a mais antiga
+            (pedida pela versão atual, é o histórico inteiro). `superseded` diz quais foram
+            substituídas por um aditivo; `createdAt`, quando cada uma foi criada.
+
+            Regras: "Versionamento (aditivos)" no `docs/domain-model.md`.
+            """)
+    @ApiResponses({
+            @ApiResponse(responseCode = "200", description = "Versões retornadas", content = @Content(schema = @Schema(implementation = ContractResponseDTO.class))),
+            @ApiResponse(responseCode = "404", description = "Contrato não encontrado", content = @Content)
+    })
+    @GetMapping("/{id}/versions")
+    public ResponseEntity<List<ContractResponseDTO>> findVersions(
+            @Parameter(description = "Identificador da versão (normalmente a atual)", required = true, example = "1") @PathVariable Long id) {
+        return ResponseEntity.ok(contractService.findVersions(id));
     }
 
     @Operation(summary = "Prévia do contrato (tela de criação)", description = """
@@ -106,25 +128,12 @@ public class ContractController {
         return ResponseEntity.ok(contractService.preview(requestDTO));
     }
 
-    @Operation(summary = "Opções do plano do Grupo (aditivo)", description = """
-            Opções do plano do Pilates em Grupo para um aditivo, pela vigência atual (sem
-            gravar).
-            """)
-    @ApiResponses({
-            @ApiResponse(responseCode = "200", description = "Opções calculadas", content = @Content(schema = @Schema(implementation = ContractGroupPlanOptionsResponseDTO.class))),
-            @ApiResponse(responseCode = "404", description = "Contrato não encontrado", content = @Content)
-    })
-    @GetMapping("/{id}/group-plan-options")
-    public ResponseEntity<ContractGroupPlanOptionsResponseDTO> groupPlanOptions(
-            @Parameter(description = "Identificador do contrato", required = true, example = "1") @PathVariable Long id) {
-        return ResponseEntity.ok(contractService.groupPlanOptionsFor(id));
-    }
-
     @Operation(summary = "Alterar contrato (aditivo)", description = """
             Gera uma nova versão do contrato (a atual é inativada) e responde com ela. Envie o
             **estado completo**: beneficiário, forma de pagamento e todos os itens (item que não
             vier é removido). Titular, plano e início são copiados. `endDate` (opcional) só
-            estende o fim.
+            estende o fim. `installments` é escolhido em todo aditivo: de 1 até os meses da nova
+            vigência, dividindo o total da nova versão.
 
             Regras: "Versionamento (aditivos)" no `docs/domain-model.md`.
             """)
@@ -140,6 +149,29 @@ public class ContractController {
             @RequestBody @Valid ContractAmendmentRequestDTO requestDTO) {
         ContractResponseDTO response = contractService.amend(id, requestDTO);
         return ResponseEntity.status(HttpStatus.CREATED).body(response);
+    }
+
+    @Operation(summary = "Prévia do aditivo", description = """
+            Calcula, sem gravar e com as mesmas contas do aditivo: o novo fim, as semanas, as
+            opções do plano do Pilates em Grupo e o máximo de parcelas pela **nova** vigência, o
+            valor de cada item, o total e as parcelas. Envie só o que muda as contas: os itens do
+            formulário (no formato do aditivo; a lista pode vir incompleta), `endDate` (opcional,
+            prorrogação) e `installments` (opcional; vazio ou acima do máximo = o máximo; a
+            resposta traz as aplicadas). A versão continua ativa.
+
+            Regras: "Versionamento (aditivos)" no `docs/domain-model.md`.
+            """)
+    @ApiResponses({
+            @ApiResponse(responseCode = "200", description = "Prévia calculada", content = @Content(schema = @Schema(implementation = ContractPreviewResponseDTO.class))),
+            @ApiResponse(responseCode = "400", description = "Dados inválidos, novo fim antes do atual ou frequência acima do prazo máximo", content = @Content),
+            @ApiResponse(responseCode = "404", description = "Contrato, técnica ou preço não encontrado", content = @Content),
+            @ApiResponse(responseCode = "409", description = "Versão inativa (substituída por aditivo ou inativada)", content = @Content)
+    })
+    @PostMapping("/{id}/amendments/preview")
+    public ResponseEntity<ContractPreviewResponseDTO> previewAmendment(
+            @Parameter(description = "Identificador da versão atual do contrato", required = true, example = "1") @PathVariable Long id,
+            @RequestBody @Valid ContractAmendmentPreviewRequestDTO requestDTO) {
+        return ResponseEntity.ok(contractService.previewAmendment(id, requestDTO));
     }
 
     @Operation(summary = "Inativar contrato", description = """

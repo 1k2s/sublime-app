@@ -6,7 +6,7 @@ import org.springframework.context.annotation.Bean;
 import org.testcontainers.mysql.MySQLContainer;
 import org.testcontainers.utility.DockerImageName;
 
-// MySQL descartável para os testes de integração (ADR 0035). O @ServiceConnection aponta o
+// MySQL descartável para os testes de integração (ADR 0036). O @ServiceConnection aponta o
 // datasource para o container, e o Flyway aplica as migrations nele ao subir o contexto.
 // Nunca toca o banco de desenvolvimento.
 @TestConfiguration(proxyBeanMethods = false)

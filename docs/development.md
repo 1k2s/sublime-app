@@ -75,7 +75,7 @@ Em `backend/`. Padrões de como escrever: "Testes do backend", no
 | Um método | `./mvnw test -Dtest=PercentageTest#appliesPercentageWithHalfUpRounding` |
 
 - **O Docker precisa estar no ar** (o Docker Desktop): os testes de integração sobem um MySQL
-  próprio em container ([ADR 0035](adr/0035-testes-de-integracao-com-testcontainers.md)). O
+  próprio em container ([ADR 0036](adr/0036-testes-de-integracao-com-testcontainers.md)). O
   `docker compose up` não é necessário, e o banco de desenvolvimento (`sublime_db`) nunca é
   tocado. A primeira execução baixa a imagem do MySQL.
 - O perfil `test` (`src/test/resources/application-test.properties`) tem o segredo do JWT e o

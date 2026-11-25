@@ -10,7 +10,7 @@ import org.springframework.boot.webmvc.test.autoconfigure.AutoConfigureMockMvc;
 import org.springframework.context.annotation.Import;
 import org.springframework.test.context.ActiveProfiles;
 
-// Teste de integração (ADR 0035): a aplicação inteira, com o MySQL do Testcontainers, o
+// Teste de integração (ADR 0036): a aplicação inteira, com o MySQL do Testcontainers, o
 // perfil "test" (application-test.properties) e o MockMvc para chamar a API.
 // - Sem @Transactional de propósito: cada requisição tem a própria transação, como em
 //   produção (uma alteração que o service não grava não aparece na requisição seguinte, e

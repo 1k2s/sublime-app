@@ -71,7 +71,7 @@ feature em andamento fica na spec dela, em [`specs/`](specs/).
   no [`development.md`](development.md)); sem `JWT_SECRET`, não sobe.
 - **Testes automatizados no backend** (2026-11-13): unidade do `Percentage` e do
   `ProviderEntity` e a infraestrutura de integração com o MySQL do Testcontainers
-  ([ADR 0035](adr/0035-testes-de-integracao-com-testcontainers.md)), com o primeiro teste de
+  ([ADR 0036](adr/0036-testes-de-integracao-com-testcontainers.md)), com o primeiro teste de
   integração (`AuthorizationIntegrationTest`: 401 sem token e com token adulterado, rotas por
   perfil, login recusado, primeiro acesso e corte do acesso do usuário inativado). O resto,
   ainda manual (ver "Próximos passos").
@@ -93,7 +93,7 @@ feature em andamento fica na spec dela, em [`specs/`](specs/).
    cada merge da `dev`, e as regras mais arriscadas são financeiras (resolução de preço,
    comissão, repasse, saldo).
    - **Feito** (2026-11-13): unidade do `Percentage` e do `ProviderEntity` (as 7 regras);
-     infraestrutura de integração (`@IntegrationTest`, [ADR 0035](adr/0035-testes-de-integracao-com-testcontainers.md));
+     infraestrutura de integração (`@IntegrationTest`, [ADR 0036](adr/0036-testes-de-integracao-com-testcontainers.md));
      e uma amostra da autorização por perfil (`AuthorizationIntegrationTest`).
    - **Próximo:** testes de unidade das outras entidades com regra de risco (resolução de
      preço, comissão no lançamento, saldo, vigência e parcelas do contrato).

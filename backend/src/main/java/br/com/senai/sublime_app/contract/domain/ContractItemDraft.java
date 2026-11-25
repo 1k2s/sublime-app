@@ -47,6 +47,12 @@ public record ContractItemDraft(
         return ContractItemValue.of(durationPrice, frequencyPrice);
     }
 
+    // Semanas para completar as sessões do plano no ritmo do item. Só faz sentido em item
+    // por duração: usado no fim do aditivo (item incluído), inclusive na prévia.
+    public int weeksToComplete() {
+        return frequency.weeksToComplete(durationPrice.getPlan().getSessionCount());
+    }
+
     private static void validateExclusiveArc(SessionDurationPriceEntity durationPrice,
             SessionFrequencyPriceEntity frequencyPrice) {
         if ((durationPrice == null) == (frequencyPrice == null)) {
