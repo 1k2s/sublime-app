@@ -164,7 +164,7 @@
 
 /* A versão aberta: o nome em azul; a bolinha azul é o marker, por cima do ponto */
 .stepOpen .stepButton strong {
-  color: var(--color-accent);
+  color: var(--color-change-text);
 }
 
 .stepButton:hover .stepDot {
@@ -182,8 +182,8 @@
   height: 20px;
   margin-left: -10px;
   border-radius: 50%;
-  background: var(--color-accent);
-  box-shadow: 0 0 0 4px var(--color-suggestion-bg);
+  background: var(--color-change-text);
+  box-shadow: 0 0 0 4px var(--color-change-bg);
   pointer-events: none;
   transition: left 0.4s ease-in-out;
 }

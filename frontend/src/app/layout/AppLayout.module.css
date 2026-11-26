@@ -1,10 +1,10 @@
 .shell {
-  --nav-width: 52px; /* menu recolhido */
+  --nav-width: 60px; /* menu recolhido: margem + círculo + margem (ver --item-left e --dot no AppSidebar) */
   --nav-open-width: 210px;
 
   display: flex;
   height: 100vh;
-  background: var(--shell-bg);
+  background: var(--menu-bg);
 }
 
 /* Acompanha a largura do menu: ao abrir, o conteúdo se ajusta */
@@ -12,7 +12,8 @@
   flex: none;
 }
 
-/* Painel do conteúdo, fora do main para não entrar na animação */
+/* Painel do conteúdo, fora do main para não entrar na animação. Sem sombra: ela escurecia o
+   contorno, que tem de ser da mesma cor do menu (--menu-bg); o painel se destaca pela cor */
 .stage {
   position: relative;
   display: flex;
@@ -22,24 +23,25 @@
   overflow: hidden;
   border-radius: 24px;
   background: var(--color-bg);
-  box-shadow: -6px 0 30px rgb(0 0 0 / 0.12);
 }
 
-/* Losangos fixos nos cantos de baixo do painel, por trás das telas (não rolam com elas) */
+/* Formas fixas nos cantos do painel, por trás das telas (não rolam com elas): no alto, junto do
+   menu, e embaixo, à direita */
 .shapesStart,
 .shapesEnd {
   position: absolute;
-  bottom: 0;
 }
 
 .shapesStart {
+  top: 0;
   left: 0;
-  width: min(180px, 14vw);
+  width: min(175px, 13vw);
 }
 
 .shapesEnd {
   right: 0;
-  width: min(402px, 30vw);
+  bottom: 0;
+  width: min(190px, 14vw);
 }
 
 /* Sem fill-mode: ao terminar, o transform sai e os modais fixed voltam a se posicionar pela

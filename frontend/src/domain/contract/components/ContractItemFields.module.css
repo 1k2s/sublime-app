@@ -33,7 +33,7 @@
   padding: 10px 12px;
   border: 1px solid var(--color-suggestion-border);
   border-radius: 8px;
-  background: var(--color-suggestion-bg);
+  background: var(--color-change-bg);
 }
 
 .cell {

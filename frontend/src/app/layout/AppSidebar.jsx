@@ -91,7 +91,7 @@ export function AppSidebar() {
       onBlur={handleBlur}
     >
       <div className={styles.header}>
-        <img className={styles.headerLogo} src="/sublime-logo-symbol.png" alt="" />
+        <span className={styles.headerLogo} aria-hidden="true" />
         <span className={styles.brandName}>Sublime</span>
       </div>
 

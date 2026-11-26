@@ -1,4 +1,4 @@
-/* As alterações no azul de "novo ou alterado" (os tokens de sugestão do index.css) */
+/* As alterações no azul de "novo ou alterado" (os tokens --color-change-* do index.css) */
 .summary {
   display: flex;
   flex-direction: column;
@@ -6,7 +6,7 @@
   padding: 16px 18px;
   border: 1px solid var(--color-suggestion-border);
   border-radius: var(--radius);
-  background: var(--color-suggestion-bg);
+  background: var(--color-change-bg);
 }
 
 /* "Alterações" em destaque, com a barra azul à esquerda */
@@ -25,7 +25,7 @@
   width: 4px;
   height: 18px;
   border-radius: 2px;
-  background: var(--color-accent);
+  background: var(--color-change-text);
 }
 
 .changes {
@@ -47,7 +47,7 @@
 }
 
 .label {
-  color: var(--color-accent);
+  color: var(--color-change-text);
   font-weight: 700;
 }
 

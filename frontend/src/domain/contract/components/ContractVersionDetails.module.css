@@ -42,11 +42,11 @@
   padding: 6px;
   border: 1px solid var(--color-suggestion-border);
   border-radius: 8px;
-  background: var(--color-suggestion-bg);
+  background: var(--color-change-bg);
 }
 
 .changed .value {
-  color: var(--color-accent);
+  color: var(--color-change-text);
   font-weight: 600;
 }
 
@@ -119,7 +119,7 @@
 /* Histórico: item incluído ou alterado em relação à versão anterior */
 .itemChanged {
   border-color: var(--color-suggestion-border);
-  background: var(--color-suggestion-bg);
+  background: var(--color-change-bg);
 }
 
 /* Histórico: item da versão anterior que saiu nesta */

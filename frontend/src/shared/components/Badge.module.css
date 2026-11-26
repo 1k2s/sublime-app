@@ -34,8 +34,8 @@
 
 /* Novo ou alterado, para o usuário notar (ex: item incluído no aditivo) */
 .suggestion {
-  background-color: var(--color-suggestion-bg);
-  color: var(--color-accent);
+  background-color: var(--color-change-bg);
+  color: var(--color-change-text);
   border: 1px solid var(--color-suggestion-border);
 }
 
