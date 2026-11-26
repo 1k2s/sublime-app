@@ -1,10 +1,10 @@
 package br.com.senai.sublime_app.user.dto;
 
+import br.com.senai.sublime_app.shared.validation.StrongPassword;
 import br.com.senai.sublime_app.user.enums.Role;
 import jakarta.validation.constraints.Email;
 import jakarta.validation.constraints.NotBlank;
 import jakarta.validation.constraints.NotNull;
-import jakarta.validation.constraints.Size;
 
 // Criação de usuário. A alteração usa o UserUpdateRequestDTO (senha opcional).
 public record UserRequestDTO(
@@ -13,10 +13,9 @@ public record UserRequestDTO(
         @Email(message = "O e-mail informado é inválido.")
         String email,
 
-        // Só o tamanho mínimo, sem exigir maiúscula ou símbolo (NIST SP 800-63B: o que
-        // protege é o tamanho). Gravada com hash, nunca devolvida.
+        // Gravada com hash, nunca devolvida
         @NotBlank(message = "A senha é obrigatória.")
-        @Size(min = 8, message = "A senha deve ter no mínimo 8 caracteres.")
+        @StrongPassword
         String password,
 
         @NotNull(message = "O perfil do usuário é obrigatório.")

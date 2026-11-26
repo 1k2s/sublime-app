@@ -1,11 +1,12 @@
 // Validação do formulário de Configurações (só formato: a senha atual é conferida pela API)
 import { z } from "zod";
+import { strongPassword } from "@/domain/auth/schemas/passwordRule";
 
 export const settingsSchema = z
   .object({
     email: z.string().trim().min(1, "Informe o e-mail").pipe(z.email("E-mail inválido")),
     // Vazia = mantém a senha atual
-    newPassword: z.string().refine((value) => value === "" || value.length >= 8, "A nova senha deve ter no mínimo 8 caracteres"),
+    newPassword: z.union([z.literal(""), strongPassword("A nova senha")]),
     confirmNewPassword: z.string(),
     currentPassword: z.string().min(1, "Informe a senha atual"),
   })

@@ -1,13 +1,79 @@
-/* O cartão ocupa a largura da tela; os campos ficam com tamanho de formulário */
-.form {
-  display: flex;
-  flex-direction: column;
-  gap: 16px;
-  max-width: 560px;
-  margin-inline: auto;
+/* Uma linha por ajuste: explicação à esquerda, campos à direita; empilha na tela estreita */
+.row {
+  display: grid;
+  grid-template-columns: 300px minmax(0, 1fr);
+  gap: 32px;
+  padding: 24px 28px;
+  border-bottom: 1px solid var(--color-row-line);
 }
 
-.form-submit {
-  align-self: flex-end;
-  margin-top: 8px;
+/* A senha atual confirma o salvamento: a linha dela se destaca em areia */
+.row-highlighted {
+  background: linear-gradient(90deg, var(--color-sand-soft), transparent 70%);
+}
+
+.row-title {
+  margin: 0;
+  color: var(--color-title);
+  font-size: 14px;
+  font-weight: 600;
+}
+
+.row-description {
+  margin: 4px 0 0;
+  color: var(--color-muted);
+  font-size: 13px;
+  line-height: 1.45;
+}
+
+.row-fields {
+  display: flex;
+  flex-direction: column;
+  gap: 14px;
+  max-width: 560px;
+}
+
+.footer {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+  padding: 16px 28px;
+}
+
+.status {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  margin: 0;
+  color: var(--color-muted);
+  font-size: 13px;
+}
+
+.status-dot {
+  width: 8px;
+  height: 8px;
+  border-radius: 50%;
+  background: var(--color-border);
+}
+
+.status-dirty {
+  color: #7a5a32;
+}
+
+.status-dirty .status-dot {
+  background: var(--color-sand);
+}
+
+.actions {
+  display: flex;
+  gap: 10px;
+}
+
+@media (max-width: 860px) {
+  .row {
+    grid-template-columns: minmax(0, 1fr);
+    gap: 12px;
+  }
 }

@@ -51,8 +51,8 @@ public class AuthController {
     }
 
     @Operation(summary = "Definir senha no primeiro acesso", description = """
-            Troca a senha provisória pela definitiva (8 caracteres ou mais, diferente da
-            provisória) e já devolve o token.
+            Troca a senha provisória pela definitiva (8 caracteres ou mais, com maiúscula,
+            minúscula, número e caractere especial, diferente da provisória) e já devolve o token.
             """)
     @ApiResponses({
             @ApiResponse(responseCode = "200", description = "Senha definida e login realizado", content = @Content(schema = @Schema(implementation = LoginResponseDTO.class))),
