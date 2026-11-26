@@ -11,14 +11,14 @@ public record ContractItemPreviewDTO(
 
         Long sessionDurationPriceId,
         Long sessionFrequencyPriceId,
-        // sessões que o item dá no contrato (Pilates em Grupo: semanas do plano × vezes por semana)
+        // sessões que o item dá no contrato (Pilates em Grupo: semanas do contrato × vezes por semana)
         int sessionCount,
         BigDecimal sessionValue,
         BigDecimal totalValue
 
 ) {
-    public static ContractItemPreviewDTO fromDraft(ContractItemDraft draft) {
-        ContractItemValue value = draft.value();
+    public static ContractItemPreviewDTO fromDraft(ContractItemDraft draft, int contractWeeks) {
+        ContractItemValue value = draft.value(contractWeeks);
         return new ContractItemPreviewDTO(
                 draft.durationPrice() != null ? draft.durationPrice().getId() : null,
                 draft.frequencyPrice() != null ? draft.frequencyPrice().getId() : null,

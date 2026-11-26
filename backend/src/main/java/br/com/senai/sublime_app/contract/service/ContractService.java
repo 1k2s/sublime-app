@@ -198,7 +198,7 @@ public class ContractService {
             List<ContractItemDraft> drafts, Integer requestedInstallments) {
         List<PlanEntity> groupPlanOptions = groupPlanOptionsFor(plan, weeks);
 
-        Money total = ContractItemValue.sumOf(drafts.stream().map(ContractItemDraft::value).toList());
+        Money total = ContractItemValue.sumOf(drafts.stream().map(draft -> draft.value(weeks)).toList());
         // Na prévia, parcelas acima do máximo (ex: o plano mudou para um mais curto) valem o
         // máximo: a resposta diz as aplicadas. O cadastro e o aditivo recusam (Installments.validateCount)
         int maxInstallments = Installments.maxFor(weeks);
@@ -208,7 +208,7 @@ public class ContractService {
         return new ContractPreviewResponseDTO(weeks, endDate,
                 suggestedGroupPlanId(plan, groupPlanOptions),
                 groupPlanOptions.stream().map(PlanResponseDTO::fromEntity).toList(),
-                drafts.stream().map(ContractItemPreviewDTO::fromDraft).toList(),
+                drafts.stream().map(draft -> ContractItemPreviewDTO.fromDraft(draft, weeks)).toList(),
                 total.amount(), maxInstallments, installments.count(),
                 installments.firstValue().amount(), installments.value().amount());
     }
