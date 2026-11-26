@@ -13,8 +13,8 @@ public class SublimeAppApplication {
 
 	// "Hoje" é o dia da clínica, qualquer que seja o fuso do servidor (num servidor em UTC,
 	// depois das 21h o LocalDate.now() já seria o dia seguinte). Bloco static, e não no main:
-	// roda quando a classe é carregada, antes do Spring subir, tanto em produção (antes do
-	// main) quanto nos testes de integração, que carregam a classe sem chamar o main. Vale
+	// roda quando a classe é inicializada: em produção, antes do main e de tudo; nos testes de
+	// integração (sem o main), o TestcontainersConfiguration a inicializa antes das conexões. Vale
 	// para todo now() e para o @PastOrPresent. Ver o ADR 0034.
 	static {
 		TimeZone.setDefault(TimeZone.getTimeZone(CLINIC_TIME_ZONE));

@@ -20,10 +20,12 @@ Iniciada em 2026-11-24.
 
 ## 1. Status
 
-- **Backend escrito, sem testes** (2026-11-25): `launched_at`, rendimento (`earnings-summary` e
-  `earnings`), filtros novos da listagem e `day-summary` alinhado. Compila (`./mvnw -q compile`);
-  nada foi rodado contra o banco: o primeiro ponto a conferir é a consulta nativa
-  `ConsultationRepository.sumEarnings`. O front não começou. Falta o que está aberto na seção 6.
+- **Backend pronto e testado** (2026-11-25; testes em 2026-11-26): `launched_at`, rendimento
+  (`earnings-summary` e `earnings`), filtros novos da listagem e `day-summary` alinhado. O
+  `EarningsIntegrationTest` confere a consulta nativa no MySQL e os casos da seção 7. Ele também
+  revelou que, nos testes, as datas eram lidas um dia antes (fuso aplicado tarde; corrigido no
+  `TestcontainersConfiguration`, ver a seção 9). O front não começou. Falta o que está aberto
+  na seção 6.
 - **Decidido em 2026-11-25:**
   - **Dashboard simples, com um gráfico de pizza** no lugar das barras: a **composição do
     repasse** do período (rendimento dos realizados × faltas cobradas), para os dois perfis. Usa
@@ -294,7 +296,8 @@ abas**:
 - [x] Rotas no `SecurityConfig`.
 - [x] Alinhar o `day-summary` (backend).
 - [x] `./mvnw -q compile`.
-- [ ] Conferir a consulta nativa `sumEarnings` rodando no MySQL (pelos testes de integração).
+- [x] Conferir a consulta nativa `sumEarnings` rodando no MySQL (pelo `EarningsIntegrationTest`,
+  2026-11-26).
 
 **Frontend**
 
@@ -308,8 +311,8 @@ abas**:
 **Testes**
 
 - [ ] Unidade: `ConsultationEntity` sem `launchedAt` → erro.
-- [ ] Integração: os casos da seção 7 pela API (o rendimento, os períodos e o acesso por
-  perfil).
+- [x] Integração: os casos da seção 7 pela API (o rendimento, os períodos e o acesso por
+  perfil), no `EarningsIntegrationTest` (15 casos; 2026-11-26). A suíte inteira passa (64).
 - [ ] Manual pela tela.
 
 **Conclusão**
@@ -376,6 +379,12 @@ redimensiona ao abrir e fechar o menu, valores em reais no tooltip, período sem
 - **`roadmap.md`:** tirar o item 4 dos Próximos passos; marcar o "Histórico de atendimentos com
   filtro por período" do checklist do front; o módulo `consultation` no Estado atual do front;
   o que a seção 2 deixou para depois.
+- **`architecture.md`, linha "Hoje"** (correção achada pelo `EarningsIntegrationTest`,
+  2026-11-26): nos testes, o bloco `static` do `SublimeAppApplication` não rodava "antes do
+  Spring subir", mas no meio da subida, com o pool já aberto em UTC; o driver lia as datas
+  (`DATE`) um dia antes. O `TestcontainersConfiguration` passou a inicializar a classe antes do
+  container. Corrigir a frase "que roda também nos testes de integração (eles carregam a classe
+  sem chamar o main)".
 - **`development.md`:** nada, salvo se a feature mudar o seed.
 - **Swagger:** o `@Operation` dos endpoints novos e da listagem.
 - **PR:** aviso "zerem o banco local" (V1 editada).
