@@ -69,3 +69,19 @@
   border-color: var(--color-danger);
 }
 
+/* Só o controle à direita, sem ícone à esquerda */
+.inputWithIcon.withoutStartSlot {
+  padding-left: 14px;
+}
+
+.inputWithIcon.withEndSlot {
+  padding-right: 48px;
+}
+
+.endSlot {
+  position: absolute;
+  right: 5px;
+  display: flex;
+  align-items: center;
+}
+

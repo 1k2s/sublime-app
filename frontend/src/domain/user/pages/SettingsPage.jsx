@@ -5,6 +5,7 @@ import { PageHeader } from "@/shared/components/PageHeader";
 import { PageLoader } from "@/shared/components/PageLoader";
 import { showError, showSuccess } from "@/shared/utils/alert";
 import { useMe, useUpdateMe } from "../api/useMe";
+import { AccountSummary } from "../components/AccountSummary";
 import { SettingsForm } from "../components/SettingsForm";
 import styles from "./SettingsPage.module.css";
 
@@ -32,10 +33,19 @@ export function SettingsPage() {
     <div className={styles.page}>
       <PageHeader title="Configurações" description="Seu e-mail de acesso e sua senha." />
 
-      <Card>
-        {isLoading && <PageLoader variant="section" label="Carregando seus dados..." />}
-        {isError && <p className={styles.message}>{error.message}</p>}
-        {me && <SettingsForm defaultEmail={me.email} onSubmit={handleSubmit} isSubmitting={isSaving} />}
+      <Card className={styles.card}>
+        {isLoading && (
+          <div className={styles.state}>
+            <PageLoader variant="section" label="Carregando seus dados..." />
+          </div>
+        )}
+        {isError && <p className={[styles.state, styles.message].join(" ")}>{error.message}</p>}
+        {me && (
+          <>
+            <AccountSummary user={me} />
+            <SettingsForm defaultEmail={me.email} onSubmit={handleSubmit} isSubmitting={isSaving} />
+          </>
+        )}
       </Card>
     </div>
   );
