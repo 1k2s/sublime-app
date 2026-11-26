@@ -20,14 +20,27 @@ Iniciada em 2026-11-24.
 
 ## 1. Status
 
-- **Só a spec** (2026-11-24): nenhum código escrito. As decisões da seção 3 estão fechadas, e o
-  layout foi escolhido nas prévias: a versão C, com as abas "Resumo" e "Panorama executivo"
-  (seção 5).
+- **Backend escrito, sem testes** (2026-11-25): `launched_at`, rendimento (`earnings-summary` e
+  `earnings`), filtros novos da listagem e `day-summary` alinhado. Compila (`./mvnw -q compile`);
+  nada foi rodado contra o banco: o primeiro ponto a conferir é a consulta nativa
+  `ConsultationRepository.sumEarnings`. O front não começou. Falta o que está aberto na seção 6.
+- **Decidido em 2026-11-25:**
+  - **Dashboard simples, com um gráfico de pizza** no lugar das barras: a **composição do
+    repasse** do período (rendimento dos realizados × faltas cobradas), para os dois perfis. Usa
+    os números do `earnings`, sem consulta nova.
+  - **As abas continuam** ("Resumo" e "Panorama executivo", com a animação de slide); o Panorama
+    passa a ter só a pizza.
+  - **Sai a série por dia** (`earnings/daily`), as barras empilhadas por prestador, a linha de
+    atendimentos e o gráfico por prestador. O rendimento por prestador do admin fica só nos
+    botões do topo (o `byProvider`).
+  - **`byProvider` com todos os prestadores ativos**, mesmo sem lançamento (zerados, para o admin
+    ver quem não lançou), mais os inativos com lançamento no período; por nome.
+  - **Soma do rendimento em SQL nativo** sobre a coluna `payout_value`: o `sum` do JPQL sobre o
+    `payoutValue`, que passa pelo `MoneyConverter`, não tem o tipo de retorno garantido.
 - **Decidido em 2026-11-24:**
   - o rendimento conta **só os atendimentos realizados** (`ATTENDED`);
   - o período do rendimento é pela **data do lançamento**, não pela data do atendimento;
-  - a tela tem **gráficos**, com o **ECharts**: o rendimento por dia e, para o admin, por
-    prestador;
+  - a tela tem **gráficos**, com o **ECharts** (os gráficos mudaram em 2026-11-25: uma pizza);
   - as recomendações da seção 3 foram aceitas: faltas cobradas à parte, `day-summary` alinhado,
     semana de segunda a domingo, mês do calendário, lista pela data do lançamento, tela inicial
     sem mudança.
@@ -56,12 +69,12 @@ prestadores, que já existe).
 - **Backend:**
   - coluna `launched_at` no `consultation`, gravada no lançamento;
   - resumo do rendimento: hoje, semana e mês, com a quantidade e o repasse somado;
-  - total do rendimento de um período qualquer;
-  - série do rendimento por dia do período, para o gráfico;
+  - total do rendimento de um período qualquer (com o de cada prestador, para o admin);
   - filtros novos na listagem: período pela data do lançamento e status.
 - **Frontend:**
-  - tela de Dashboard (`/dashboard`, os dois perfis): os três cartões do rendimento, os
-    gráficos, a lista de atendimentos com filtros e o total do período filtrado;
+  - tela de Dashboard (`/dashboard`, os dois perfis): o rendimento de hoje, da semana e do mês,
+    a pizza da composição do repasse, a lista de atendimentos com filtros e o total do período
+    filtrado;
   - o ECharts como biblioteca de gráficos do projeto;
   - para o `ADMIN`, o filtro por prestador (vazio = todos).
 - Fecha o item "Histórico de atendimentos com filtro por período" do checklist do front.
@@ -70,8 +83,9 @@ prestadores, que já existe).
 
 - **Pagamento do repasse ao prestador** (fechamento do período): continua em "Não modelado
   ainda" no roadmap. O dashboard mostra quanto rendeu, não quanto já foi pago.
-- **Outros gráficos** além dos aprovados na seção 3: só se a clínica pedir depois de usar a
-  tela. Cada gráfico novo precisa de uma consulta no backend.
+- **Outros gráficos** além da pizza: só se a clínica pedir depois de usar a tela (ex: o
+  rendimento por dia, que saiu em 2026-11-25). Cada gráfico novo precisa de uma consulta no
+  backend.
 - **Visão financeira da clínica** (valor cobrado do paciente, `baseValue`): é a Fase 2
   (`Payment`).
 
@@ -114,21 +128,23 @@ prestadores, que já existe).
   prestador. Procure o administrador.".
 - **`ADMIN`:** todos os prestadores; com o `providerId`, só aquele. Diferente do `day-summary`,
   aqui o `providerId` é **opcional** para o admin (vazio = todos).
-- **Visão do admin:** os cartões com o total de todos os prestadores e o gráfico do rendimento
-  por prestador no período. Escolher o prestador filtra os cartões, os gráficos e a lista.
+- **Visão do admin:** os números com o total de todos os prestadores e, nos botões do topo, o
+  rendimento de cada prestador no período (`byProvider`: os ativos, mesmo zerados, e os
+  inativos com lançamento). Escolher o prestador filtra os números, a pizza e a lista.
 
-**Gráficos**
+**Gráfico** (decidido em 2026-11-25)
 
-- Os números de cada gráfico vêm prontos do backend, pela regra do rendimento. O front não soma
-  nem agrupa a lista para montar o gráfico: só desenha (o backend é a fonte da verdade).
-- Acompanham o período e o prestador filtrados.
-- **Gráficos da primeira versão** (decidido em 2026-11-24):
-  1. **Rendimento por dia do período**, para os dois perfis: o repasse de cada dia, com a
-     quantidade no tooltip. Cada barra bate com o total do dia.
-  2. **Rendimento por prestador**, só para o `ADMIN` sem prestador escolhido.
-- **Para depois, se a clínica pedir:** atendimentos por status (realizados, faltas,
-  desmarcações fora do prazo) e por técnica (o `techniqueId` existe para esse tipo de
-  relatório; ver `Consultation` no [`domain-model.md`](../domain-model.md)).
+- **Um gráfico de pizza: a composição do repasse do período**, para os dois perfis. Duas
+  fatias: "Atendidos" (o rendimento, `payoutTotal`) e "Faltas cobradas"
+  (`chargedAbsencePayoutTotal`), com a quantidade no tooltip; o repasse total (`totalPayout`)
+  no centro.
+- Os números vêm prontos do `earnings`, pela regra do rendimento. O front não soma nem agrupa a
+  lista para montar o gráfico: só desenha (o backend é a fonte da verdade).
+- Acompanha o período e o prestador filtrados. Período sem repasse: a pizza dá lugar a uma
+  mensagem ("Nenhum repasse no período").
+- **Para depois, se a clínica pedir:** o rendimento por dia (barras), atendimentos por status
+  (separando as faltas das desmarcações fora do prazo) e por técnica (o `techniqueId` existe
+  para esse tipo de relatório; ver `Consultation` no [`domain-model.md`](../domain-model.md)).
 
 **Lista de atendimentos**
 
@@ -167,29 +183,29 @@ prestadores, que já existe).
 
 | Arquivo | Mudança |
 |---|---|
-| `ConsultationRepository` | consulta do total (quantidade + soma do `payoutValue`) por prestador opcional, período do lançamento, `ATTENDED` e ativos; `search` com os filtros novos (`launchedFrom`, `launchedTo`, `status`) |
-| `ConsultationService` | `findEarningsSummary` (hoje, semana, mês) e `findEarnings` (período qualquer); leitura com `providerId` opcional para o admin (o `resolveProviderForReading` atual exige o `providerId` do admin) |
+| `ConsultationStatus` | `isChargedAbsence()`: `NO_SHOW` e `CANCELED_LATE` (princípio 6) |
+| `ConsultationRepository` | `sumEarnings` (nativa): quantidade e soma do `payout_value` dos ativos no período do lançamento, por prestador e status (`group by`), com prestador opcional; `search` com os filtros novos (`launchedFrom`, `launchedBefore`, `status`) |
+| `ConsultationService` | `findEarningsSummary` (hoje, semana, mês) e `findEarnings` (período qualquer, 400 se o início vier depois do fim); `resolveProviderIdForEarnings`: `providerId` opcional para o admin (404 se não existir), sempre o próprio para o `PROVIDER`; o `EarningsTally` separa o rendimento das faltas |
 | `EarningsSummaryResponseDTO` (novo) | `today`, `week`, `month`, cada um um `EarningsResponseDTO` |
-| `EarningsResponseDTO` (novo) | `from`, `to`, `consultationCount`, `payoutTotal` (os realizados) e `chargedAbsenceCount`, `chargedAbsencePayoutTotal` (as faltas cobradas, à parte) e `totalPayout` (os dois somados, o repasse total) |
-| `DailyEarningsResponseDTO` (novo) | `date`, `consultationCount`, `payoutTotal`: um por dia do período, **inclusive os dias sem lançamento** (zerados), para o gráfico não pular dias |
-| `ConsultationController` | `GET /api/consultations/earnings-summary?providerId`, `GET /api/consultations/earnings?providerId&from&to` e `GET /api/consultations/earnings/daily?providerId&from&to`; parâmetros novos no `GET /api/consultations`; `@Operation` com as regras |
+| `EarningsResponseDTO` (novo) | `from`, `to`, `consultationCount`, `payoutTotal` (os realizados) e `chargedAbsenceCount`, `chargedAbsencePayoutTotal` (as faltas cobradas, à parte), `totalPayout` (os dois somados, o repasse total) e `byProvider` |
+| `ProviderEarningsResponseDTO` (novo) | `providerId`, `providerName` e os mesmos números, por prestador |
+| `DaySummaryResponseDTO` | as faltas cobradas à parte (`chargedAbsenceCount`, `chargedAbsencePayoutTotal`) |
+| `ConsultationController` | `GET /api/consultations/earnings-summary?providerId` e `GET /api/consultations/earnings?providerId&from&to`; `launchedFrom`, `launchedTo` e `status` no `GET /api/consultations`; `@Operation` com as regras |
 | `SecurityConfig` | as duas rotas novas para `ADMIN` e `PROVIDER` |
 
-- **Soma no banco** (`sum` na consulta), não no service como o `day-summary`
-  (`ConsultationService.java:196`): o mês de todos os prestadores carregaria centenas de
-  entidades só para somar. A conferir na implementação: o `sum` sobre o `payoutValue`, que usa
-  o `MoneyConverter`; se o Hibernate não aceitar, a consulta devolve `BigDecimal` pela coluna.
-- **Por prestador (admin, gráfico 2):** o `earnings` do admin sem `providerId` ganha uma lista
-  `byProvider` com `providerId`, `providerName`, `consultationCount` e `payoutTotal`, numa
-  consulta com `group by`.
-- **`day-summary` alinhado:** passa a usar a mesma consulta do rendimento de hoje; o
-  `DaySummaryResponseDTO` ganha as faltas cobradas à parte.
-- **Série por dia:** uma consulta com `group by` do dia do `launched_at`; o service completa os
-  dias vazios com zero. *A aprovar:* limite do período (ex: até 366 dias, 400 "O período pode
-  ter no máximo 1 ano.").
+- **Soma no banco**, não no service como era o `day-summary`: o mês de todos os prestadores
+  carregaria centenas de entidades só para somar. **SQL nativo** pela coluna `payout_value`
+  (decidido em 2026-11-25, seção 1): primeiro caso de consulta nativa do projeto.
+- **Uma consulta por período:** o `sumEarnings` agrupa por prestador e status; o service soma
+  as linhas para o total e, para o admin sem prestador, monta o `byProvider` com as mesmas
+  linhas (sem segunda consulta). O resumo faz três (hoje, semana, mês).
+- **`byProvider`:** só no `earnings` do admin sem `providerId` (vazio nos demais e no resumo).
+  Lista os prestadores ativos (zerados sem lançamento) e os inativos com lançamento, por nome.
+- **`day-summary` alinhado:** usa a mesma consulta do rendimento de hoje.
 - **Listagem com dois períodos:** os parâmetros atuais `from` e `to` continuam pela data do
   atendimento (a tela de Lançamento usa); os novos `launchedFrom` e `launchedTo` filtram pela do
-  lançamento. *A conferir:* se a listagem do mês de todos os prestadores precisa de paginação.
+  lançamento (`[início do dia, início do dia seguinte)`). A ordem continua pela data do
+  atendimento. *A conferir:* se a listagem do mês de todos os prestadores precisa de paginação.
 
 ## 5. Desenho do frontend
 
@@ -204,10 +220,9 @@ abas**:
   atendimentos, faltas cobradas e repasse total) e a lista de atendimentos, com o filtro por
   status. A lista é uma tabela num **componente próprio**, no `DataTable` das listagens
   (decidido em 2026-11-24).
-- **Aba "Panorama executivo"** (com os gráficos): o rendimento por dia, com barras empilhadas
-  por prestador para o admin com Todos e a linha com a quantidade de atendimentos (segundo
-  eixo). Para o admin, também o rendimento por prestador, em gráfico e tabela. Clicar numa
-  barra do dia volta ao Resumo com a lista daquele dia; clicar num prestador filtra a tela.
+- **Aba "Panorama executivo"** (com o gráfico; simplificada em 2026-11-25): só a **pizza da
+  composição do repasse** (seção 3), com a legenda dos valores. Saíram as barras por dia, a
+  linha de atendimentos e o gráfico e a tabela por prestador.
 - O gráfico só carrega no Panorama: o Resumo, que é o uso do dia a dia, não paga o custo do
   ECharts. O Panorama é montado na primeira visita (componente `lazy`) e continua montado
   depois, para a troca de aba não recriar os gráficos.
@@ -222,9 +237,6 @@ abas**:
   fica `inert` (sem foco pelo teclado).
 - *Descartadas:* abas de período, que somariam duas linhas de filtro no topo, e abas por
   prestador, que rolariam para o lado com muitos prestadores.
-- **Consequência no backend:** as barras empilhadas precisam da série por dia **e por
-  prestador**. O `earnings/daily` do admin sem `providerId` ganha, em cada dia, o
-  `byProvider`, na mesma consulta com `group by` dia e prestador.
 - **Repasse total** (rendimento + faltas cobradas) vem do backend, num campo do
   `EarningsResponseDTO`: o front não soma.
 
@@ -235,6 +247,8 @@ abas**:
   `echarts.use`), não o `import * as echarts`: o pacote inteiro passa de 1 MB, e o modular leva
   só o que a tela usa. A rota `/dashboard` já é `lazy`: o ECharts só baixa quando o usuário abre
   o dashboard.
+- **Registro só da pizza** (`PieChart`, tooltip, legenda e o renderizador canvas), num lugar
+  só, junto do `Chart.jsx`; um gráfico novo registra o tipo dele ali.
 - **Componente próprio** `shared/components/Chart.jsx`: recebe o `option` do ECharts, cria o
   gráfico num `useEffect`, acompanha o tamanho do contêiner (`ResizeObserver`, por causa do menu
   que empurra o conteúdo) e chama o `dispose` ao desmontar. Descartado o `echarts-for-react`:
@@ -242,17 +256,19 @@ abas**:
 - **Cores da marca:** o `option` lê as variáveis CSS do projeto (`var(--color-*)`), para o
   gráfico seguir a paleta (ver "Estilo" no [`architecture.md`](../architecture.md)).
 - **Valores:** o eixo e o tooltip formatam em reais com o `shared/utils/money.js`.
-- Montar o `option` de cada gráfico fica em `domain/consultation/display/` (formato, sem regra).
+- Montar o `option` da pizza fica em `domain/consultation/display/` (formato, sem regra); a
+  pizza é um componente do módulo (`PayoutCompositionChart`) que usa o `Chart.jsx`.
 
 | Arquivo | Mudança |
 |---|---|
 | `frontend/package.json` | dependência `echarts` |
 | `shared/components/Chart.jsx` (novo) | invólucro do ECharts |
-| `domain/consultation/api/consultationApi.js` | `getEarningsSummary`, `getEarnings`, `getDailyEarnings`, filtros novos do `search` |
+| `domain/consultation/api/consultationApi.js` | `getEarningsSummary`, `getEarnings`, filtros novos do `listConsultations` |
 | `domain/consultation/api/useConsultations.js` | um hook por endpoint |
-| `domain/consultation/pages/DashboardPage.jsx` (novo) | a tela: cartões, gráficos, filtros, lista e total |
-| `domain/consultation/components/` (novos) | seletor de período, botões dos prestadores (admin), números do Resumo, tabela de atendimentos (componente próprio, no `DataTable`), gráficos e tabela por prestador do Panorama, ícones das abas |
-| `domain/consultation/display/` (novos) | o `option` de cada gráfico |
+| `domain/consultation/pages/DashboardPage.jsx` (novo) | a tela: período, prestadores, abas, números, pizza e lista |
+| `domain/consultation/components/` (novos) | seletor de período, botões dos prestadores (admin), números do Resumo, tabela de atendimentos (componente próprio, no `DataTable`), abas com o slide, Panorama (`lazy`) com a pizza (`PayoutCompositionChart`), ícones das abas |
+| `domain/consultation/display/` (novos) | o `option` da pizza |
+| `domain/consultation/components/DaySummary.jsx` | "Repasse do dia" passa a ser o rendimento (só os realizados); as faltas cobradas à parte |
 | `app/router.jsx` | rota `/dashboard` no grupo `ADMIN` e `PROVIDER` |
 | `app/layout/AppSidebar.jsx` | item do menu |
 
@@ -268,22 +284,25 @@ abas**:
 
 - [x] Fechar os itens *em aberto* da seção 3 e da seção 5.
 - [x] Escolher a prévia da tela (C, com as abas "Resumo" e "Panorama executivo").
+- [x] Simplificar os gráficos: uma pizza da composição do repasse (2026-11-25).
 
 **Backend**
 
-- [ ] `launched_at` na V1, na entidade, no service e no DTO.
-- [ ] Consultas do rendimento e filtros novos da listagem.
-- [ ] Endpoints `earnings-summary`, `earnings` e `earnings/daily`, com o `@Operation`.
-- [ ] Rotas no `SecurityConfig`.
-- [ ] Alinhar o `day-summary` (e o "repasse do dia" da tela de Lançamento).
-- [ ] `./mvnw -q compile`.
+- [x] `launched_at` na V1, na entidade, no service e no DTO.
+- [x] Consultas do rendimento e filtros novos da listagem.
+- [x] Endpoints `earnings-summary` e `earnings`, com o `@Operation`.
+- [x] Rotas no `SecurityConfig`.
+- [x] Alinhar o `day-summary` (backend).
+- [x] `./mvnw -q compile`.
+- [ ] Conferir a consulta nativa `sumEarnings` rodando no MySQL (pelos testes de integração).
 
 **Frontend**
 
 - [ ] Instalar o `echarts` (com a permissão do usuário).
 - [ ] `Chart.jsx` em `shared/components/`.
 - [ ] Camada `api/` e hooks.
-- [ ] Tela, gráficos, rota e menu.
+- [ ] Tela, pizza, rota e menu (tirar o `disabled` do Dashboard).
+- [ ] "Repasse do dia" da tela de Lançamento com as faltas à parte (`DaySummary`).
 - [ ] `npm run build` e `npm run lint`.
 
 **Testes**
@@ -312,7 +331,9 @@ com contrato e um sem; liberação de retroativo para o A.
 | 4 | A desfaz o lançamento do caso 1 | o rendimento volta ao de antes |
 | 5 | `earnings` com um período sem lançamentos | quantidade 0 e repasse 0,00 |
 | 6 | O `from` e o `to` do `week` e do `month` | os limites da regra aprovada |
-| 6a | `earnings/daily` de uma semana com lançamentos em 2 dias | 7 itens, 5 zerados; a soma bate com o `earnings` da mesma semana |
+| 6a | `earnings` com o `from` depois do `to` | 400 |
+| 6b | `earnings` do `ADMIN` sem `providerId`, com um prestador ativo sem lançamento | o `byProvider` traz o prestador zerado; a soma do `byProvider` bate com o total |
+| 6c | `day-summary` depois dos casos 1 e 2 | o rendimento só com o `ATTENDED`; as faltas à parte |
 
 **Acesso por perfil**
 
@@ -333,14 +354,16 @@ com contrato e um sem; liberação de retroativo para o A.
 | 14 | Filtro por status | só o status escolhido |
 
 **Pela interface:** os cartões e a lista do `PROVIDER` e do `ADMIN`, o filtro por prestador, o
-retroativo e o desfeito na lista, o total do período filtrado, os gráficos (acompanham o filtro,
-redimensionam ao abrir e fechar o menu, valores em reais no tooltip) e o tamanho do bundle no
+retroativo e o desfeito na lista, o total do período filtrado, a pizza (acompanha o filtro,
+redimensiona ao abrir e fechar o menu, valores em reais no tooltip, período sem repasse), o
+"repasse do dia" da tela de Lançamento e o tamanho do bundle no
 `npm run build` (o ECharts só no chunk do dashboard).
 
 ## 8. Pendências e pontos abertos
 
 - Paginação da listagem (seção 4).
-- Limite do período da série por dia (seção 4).
+- Ordem da lista do dashboard: a listagem ordena pela data do atendimento; um retroativo lançado
+  hoje aparece no fim do mês. Ordenar pela data do lançamento quando o filtro for por ela?
 
 ## 9. Documentação ao concluir
 
