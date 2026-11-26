@@ -92,9 +92,10 @@ public class ContractItemEntity {
         return sessionDurationPrice != null;
     }
 
-    // Sessões e valor do item, pela linha travada (a mesma conta da prévia)
+    // Sessões e valor do item, pela linha travada e pela vigência da versão (a mesma conta da
+    // prévia). Usa o getter do contrato: a relação é LAZY e pode vir como proxy do Hibernate
     public ContractItemValue getValue() {
-        return ContractItemValue.of(sessionDurationPrice, sessionFrequencyPrice);
+        return ContractItemValue.of(sessionDurationPrice, sessionFrequencyPrice, getContract().getDurationInWeeks());
     }
 
     // Mesma técnica, mesma linha de preço e mesma frequência: o item não mudou no aditivo
