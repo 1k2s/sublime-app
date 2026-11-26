@@ -14,5 +14,11 @@ public enum ConsultationStatus {
 
     // O paciente desmarcou fora do prazo mínimo de 6h de antecedência (ex: 3h, 15min antes).
     // A regra das 6h é aplicada por quem lança — o sistema não guarda hora do aviso.
-    CANCELED_LATE
+    CANCELED_LATE;
+
+    // Falta cobrada: gera repasse, mas fica fora do rendimento, somada à parte (ver
+    // "Rendimento" em Consultation, no domain-model)
+    public boolean isChargedAbsence() {
+        return this != ATTENDED;
+    }
 }
