@@ -4,6 +4,17 @@
   gap: 24px;
 }
 
+/* Um cartão só, sem o respiro do Card: a faixa da conta e as linhas vão de ponta a ponta.
+   Pela .page, para vencer o padding do Card qualquer que seja a ordem de carga do CSS */
+.page .card {
+  overflow: hidden;
+  padding: 0;
+}
+
+.state {
+  padding: 24px;
+}
+
 .message {
   margin: 0;
   color: var(--color-muted);

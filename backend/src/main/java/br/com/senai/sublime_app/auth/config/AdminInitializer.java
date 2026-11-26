@@ -65,7 +65,7 @@ public class AdminInitializer implements ApplicationRunner {
     }
 
     // Chamar o UserService direto pula o @Valid do controller: as mesmas regras do cadastro
-    // (e-mail válido, senha com 8+ caracteres) são aplicadas aqui. Variáveis inválidas
+    // (e-mail válido, senha forte do @StrongPassword) são aplicadas aqui. Variáveis inválidas
     // impedem a aplicação de subir, como o JWT_SECRET.
     private void validateCredentials(UserRequestDTO admin) {
         Set<ConstraintViolation<UserRequestDTO>> violations = validator.validate(admin);

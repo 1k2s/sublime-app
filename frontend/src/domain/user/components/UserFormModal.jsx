@@ -10,9 +10,6 @@ import { applyApiFieldErrors } from "@/shared/http/apiFieldErrors";
 import { createUserSchema, updateUserSchema } from "../schemas/userSchema";
 import styles from "./UserFormModal.module.css";
 
-// A validação da senha opcional (@AssertTrue isPasswordValid) chega como "passwordValid"
-const API_FIELDS = { passwordValid: "password" };
-
 // user nulo = cadastro; preenchido = edição
 export function UserFormModal({ user = null, isSubmitting = false, onSubmit, onClose }) {
   const isEditing = Boolean(user);
@@ -36,7 +33,7 @@ export function UserFormModal({ user = null, isSubmitting = false, onSubmit, onC
 
   // Erro da API: a page chama no onError, para cada erro por campo aparecer no campo
   function applyApiErrors(error) {
-    applyApiFieldErrors(error, setError, (apiField) => API_FIELDS[apiField] ?? apiField);
+    applyApiFieldErrors(error, setError);
   }
 
   // Entrega no formato do UserRequestDTO / UserUpdateRequestDTO (senha nula = manter a atual)
@@ -90,7 +87,7 @@ export function UserFormModal({ user = null, isSubmitting = false, onSubmit, onC
             id="password"
             type="password"
             autoComplete="new-password"
-            placeholder={isEditing ? "Deixe em branco para manter a atual" : "Mínimo de 8 caracteres"}
+            placeholder={isEditing ? "Deixe em branco para manter a atual" : "8+ caracteres, maiúscula, minúscula, número e especial"}
             invalid={Boolean(errors.password)}
             {...register("password")}
           />

@@ -43,10 +43,9 @@ public class UserController {
     }
 
     @Operation(summary = "Cadastrar usuário", description = """
-            Cadastra o usuário com uma senha **provisória** e responde com ele. No primeiro login,
-            o usuário define a própria (`POST /api/auth/first-access`).
-
-            Regras: "User" no `docs/domain-model.md`.
+            Senha com 8 caracteres ou mais, com maiúscula, minúscula, número e caractere especial,
+            **provisória**: no primeiro login, o usuário define
+            a própria (`POST /api/auth/first-access`).
             """)
     @ApiResponses({
             @ApiResponse(responseCode = "201", description = "Usuário criado", content = @Content(schema = @Schema(implementation = UserResponseDTO.class))),
