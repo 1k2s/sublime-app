@@ -1,0 +1,64 @@
+/* As alterações no azul de "novo ou alterado" (os tokens --color-change-* do index.css) */
+.summary {
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+  padding: 16px 18px;
+  border: 1px solid var(--color-suggestion-border);
+  border-radius: var(--radius);
+  background: var(--color-change-bg);
+}
+
+/* "Alterações" em destaque, com a barra azul à esquerda */
+.title {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  margin: 0;
+  color: var(--color-title);
+  font-size: 17px;
+  font-weight: 700;
+}
+
+.title::before {
+  content: "";
+  width: 4px;
+  height: 18px;
+  border-radius: 2px;
+  background: var(--color-change-text);
+}
+
+.changes {
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+  margin: 0;
+  padding: 0;
+  list-style: none;
+}
+
+.change {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 6px;
+  color: var(--color-text);
+  font-size: 14px;
+  line-height: 20px;
+}
+
+.label {
+  color: var(--color-change-text);
+  font-weight: 700;
+}
+
+.before {
+  color: var(--color-muted);
+  text-decoration: line-through;
+}
+
+.footer {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+}

@@ -1,5 +1,4 @@
 import { Pencil } from "lucide-react";
-import { AvatarName } from "@/shared/components/AvatarName";
 import { Badge } from "@/shared/components/Badge";
 import { DataTable } from "@/shared/components/DataTable";
 import { IconButton } from "@/shared/components/IconButton";
@@ -19,6 +18,7 @@ export function PatientTable({
   isLoading = false,
   isError = false,
   hasRecords = false,
+  selectedPatientId = null,
   onViewDetails,
 }) {
   if (isLoading || isError || patients.length === 0) {
@@ -26,7 +26,7 @@ export function PatientTable({
   }
 
   const columns = [
-    { key: "name", header: "Nome", cell: (patient) => <AvatarName name={patient.name} /> },
+    { key: "name", header: "Nome", cell: (patient) => patient.name },
     { key: "cpf", header: "CPF", cell: (patient) => (patient.cpf ? maskCpf(patient.cpf) : "--") },
     { key: "phone", header: "Telefone", cell: (patient) => (patient.phone ? maskPhone(patient.phone) : "--") },
     { key: "city", header: "Cidade", cell: (patient) => patient.address?.city || "--" },
@@ -49,5 +49,13 @@ export function PatientTable({
     },
   ];
 
-  return <DataTable columns={columns} rows={patients} />;
+  // A linha inteira abre o detalhe; a linha aberta fica marcada
+  return (
+    <DataTable
+      columns={columns}
+      rows={patients}
+      onRowClick={(patient) => onViewDetails?.(patient)}
+      selectedRowKey={selectedPatientId}
+    />
+  );
 }

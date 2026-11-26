@@ -29,7 +29,7 @@
 
 .select-invalid,
 .select-invalid:focus {
-  border-color: #b42318;
+  border-color: var(--color-danger);
 }
 
 .select-icon {

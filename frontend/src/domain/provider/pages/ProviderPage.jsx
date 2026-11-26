@@ -108,6 +108,7 @@ export function ProviderPage() {
         isLoading={isLoading}
         isError={isError}
         hasRecords={providers.length > 0}
+        selectedProviderId={selectedProviderId}
         onViewDetails={(provider) => setSelectedProviderId(provider.id)}
       />
 

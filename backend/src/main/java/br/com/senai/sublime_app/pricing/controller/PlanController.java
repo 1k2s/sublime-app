@@ -27,7 +27,10 @@ import jakarta.validation.Valid;
 
 @RestController
 @RequestMapping("/api/plans")
-@Tag(name = "Planos", description = "Cadastro e consulta dos planos usados nas tabelas de preço.")
+@Tag(name = "Planos", description = """
+        Cadastro e consulta dos planos usados nas tabelas de preço. Regras: "Plan" no
+        `docs/domain-model.md`.
+        """)
 public class PlanController {
 
     private final PlanService planService;
@@ -61,11 +64,13 @@ public class PlanController {
     }
 
     @Operation(summary = "Definir equivalente (de-para)", description = """
-            Define o equivalente na outra família (pacote ⇄ mensalidade), só deste plano.
+            Define o plano equivalente na outra família (pacote ⇄ mensalidade), só deste plano.
+
+            Regras: "Plan" no `docs/domain-model.md`.
             """)
     @ApiResponses({
             @ApiResponse(responseCode = "200", description = "Equivalente definido", content = @Content(schema = @Schema(implementation = PlanResponseDTO.class))),
-            @ApiResponse(responseCode = "400", description = "Dados inválidos ou equivalente de família inválida, inativo ou o próprio plano", content = @Content),
+            @ApiResponse(responseCode = "400", description = "Dados inválidos ou regra do de-para violada (o `detail` diz qual)", content = @Content),
             @ApiResponse(responseCode = "404", description = "Plano ou plano equivalente não encontrado", content = @Content)
     })
     @PutMapping("/{id}/equivalent")

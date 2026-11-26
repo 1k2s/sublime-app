@@ -86,6 +86,11 @@ Ao escrever:
   `requireX`), nunca `if` direto no corpo do construtor ou da fábrica (princípio 7).
 - **Mensagens ao usuário em português**; nomes de código em inglês (convenção de
   idioma no `architecture.md`).
+- **Textos do Swagger só com o básico de cada endpoint** (`@Operation`, `@ApiResponse`,
+  `@Parameter`): o que ele faz, o que recebe, o que devolve e os códigos de resposta. **Regra
+  de negócio e comportamento ficam só no `domain-model.md`**; o texto aponta a seção (ex:
+  `Regras: "Versionamento (aditivos)" no docs/domain-model.md`). Assim a regra tem uma fonte
+  só e não diverge.
 - **Nomes intuitivos:** métodos booleanos como pergunta (`is...`, `has...`);
   validações com nome que diz o que validam.
 - **Regra de negócio não se presume:** em dúvida, pergunte. Em escolha técnica, dê
@@ -140,7 +145,8 @@ Antes de dizer que terminou, confira (e diga o que foi ou não conferido):
 4. **Referência só com o presente:** procure "ainda não", "hoje", "em andamento" e
    "futuramente" no `architecture.md` e no `domain-model.md`; cada ocorrência é uma regra
    que mudou ou um status fora do lugar.
-5. **Swagger:** os textos das anotações (`@Operation`) batem com as regras alteradas.
+5. **Swagger:** os textos das anotações (`@Operation`) dos endpoints novos ou alterados têm só o
+   básico do endpoint, sem regra de negócio, e apontam a seção certa do `domain-model.md`.
 6. **ADRs:** status dos substituídos atualizado; numeração sequencial.
 7. **Roadmap:** tire o que foi resolvido; o que a spec deixou para depois vira item
    antes de a spec ser removida.

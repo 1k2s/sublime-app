@@ -1,55 +1,37 @@
-// Losangos de enfeite da casca: no pé do menu (placement "sidebar") e nos cantos de baixo do
-// painel do conteúdo ("contentStart", junto do menu, e "contentEnd"). Só enfeite: o leitor de
-// tela e o mouse passam direto. Quem usa define a posição e a largura pelo className
+// Formas de enfeite da casca, em lâminas curvas: no pé do menu (placement "sidebar") e nos cantos
+// do painel do conteúdo ("contentStart", no alto junto do menu, e "contentEnd", embaixo à direita).
+// Só enfeite: o leitor de tela e o mouse passam direto. Quem usa define a posição e a largura
+// pelo className; a altura sai da proporção do viewBox
 import styles from "./BackgroundShapes.module.css";
 
-const ANGLE = 38;
-
-// Quadrado girado em volta do próprio centro
-function Square({ cx, cy, size, className }) {
-  return (
-    <rect
-      className={className}
-      x={cx - size / 2}
-      y={cy - size / 2}
-      width={size}
-      height={size}
-      transform={`rotate(${ANGLE} ${cx} ${cy})`}
-    />
-  );
-}
-
 const SHAPES = {
+  // Faixa azul saindo da borda esquerda e uma lâmina verde clara ao lado
   sidebar: {
-    viewBox: "0 0 480 396",
+    viewBox: "0 456 162 120",
     content: (
       <>
-        <polygon className={styles.band} points="395,118 900,530 900,900 35,598" />
-        <polygon className={styles.outlineOnShell} points="320,62 430,150 342,262 232,172" />
+        <path className={styles.greenPale} d="M27,509 C70,507 128,540 152,576 L120,576 C106,550 70,518 27,509 Z" />
+        <path className={styles.blue} d="M0,511 C28,516 70,538 87,576 L117,576 C100,548 55,528 0,525 Z" />
       </>
     ),
   },
+  // Canto de cima do painel: uma cunha verde na quina e uma lâmina azulada bem clara cruzando
   contentStart: {
-    viewBox: "480 0 360 396",
+    viewBox: "0 0 97 40",
     content: (
       <>
-        <polygon className={styles.sage} points="480,150 1080,642 1080,1000 480,1000" />
-        <polygon className={styles.dark} points="440,226 610,355 520,475 350,346" />
-        <polygon className={styles.sand} points="730,285 775,322 737,365 692,330" />
-        <polygon className={styles.outline} points="628,168 750,262 660,382 535,288" />
+        <path className={styles.bluePale} d="M15,31 C40,26 66,12 84,0 L74,0 C56,12 36,22 15,31 Z" />
+        <path className={styles.green} d="M0,0 L39,0 C28,14 14,22 0,27 Z" />
       </>
     ),
   },
+  // Canto de baixo à direita: duas lâminas verdes encaixadas
   contentEnd: {
-    viewBox: "0 0 804 636",
+    viewBox: "0 0 91 106",
     content: (
       <>
-        <Square className={styles.cream} cx={210} cy={748} size={400} />
-        <Square className={styles.sage} cx={612} cy={654} size={600} />
-        <Square className={styles.dark} cx={716} cy={241} size={298} />
-        <Square className={styles.green} cx={394} cy={592} size={260} />
-        <Square className={styles.sand} cx={245} cy={386} size={110} />
-        <Square className={styles.outline} cx={514} cy={341} size={303} />
+        <path className={styles.greenSheer} d="M91,8 C70,20 32,52 2,106 L58,106 C66,86 78,70 91,62 Z" />
+        <path className={styles.greenSoft} d="M91,37 C64,46 34,74 14,106 L50,106 C58,92 72,76 91,66 Z" />
       </>
     ),
   },

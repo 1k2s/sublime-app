@@ -1,6 +1,6 @@
 # 0009 — Vigência calculada e `SessionFrequency`
 
-- **Status:** aceito
+- **Status:** aceito (em parte substituído por [0040](0040-item-por-duracao-em-contrato-de-mensalidade.md): a vigência do contrato de mensalidade)
 - **Data:** 2026-10-20 (registro retroativo)
 
 ## Contexto

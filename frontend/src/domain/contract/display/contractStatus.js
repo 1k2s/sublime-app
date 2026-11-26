@@ -5,7 +5,8 @@ export const CONTRACT_STATUS = {
   CURRENT: { value: "CURRENT", label: "Vigente", badge: "active" },
   // ativo, com o fim antes de hoje: aguarda a decisão do administrador
   EXPIRED: { value: "EXPIRED", label: "Vencido", badge: "warning" },
-  // inativado ou substituído por aditivo
+  // inativado. A versão substituída por aditivo não aparece na lista (só a atual de cada
+  // contrato); no histórico, ela tem o selo "Substituída"
   INACTIVE: { value: "INACTIVE", label: "Inativo", badge: "inactive" },
 };
 

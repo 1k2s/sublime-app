@@ -1,4 +1,4 @@
-// Botão só com ícone (ex: o editar das tabelas). label é o nome lido pelo leitor de tela;
+// Botão só com ícone (ex: o ver/editar das tabelas). label é o nome lido pelo leitor de tela;
 // title, a dica do mouse
 import styles from "./IconButton.module.css";
 

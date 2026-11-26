@@ -1,20 +1,37 @@
 :root {
-  --color-bg: #f6f2e9;
+  --color-bg: #fbfcfc;
   --color-surface: #ffffff;
-  /* Linhas da tabela: a listra das pares e a divisória entre elas */
-  --color-row-stripe: #faf7f0;
+  /* Moldura clara: o fundo e a borda (molduras do detalhe do contrato) */
+  --color-frame-bg: #fbfcfb;
+  --color-frame-line: #c9d2cc;
+  /* Sombra suave entre o menu e o painel (e em volta da pílula clara no menu fechado) */
+  --shadow-panel-edge: rgb(16 24 40 / 0.09);
+  /* Cabeçalho das tabelas (DataTable): o fundo branco das linhas, rótulos em cinza; a borda embaixo é
+     a da moldura */
+  --color-table-head: var(--color-surface);
+  --color-table-head-text: var(--color-muted);
+  --color-table-head-line: var(--color-frame-line);
+  /* Linhas da tabela: a divisória entre elas e o fundo com o mouse em cima (ou da linha aberta) */
   --color-row-line: #f0ebe0;
+  --color-row-hover: #f4f5f4;
+  /* Aviso (ex: selo "Vencido", avisos de formulário): fundo, borda ou fundo mais forte, e texto */
+  --color-warning-bg: #fffbeb;
+  --color-warning-soft: #fef3c7;
+  --color-warning-text: #92400e;
   --color-primary: #5f7a58;
   --color-primary-soft: #dfe8dc;
   --color-primary-strong: #496345;
-  /* Tons de areia dos losangos de enfeite */
-  --color-sand: #c8a87f;
-  --color-sand-soft: #f0e6d5;
   --color-accent: #3f6fb5;
   /* Valor sugerido pela tela (ex: o último atendimento do paciente recente), que o usuário confirma */
   --color-suggestion-bg: #eef3fb;
   --color-suggestion-border: #b9cdeb;
+  /* "Novo ou alterado" no contrato (aditivo e histórico): moldura e fonte; a borda é a da sugestão */
+  --color-change-bg: #e5eff8;
+  --color-change-text: #4577a9;
   --color-danger: #b42318;
+  /* Erro e inativo (ex: selo "Inativo"): fundo e borda ou fundo mais forte */
+  --color-danger-bg: #fef2f2;
+  --color-danger-soft: #fee2e2;
   --color-border: #e4e9e6;
   --color-text: #374151;
   --color-title: #1f2937;
@@ -23,14 +40,14 @@
   /* Cards se destacam do fundo pela sombra, não pela borda */
   --shadow-card: 0 1px 2px rgb(16 24 40 / 0.04), 0 4px 16px rgb(16 24 40 / 0.06);
 
-  /* Casca do app (menu e área verde); o conteúdo usa as cores acima */
-  --shell-bg: #2e422a;
-  --shell-text: #e9efe5;
-  --shell-muted: #b8c9b4;
-  /* Faixa dos losangos no pé do menu */
-  --shell-band: #3e553a;
-  /* Nome e ícone do item ativo, na pílula clara */
-  --shell-active: #2e422a;
+  /* Casca do app: o menu lateral claro (fundo, texto, ícones, o nome da marca e o item ativo); o
+     conteúdo usa as cores acima. A pílula da tela aberta é a cor do painel (--color-bg) */
+  --menu-bg: #e6eef1;
+  --menu-text: #2e422a;
+  --menu-muted: #6b7a68;
+  /* Cinza-azulado do preenchimento dos itens do menu (um tom acima do fundo): mais transparente com
+     o item parado e mais forte com o mouse em cima (a opacidade, no AppSidebar) */
+  --menu-fill: #c9d6dc;
   /* Nome da marca, como no logo (carregada no main.jsx, só o peso 500) */
   --font-brand: "Cormorant Garamond", Georgia, serif;
   /* Abrir e recolher o menu */

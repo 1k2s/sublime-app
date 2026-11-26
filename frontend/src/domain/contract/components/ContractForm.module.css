@@ -33,6 +33,34 @@
   gap: 12px;
 }
 
+/* Aditivo: titular, plano, início e fim atual, travados */
+.form-locked {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 12px 16px;
+  margin: 0;
+}
+
+.form-locked-field {
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+  min-width: 0;
+}
+
+.form-locked-field dt {
+  color: var(--color-muted);
+  font-size: 12px;
+}
+
+.form-locked-field dd {
+  margin: 0;
+  color: var(--color-text);
+  font-size: 14px;
+  font-weight: 600;
+  overflow-wrap: anywhere;
+}
+
 .form-items {
   display: flex;
   flex-direction: column;

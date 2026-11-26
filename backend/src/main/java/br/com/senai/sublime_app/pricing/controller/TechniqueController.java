@@ -44,7 +44,9 @@ public class TechniqueController {
     }
 
     @Operation(summary = "Cadastrar técnica", description = """
-            Vincula a um grupo de preço, que não muda depois.
+            Cadastra a técnica num grupo de preço e responde com ela.
+
+            Regras: "Technique" no `docs/domain-model.md`.
             """)
     @ApiResponses({
             @ApiResponse(responseCode = "201", description = "Técnica criada", content = @Content(schema = @Schema(implementation = TechniqueResponseDTO.class))),
@@ -97,7 +99,9 @@ public class TechniqueController {
     }
 
     @Operation(summary = "Inativar técnica", description = """
-            Soft delete: a técnica sai da listagem e não entra em contratos novos.
+            Inativa a técnica (soft delete).
+
+            Regras: "Technique" no `docs/domain-model.md`.
             """)
     @ApiResponses({
             @ApiResponse(responseCode = "204", description = "Técnica inativada com sucesso"),
@@ -112,7 +116,7 @@ public class TechniqueController {
     }
 
     @Operation(summary = "Reativar técnica", description = """
-            Desfaz a inativação; o grupo continua o mesmo.
+            Reativa a técnica.
             """)
     @ApiResponses({
             @ApiResponse(responseCode = "204", description = "Técnica reativada com sucesso"),
