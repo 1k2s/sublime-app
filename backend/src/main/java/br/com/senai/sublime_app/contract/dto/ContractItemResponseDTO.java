@@ -27,7 +27,7 @@ public record ContractItemResponseDTO(
         // ritmo negociado; só em item de grupo por duração
         SessionFrequency frequency,
         BigDecimal sessionValue,
-        // sessões que o item dá no contrato (Pilates em Grupo: semanas do plano × vezes por semana)
+        // sessões que o item dá no contrato (Pilates em Grupo: semanas do contrato × vezes por semana)
         int sessionCount,
         BigDecimal totalValue
 

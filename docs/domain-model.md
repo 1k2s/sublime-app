@@ -783,6 +783,8 @@ Grupo até o primeiro cujo prazo cubra a vigência do contrato**
 ([ADR 0010](adr/0010-plano-do-item-do-grupo.md)):
 - **pode trocar** porque a vigência pode passar do prazo do plano sugerido (ex:
   Evolução quinzenal = 24 semanas, de-para Trimestral = 13);
+- **o plano só define o preço da aula:** a quantidade de aulas é a da vigência do contrato (ver
+  "Valor e parcelas"), então um plano mais longo que a vigência não cobra mais aulas;
 - **limite para cima** porque quanto mais longo o plano do Grupo, mais barata a
   aula;
 - **sem limite para baixo:** plano mais curto é mais caro — favorece a clínica,
@@ -849,8 +851,12 @@ Calculados pelo backend (`ContractItemValue`, `Installments`); a tela só mostra
 
 - **Valor de cada item:** sessões × valor da sessão da linha travada. Item por duração: as
   sessões do plano (Evolução, RPG 60 min = 12 × R$ 167,00 = R$ 2.004,00). Item do Pilates em
-  Grupo: as aulas do plano do Grupo, semanas × vezes por semana (Trimestral 2x = 26 × R$ 65,81 =
-  R$ 1.711,06).
+  Grupo: as aulas que cabem na **vigência do contrato**, semanas do contrato × vezes por semana,
+  ao valor da aula do plano escolhido ([ADR 0041](adr/0041-aulas-do-grupo-pela-vigencia.md)): o
+  valor da aula é o que manda, o plano dá a condição. Ex: só Trimestral 2x = 13 × 2 = 26 ×
+  R$ 65,81 = R$ 1.711,06; Evolução RPG 2x/semana (6 semanas) + Trimestral 2x = 6 × 2 = 12 ×
+  R$ 65,81 = R$ 789,72. No aditivo, pela nova vigência (prorrogar aumenta as aulas, ao preço
+  travado).
 - **Total do contrato:** a soma dos itens, sem desconto.
 - **Parcelas:** de 1 até os **meses do contrato**, no máximo 12, em qualquer forma de pagamento,
   sem juros. Meses pelas semanas da vigência (52 semanas = 12 meses), arredondados para o mais

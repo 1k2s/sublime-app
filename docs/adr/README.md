@@ -77,7 +77,7 @@ discussões que estavam no `domain-model.md` e no `architecture.md`.
 | [0029](0029-senha-provisoria-por-coluna.md) | Senha provisória marcada por uma coluna, não por prefixo no hash | aceito |
 | [0030](0030-seed-do-catalogo-por-migration.md) | Seed do catálogo de preços por migration | aceito |
 | [0031](0031-prestador-com-usuario-revisto.md) | Prestador continua sempre com usuário, com o admin lançando por ele | aceito |
-| [0032](0032-valor-e-parcelas-do-contrato.md) | Valor e parcelas do contrato calculados pelas linhas travadas, só o número de parcelas gravado | aceito (em parte substituído por 0037: as parcelas no aditivo) |
+| [0032](0032-valor-e-parcelas-do-contrato.md) | Valor e parcelas do contrato calculados pelas linhas travadas, só o número de parcelas gravado | aceito (em parte substituído por 0037: as parcelas no aditivo, e por 0041: as aulas do Grupo) |
 | [0033](0033-lancamento-retroativo-com-liberacao.md) | Lançamento só de hoje para o prestador, com o retroativo liberado pelo admin | aceito |
 | [0034](0034-hoje-no-fuso-da-clinica.md) | "Hoje" no fuso da clínica, fixado na inicialização | aceito (em parte substituído por 0036: onde o fuso é aplicado) |
 | [0035](0035-sessao-sincronizada-entre-abas.md) | Uma sessão por navegador, com as abas sincronizadas pelo evento `storage` | aceito |
@@ -86,3 +86,4 @@ discussões que estavam no `domain-model.md` e no `architecture.md`.
 | [0038](0038-previa-do-aditivo.md) | Prévia do aditivo num endpoint e num pedido próprios | aceito |
 | [0039](0039-lista-pela-versao-atual.md) | Lista pela versão atual, com o número do aditivo e a data gravados | aceito |
 | [0040](0040-item-por-duracao-em-contrato-de-mensalidade.md) | Item por duração em contrato de mensalidade, pelo pacote equivalente | aceito |
+| [0041](0041-aulas-do-grupo-pela-vigencia.md) | Aulas do Pilates em Grupo pela vigência do contrato | aceito |
