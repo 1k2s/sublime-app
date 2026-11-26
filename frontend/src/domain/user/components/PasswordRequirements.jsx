@@ -1,11 +1,12 @@
-// Conferência da nova senha enquanto o usuário digita: as mesmas regras de formato do settingsSchema
+// Conferência da nova senha enquanto o usuário digita: os critérios da senha forte (PASSWORD_CRITERIA,
+// os mesmos do @StrongPassword da API) e a confirmação igual
 import { Circle, CircleCheck } from "lucide-react";
-import { MIN_PASSWORD_LENGTH } from "../schemas/settingsSchema";
+import { PASSWORD_CRITERIA } from "@/domain/auth/schemas/passwordRule";
 import styles from "./PasswordRequirements.module.css";
 
 export function PasswordRequirements({ newPassword, confirmNewPassword }) {
   const requirements = [
-    { label: `Pelo menos ${MIN_PASSWORD_LENGTH} caracteres`, isMet: newPassword.length >= MIN_PASSWORD_LENGTH },
+    ...PASSWORD_CRITERIA.map(({ label, test }) => ({ label, isMet: test(newPassword) })),
     { label: "Confirmação igual à nova senha", isMet: newPassword !== "" && newPassword === confirmNewPassword },
   ];
 

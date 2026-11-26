@@ -11,6 +11,7 @@ import { Input } from "@/shared/components/Input";
 import { PasswordInput } from "@/shared/components/PasswordInput";
 import { settingsSchema } from "../schemas/settingsSchema";
 import { PasswordRequirements } from "./PasswordRequirements";
+import { PasswordStrength } from "./PasswordStrength";
 import styles from "./SettingsForm.module.css";
 
 const EMPTY_PASSWORDS = { newPassword: "", confirmNewPassword: "", currentPassword: "" };
@@ -60,6 +61,7 @@ export function SettingsForm({ defaultEmail, onSubmit, isSubmitting = false }) {
             {...register("newPassword")}
           />
         </FormField>
+        <PasswordStrength password={newPassword} />
 
         <FormField label="Confirmação da nova senha" htmlFor="settings-confirm-new-password" error={errors.confirmNewPassword?.message}>
           <PasswordInput

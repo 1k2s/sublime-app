@@ -43,7 +43,8 @@ public class UserController {
     }
 
     @Operation(summary = "Cadastrar usuário", description = """
-            Senha com 8 caracteres ou mais, **provisória**: no primeiro login, o usuário define
+            Senha com 8 caracteres ou mais, com maiúscula, minúscula, número e caractere especial,
+            **provisória**: no primeiro login, o usuário define
             a própria (`POST /api/auth/first-access`).
             """)
     @ApiResponses({

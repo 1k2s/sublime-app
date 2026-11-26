@@ -43,7 +43,7 @@ export function FirstAccessForm({
           id="first-access-new-password"
           type="password"
           autoComplete="new-password"
-          placeholder="Mínimo de 8 caracteres"
+          placeholder="8+ caracteres, maiúscula, minúscula, número e especial"
           invalid={Boolean(errors.newPassword)}
           {...register("newPassword")}
         />
