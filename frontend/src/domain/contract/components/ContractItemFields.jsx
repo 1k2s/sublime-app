@@ -1,6 +1,6 @@
 import { useEffect } from "react";
 import { AlertTriangle, Trash2 } from "lucide-react";
-import { ContractBadge } from "./ContractBadge";
+import { Badge } from "@/shared/components/Badge";
 import { Select } from "@/shared/components/Select";
 import { formatCurrency } from "@/shared/utils/money";
 import { SESSION_FREQUENCY_OPTIONS } from "../display/sessionFrequencies";
@@ -232,7 +232,7 @@ export function ContractItemFields({
       {(isNew || balance) && (
         <p className={styles.amendment}>
           {isNew ? (
-            <ContractBadge variant="suggestion">Novo</ContractBadge>
+            <Badge variant="suggestion">Novo</Badge>
           ) : (
             <>
               Restam <strong>{balance.remainingSessions}</strong> de {balance.sessionCount} sessões

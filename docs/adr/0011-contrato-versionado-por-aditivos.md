@@ -1,6 +1,6 @@
 # 0011 — Contrato versionado por aditivos
 
-- **Status:** aceito
+- **Status:** aceito (em parte substituído por [0039](0039-lista-pela-versao-atual.md): o número da versão, e por [0040](0040-item-por-duracao-em-contrato-de-mensalidade.md): item por duração no contrato de mensalidade)
 - **Data:** 2026-10-20 (registro retroativo)
 
 ## Contexto

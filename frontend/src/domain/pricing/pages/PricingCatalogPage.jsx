@@ -151,8 +151,9 @@ export function PricingCatalogPage() {
       <PriceTable
         rows={visibleRows}
         showGroup={groupFilter === ALL}
-        className={styles.tableScroll}
-        onView={(row) => setOpenRow({ groupId: row.group.id, key: row.rowKey, mode: "view" })}
+        // tableKey: a linha clicada na tabela (uma por técnica), marcada enquanto o detalhe está aberto
+        onView={(row) => setOpenRow({ groupId: row.group.id, key: row.rowKey, tableKey: row.key, mode: "view" })}
+        selectedRowKey={openRow?.tableKey ?? null}
       />
     );
   }

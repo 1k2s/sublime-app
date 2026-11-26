@@ -1,7 +1,7 @@
 import { useState } from "react";
 import { FileText, Pencil, Plus } from "lucide-react";
 import { PageHeader } from "@/shared/components/PageHeader";
-import { ContractBadge } from "../components/ContractBadge";
+import { Badge } from "@/shared/components/Badge";
 import { Button } from "@/shared/components/Button";
 import { Modal } from "@/shared/components/Modal";
 import { PageLoader } from "@/shared/components/PageLoader";
@@ -188,8 +188,8 @@ export function ContractPage() {
           title={`Aditivo · ${amendingContract.patientName ?? "Contrato"}`}
           titleExtra={
             <span className={styles.badges}>
-              <ContractBadge variant={getContractStatus(amendingContract).badge}>{getContractStatus(amendingContract).label}</ContractBadge>
-              {hasAmendment(amendingContract) && <ContractBadge>{getVersionLabel(amendingContract)}</ContractBadge>}
+              <Badge variant={getContractStatus(amendingContract).badge}>{getContractStatus(amendingContract).label}</Badge>
+              {hasAmendment(amendingContract) && <Badge>{getVersionLabel(amendingContract)}</Badge>}
             </span>
           }
           description={`Contrato nº ${contractNumber} · hoje ${hasAmendment(amendingContract) ? `no ${getVersionLabel(amendingContract)}` : "na versão original"}`}

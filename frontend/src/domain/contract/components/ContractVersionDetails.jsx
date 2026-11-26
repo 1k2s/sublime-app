@@ -1,5 +1,5 @@
 import { formatPriceAxis } from "@/domain/pricing/display/priceAxis";
-import { ContractBadge } from "./ContractBadge";
+import { Badge } from "@/shared/components/Badge";
 import { formatDate } from "@/shared/utils/date";
 import { formatCurrency } from "@/shared/utils/money";
 import { formatInstallments } from "../display/formatInstallments";
@@ -83,9 +83,9 @@ function ItemRow({ item, status }) {
         <span className={styles.itemTitle}>
           {item.techniqueName} <span className={styles.itemGroup}>· {item.pricingGroupName}</span>
           {status === "removed" ? (
-            <ContractBadge variant="inactive">Removido</ContractBadge>
+            <Badge variant="inactive">Removido</Badge>
           ) : (
-            ITEM_BADGES[status] && <ContractBadge variant="suggestion">{ITEM_BADGES[status]}</ContractBadge>
+            ITEM_BADGES[status] && <Badge variant="suggestion">{ITEM_BADGES[status]}</Badge>
           )}
         </span>
         <span className={styles.itemDetail}>

@@ -42,8 +42,10 @@ public class PricingGroupController {
     }
 
     @Operation(summary = "Cadastrar grupo de preço", description = """
-            `pricingModel` (`DURATION_BASED` ou `FREQUENCY_BASED`) define a tabela e não muda
-            depois.
+            Cadastra o grupo e responde com ele. O `pricingModel` (`DURATION_BASED` ou
+            `FREQUENCY_BASED`) define a tabela de preço do grupo.
+
+            Regras: "PricingGroup" no `docs/domain-model.md`.
             """)
     @ApiResponses({
             @ApiResponse(responseCode = "201", description = "Grupo criado", content = @Content(schema = @Schema(implementation = PricingGroupResponseDTO.class))),
@@ -65,9 +67,10 @@ public class PricingGroupController {
     }
 
     @Operation(summary = "Tabela de preços vigente do grupo", description = """
-            Linhas vigentes do grupo (`validTo` nulo), mesmo sem técnica ativa no grupo: o preço
-            pertence ao grupo. Para o preço de um contrato a partir da técnica, use
-            `GET /api/techniques/{id}/prices`.
+            Retorna as linhas de preço vigentes do grupo. Para o preço de um contrato a partir da
+            técnica, use `GET /api/techniques/{id}/prices`.
+
+            Regras: "PricingGroup" no `docs/domain-model.md`.
             """)
     @ApiResponses({
             @ApiResponse(responseCode = "200", description = "Tabela retornada com sucesso", content = @Content(schema = @Schema(implementation = PricingGroupPriceTableResponseDTO.class))),
@@ -80,10 +83,10 @@ public class PricingGroupController {
     }
 
     @Operation(summary = "Histórico de preços do grupo", description = """
-            Todas as linhas do grupo, da mais recente para a mais antiga, cada uma com o `status`
-            resolvido na data de hoje: `CURRENT` (vigente, aberta há até 12 meses), `EXPIRED`
-            (vencida, aberta há mais de 12 meses sem reajuste) e `CLOSED` (encerrada por reajuste,
-            `validTo` exclusivo: a linha valeu até o dia anterior). Usado pela tela de preços.
+            Retorna todas as linhas de preço do grupo, da mais recente para a mais antiga, cada
+            uma com o `status` (`CURRENT`, `EXPIRED` ou `CLOSED`). Usado pela tela de preços.
+
+            Regras: "Status da linha de preço" no `docs/domain-model.md`.
             """)
     @ApiResponses({
             @ApiResponse(responseCode = "200", description = "Histórico retornado com sucesso", content = @Content(schema = @Schema(implementation = PricingGroupPriceTableResponseDTO.class))),

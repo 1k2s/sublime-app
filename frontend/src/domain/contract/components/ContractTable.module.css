@@ -1,23 +1,17 @@
+/* Duas linhas numa célula (titular e beneficiário; valor e parcelas), na cor das linhas da tabela */
+.person,
 .value {
   display: flex;
   flex-direction: column;
-  align-items: flex-end;
   gap: 2px;
+}
+
+.value {
+  align-items: flex-end;
   white-space: nowrap;
 }
 
-.total {
-  color: var(--color-title);
-  font-weight: 700;
-}
-
-.badges {
-  display: flex;
-  flex-wrap: wrap;
-  gap: 6px;
-}
-
-.installments {
-  color: var(--color-muted);
+/* A segunda linha, menor */
+.detail {
   font-size: 12px;
 }

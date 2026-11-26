@@ -1,6 +1,6 @@
 import { useState } from "react";
 import { ArrowLeft, FileText, Pencil, XCircle } from "lucide-react";
-import { ContractBadge } from "./ContractBadge";
+import { Badge } from "@/shared/components/Badge";
 import { Button } from "@/shared/components/Button";
 import { ListMessage } from "@/shared/components/ListMessage";
 import { Modal } from "@/shared/components/Modal";
@@ -176,7 +176,7 @@ export function ContractDetailsModal({
         <div key={openedVersion.id} className={styles.versionContent}>
           <div className={styles.versionTitle}>
             <strong>{getVersionLabel(openedVersion)}</strong>
-            <ContractBadge variant={badge.badge}>{badge.label}</ContractBadge>
+            <Badge variant={badge.badge}>{badge.label}</Badge>
           </div>
           <ContractVersionDetails
             version={openedVersion}
@@ -195,8 +195,8 @@ export function ContractDetailsModal({
       size="medium"
       titleExtra={
         <span className={styles.badges}>
-          <ContractBadge variant={status.badge}>{status.label}</ContractBadge>
-          {hasAmendment(contract) && <ContractBadge>{getVersionLabel(contract)}</ContractBadge>}
+          <Badge variant={status.badge}>{status.label}</Badge>
+          {hasAmendment(contract) && <Badge>{getVersionLabel(contract)}</Badge>}
         </span>
       }
       description={`Contrato nº ${contractNumber}`}

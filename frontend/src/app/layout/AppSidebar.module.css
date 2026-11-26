@@ -60,32 +60,135 @@
   initial-value: transparent;
 }
 
-/* O overflow corta o que passa da largura (o nome dos itens ao recolher e o logo de fundo); o
-   z-index 1 deixa o logo (-1) entre o fundo e os itens e põe o menu acima da sombra do painel do
-   conteúdo, que escurecia a pílula clara */
-.sidebar {
-  --panel-width: var(--nav-open-width);
+/* Moldura do menu: leva o estado (.collapsed) e o botão de abrir e recolher, que fica sobre a borda
+   com o painel (fora do overflow do menu). O z-index põe o botão acima do painel */
+.frame {
+  --top-padding: 20px; /* o padding do topo do menu */
+  /* Altura do cabeçalho e tamanho do logo no menu aberto; recolhido, o logo encolhe para caber na
+     faixa (--logo-collapsed), sem mudar a altura: os itens não mudam de lugar */
+  --logo: 72px;
+  --logo-collapsed: 54px;
+  --toggle-size: 30px;
+  /* Espaço acima e abaixo do botão (logo → botão → primeiro item): maior que o --gap entre os
+     itens, para separar o topo da lista */
+  --toggle-gap: 16px;
+  /* Medidas da lista, aqui (e não no menu) porque o balão do recolhido, fora do menu, também as usa
+     para achar a altura do item */
   --item: 56px; /* altura da linha, igual nos dois modos */
   --gap: 10px;
-  --item-left: 10px;
-  --dot: 40px; /* círculo do recolhido */
-  --list-top: 16px;
   --step: calc(var(--item) + var(--gap));
+  /* A lista começa depois do botão de abrir e recolher, com o mesmo espaço dos dois lados dele */
+  --list-top: calc(2 * var(--toggle-gap) + var(--toggle-size));
+
+  position: relative;
+  z-index: 2;
+  height: 100%;
+
+  /* Janela baixa: o menu cabe sem rolar */
+  @media (max-height: 760px) {
+    --item: 50px;
+  }
+}
+
+/* Menu recolhido: o nome do item com o mouse em cima (ou o foco do Tab), num balão ao lado do
+   ícone, no lugar do title nativo (que demora e é pequeno). Fica na moldura, fora do overflow do
+   menu; desliza de um item para o outro com a pílula do mouse */
+.tooltip {
+  position: absolute;
+  z-index: 3;
+  top: calc(
+    var(--top-padding) + var(--logo) + var(--list-top) + var(--pointed) * var(--step) + var(--item) / 2
+  );
+  left: calc(100% + 12px);
+  padding: 7px 12px;
+  /* Borda bem suave: sem ela, o balão se perde no fundo; inteira, pesava */
+  border: 1px solid color-mix(in srgb, var(--color-suggestion-border) 55%, transparent);
+  border-radius: 8px;
+  /* O azul de "novo ou alterado" do contrato (Alterações, histórico) */
+  background: var(--color-change-bg);
+  box-shadow: 0 4px 12px rgb(16 24 40 / 0.18);
+  color: var(--menu-text); /* a cor do nome dos itens do menu */
+  font-size: 13px;
+  font-weight: 600;
+  white-space: nowrap;
+  pointer-events: none;
+  translate: 0 -50%;
+  transition: top 0.18s cubic-bezier(0.22, 1, 0.36, 1);
+  animation: tooltip-in 0.12s ease-out;
+}
+
+/* Ao reaparecer, vai direto ao item, sem deslizar do anterior (como a pílula do mouse) */
+.tooltipInstant {
+  transition: none;
+}
+
+@keyframes tooltip-in {
+  from {
+    opacity: 0;
+    transform: translateX(-4px);
+  }
+}
+
+/* Botão de abrir e recolher: na borda entre o menu e o painel, entre o logo e o primeiro item. O
+   z-index 3 o põe acima do menu (z-index 1), que cobria a metade de dentro */
+.toggle {
+  position: absolute;
+  z-index: 3;
+  top: calc(var(--top-padding) + var(--logo) + var(--toggle-gap));
+  right: calc(var(--toggle-size) / -2);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: var(--toggle-size);
+  height: var(--toggle-size);
+  padding: 0;
+  border: 1px solid var(--menu-fill);
+  border-radius: 50%;
+  background: var(--color-surface);
+  /* Sombra própria, mais marcada que a dos cards: o botão fica "solto" sobre a borda */
+  box-shadow: 0 2px 6px rgb(16 24 40 / 0.18), 0 1px 2px rgb(16 24 40 / 0.1);
+  color: var(--menu-text);
+  cursor: pointer;
+  transition: background-color 0.15s ease, transform 0.15s ease;
+
+  &:hover {
+    background: var(--menu-fill);
+    transform: scale(1.1);
+  }
+
+  &:focus-visible {
+    outline: 2px solid var(--menu-text);
+    outline-offset: 2px;
+  }
+}
+
+/* O overflow corta o que passa da largura (o nome dos itens ao recolher, o logo de fundo e a tira
+   da sombra da borda, que fica sobre o painel); o z-index 1 deixa o logo de fundo (-1) entre o
+   fundo do menu e os itens */
+.sidebar {
+  --panel-width: var(--nav-open-width);
+  /* --item, --gap, --step e --list-top vêm da moldura (.frame) */
+  --item-left: 10px;
+  --dot: 40px; /* quadrado do item no recolhido */
+  /* Cantos dos itens, da pílula do mouse e da pílula clara: retângulo com cantos arredondados, o
+     mesmo raio dos cards e dos itens do contrato */
+  --item-radius: var(--radius);
   --shape: var(--item); /* altura do fundo do item */
   --pill-extra: 0px; /* quanto a pílula clara passa do item */
-  --pill-radius: 28px;
+  --pill-radius: var(--item-radius);
   /* Aberto: pílula clara solta do painel. Recolhido: encostada e ligada a ele pelas curvas.
      A troca é em duas etapas (metade do tempo cada), porque as curvas só se encaixam com a
      pílula encostada e sem canto do lado direito: ao abrir, as curvas somem e depois a pílula se
      solta; ao recolher, o contrário */
-  --pill-end-radius: 28px;
+  --pill-end-radius: var(--item-radius);
   --pill-right: var(--item-left);
   --curve: 0px;
   --pill-step: 0.175s;
   --curve-delay: 0s;
   --detach-delay: var(--pill-step);
-  --fill-start: color-mix(in srgb, var(--menu-fill) 85%, transparent);
-  --fill-mid: color-mix(in srgb, var(--menu-fill) 45%, transparent);
+  /* Item parado: o preenchimento mais transparente; o mouse em cima usa o tom cheio (hoverPill) */
+  --fill-start: color-mix(in srgb, var(--menu-fill) 50%, transparent);
+  --fill-mid: color-mix(in srgb, var(--menu-fill) 25%, transparent);
   --fill-end: transparent;
 
   position: relative;
@@ -94,7 +197,7 @@
   flex-direction: column;
   width: var(--panel-width);
   height: 100%;
-  padding: 20px 0 18px;
+  padding: var(--top-padding) 0 18px;
   overflow: hidden;
   background: var(--menu-bg);
   transition:
@@ -109,26 +212,24 @@
     --fill-mid var(--shell-motion),
     --fill-end var(--shell-motion);
 
-  &.collapsed {
+  .collapsed & {
     --panel-width: var(--nav-width);
     --shape: var(--dot);
     --pill-extra: 20px;
-    --pill-radius: 14px;
+    --pill-radius: var(--item-radius);
     --pill-end-radius: 0px;
     --pill-right: 0px;
     --curve: 18px;
     --curve-delay: var(--pill-step);
     --detach-delay: 0s;
-    --fill-start: color-mix(in srgb, var(--menu-fill) 75%, transparent);
-    --fill-mid: color-mix(in srgb, var(--menu-fill) 75%, transparent);
-    --fill-end: color-mix(in srgb, var(--menu-fill) 75%, transparent);
+    --fill-start: color-mix(in srgb, var(--menu-fill) 45%, transparent);
+    --fill-mid: color-mix(in srgb, var(--menu-fill) 45%, transparent);
+    --fill-end: color-mix(in srgb, var(--menu-fill) 45%, transparent);
   }
 
-  /* Janela baixa: o menu cabe sem rolar */
+  /* Janela baixa: o menu cabe sem rolar (o --item menor fica na moldura) */
   @media (max-height: 760px) {
-    --item: 50px;
-
-    &.collapsed {
+    .collapsed & {
       --pill-extra: 14px;
     }
   }
@@ -140,12 +241,12 @@
   display: flex;
   align-items: center;
   gap: 10px;
-  min-height: 54px;
-  padding: 0 16px 0 3px;
+  min-height: var(--logo);
+  padding: 0 16px 0 max(0px, calc(30px - var(--logo) / 2));
 }
 
 .brandName {
-  color: var(--shell-bg); /* o verde do cabeçalho das tabelas, como o logo */
+  color: var(--menu-text);
   font-family: var(--font-brand);
   font-size: 28px;
   font-weight: 500;
@@ -173,12 +274,32 @@
   }
 }
 
+/* O logo também abre e recolhe o menu (é um botão, como o da borda) */
 .headerLogo {
   flex: none;
-  width: 54px;
-  height: 54px;
-  background: var(--shell-bg); /* silhueta no verde do cabeçalho das tabelas: a imagem só dá o contorno */
-  mask: url("/sublime-logo-symbol.png") center / contain no-repeat;
+  width: var(--logo);
+  height: var(--logo);
+  padding: 0;
+  border: 0;
+  /* O logo nas cores originais da imagem */
+  background: url("/sublime-logo-symbol.png") center / contain no-repeat;
+  cursor: pointer;
+  transition:
+    transform 0.15s ease,
+    width var(--shell-motion),
+    height var(--shell-motion),
+    margin var(--shell-motion);
+
+  &:hover {
+    transform: scale(1.05);
+  }
+
+  /* Recolhido: menor, com o centro na coluna dos ícones (30px) */
+  .collapsed & {
+    width: var(--logo-collapsed);
+    height: var(--logo-collapsed);
+    margin-left: calc(30px - var(--logo-collapsed) / 2);
+  }
 }
 
 /* As pílulas se posicionam pelo número do item (--active, --pointed) × --step */
@@ -211,9 +332,9 @@
   width: calc(100% - 2 * var(--item-left)); /* termina onde termina a pílula clara */
   height: var(--shape);
   margin-left: var(--item-left);
-  padding: 0 12px 0 10px; /* 10px: ícone no centro do círculo do recolhido */
+  padding: 0 12px 0 10px; /* 10px: ícone no centro do quadrado do recolhido */
   overflow: hidden;
-  border-radius: 999px 0 0 999px;
+  border-radius: var(--item-radius);
   background: linear-gradient(90deg, var(--fill-start) 0%, var(--fill-mid) 55%, var(--fill-end) 100%);
   color: var(--menu-text);
   font-size: 16px;
@@ -233,13 +354,13 @@
 
   &.active {
     background: none;
-    color: var(--shell-active);
+    color: var(--menu-text);
     font-size: 18px;
     font-weight: 700;
     cursor: default;
 
     &:focus-visible {
-      outline-color: var(--shell-active);
+      outline-color: var(--menu-text);
     }
   }
 
@@ -250,7 +371,6 @@
 
   .collapsed & {
     width: var(--dot);
-    border-radius: 999px;
   }
 }
 
@@ -261,7 +381,7 @@
   transition: transform 0.25s ease;
 
   .active & {
-    color: var(--shell-active);
+    color: var(--menu-text);
     transform: scale(1.2);
   }
 }
@@ -281,21 +401,70 @@
   }
 }
 
-/* Pílula da tela aberta: no aberto, solta do painel, com a mesma folga dos dois lados; no
-   recolhido, ligada ao painel pelas curvas (no aberto, --curve 0 as esconde) */
-.activePill {
+/* A borda com o painel e a pílula clara, numa camada só (o menu inteiro, atrás dos itens), com uma
+   sombra suave só: o drop-shadow segue o desenho de tudo o que a camada pinta (a tira da borda, a
+   pílula e as curvas dela), num contorno contínuo. O lado do painel é cortado pelo menu (overflow) */
+.edgeLayer {
   position: absolute;
   z-index: 1;
-  top: calc((var(--item) - var(--shape)) / 2 - var(--pill-extra));
+  inset: 0;
+  pointer-events: none;
+
+  /* Menu fechado (a pílula ligada ao painel): a sombra da camada inteira, que contorna a tira, as
+     curvas e a pílula */
+  .collapsed & {
+    filter: drop-shadow(0 0 4px var(--shadow-panel-edge));
+  }
+
+  /* A borda: uma tira na cor do painel, que some nas pontas (a sombra some junto), para não
+     contornar os cantos arredondados do painel. Fica do lado de fora do menu, sobre o painel: o
+     menu a corta (overflow), e só a sombra que ela projeta para dentro aparece. 8px, e não 1px: a
+     sombra desfocada de um traço fino sai fraca demais. Menu aberto: a sombra é só dela (a pílula
+     solta fica sem sombra), a mesma da camada no menu fechado */
+  &::before {
+    content: "";
+    position: absolute;
+    top: 0;
+    right: -8px;
+    bottom: 0;
+    width: 8px;
+    background: linear-gradient(
+      to bottom,
+      transparent 0%,
+      var(--color-bg) 12%,
+      var(--color-bg) 88%,
+      transparent 100%
+    );
+    filter: drop-shadow(0 0 4px var(--shadow-panel-edge));
+  }
+}
+
+/* Menu fechado: a tira sem sombra própria (a da camada já a contorna; as duas somadas dobrariam a
+   força na borda). Por extenso, e não aninhado no ::before: o "&" do aninhamento não pode
+   representar um pseudo-elemento, e a regra seria ignorada */
+.collapsed .edgeLayer::before {
+  filter: none;
+}
+
+/* Pílula da tela aberta: no aberto, solta do painel, com a mesma folga dos dois lados; no
+   recolhido, ligada ao painel pelas curvas (no aberto, --curve 0 as esconde). Fica na camada da
+   borda (que ocupa o menu inteiro): o topo soma o padding do menu, o cabeçalho e o espaço até a
+   lista */
+.activePill {
+  position: absolute;
+  top: calc(
+    var(--top-padding) + var(--logo) + var(--list-top) + (var(--item) - var(--shape)) / 2 - var(--pill-extra)
+  );
   left: var(--item-left);
   right: var(--pill-right);
   height: calc(var(--shape) + 2 * var(--pill-extra));
   border-radius: var(--pill-radius) var(--pill-end-radius) var(--pill-end-radius) var(--pill-radius);
   background: var(--color-bg);
-  transform: translateY(calc(var(--active) * var(--step)));
-  transition: transform 0.38s cubic-bezier(0.22, 1, 0.36, 1);
+  /* translate, e não transform: o efeito de bolha (scale) não pode multiplicar o deslocamento */
+  translate: 0 calc(var(--active) * var(--step));
+  transition: translate 0.38s cubic-bezier(0.22, 1, 0.36, 1);
 
-  /* Curvas sobrepostas 1px: com a tela em escala (ex: 125%), a emenda mostraria uma linha verde */
+  /* Curvas sobrepostas 1px: com a tela em escala (ex: 125%), a emenda mostraria uma linha do fundo do menu */
   &::before,
   &::after {
     content: "";
@@ -317,6 +486,58 @@
   }
 }
 
+/* Menu recolhido: a pílula clara se move como uma bolha ao trocar de tela. Desliza com um pequeno
+   passe do ponto, e a forma (a propriedade scale, separada do translate do deslocamento) se alonga
+   no caminho e achata ao chegar. A escala parte da borda direita: a pílula não se solta do painel */
+.collapsed .activePill {
+  transform-origin: right center;
+  transition: translate 0.45s cubic-bezier(0.34, 1.08, 0.64, 1);
+}
+
+.collapsed .bubbleA {
+  animation: pill-bubble-a 0.55s ease-out;
+}
+
+.collapsed .bubbleB {
+  animation: pill-bubble-b 0.55s ease-out;
+}
+
+@keyframes pill-bubble-a {
+  0% {
+    scale: 1 1;
+  }
+  30% {
+    scale: 0.98 1.03;
+  }
+  60% {
+    scale: 1.015 0.98;
+  }
+  80% {
+    scale: 0.995 1.005;
+  }
+  100% {
+    scale: 1 1;
+  }
+}
+
+@keyframes pill-bubble-b {
+  0% {
+    scale: 1 1;
+  }
+  30% {
+    scale: 0.98 1.03;
+  }
+  60% {
+    scale: 1.015 0.98;
+  }
+  80% {
+    scale: 0.995 1.005;
+  }
+  100% {
+    scale: 1 1;
+  }
+}
+
 /* Pílula do mouse e do Tab */
 .hoverPill {
   position: absolute;
@@ -325,8 +546,8 @@
   left: var(--item-left);
   right: 0;
   height: var(--shape);
-  border-radius: 999px 0 0 999px;
-  background: linear-gradient(90deg, color-mix(in srgb, color-mix(in srgb, var(--menu-fill) 80%, var(--color-change-text)) 80%, transparent) 0%, color-mix(in srgb, color-mix(in srgb, var(--menu-fill) 80%, var(--color-change-text)) 40%, transparent) 55%, transparent 100%);
+  border-radius: var(--item-radius);
+  background: linear-gradient(90deg, color-mix(in srgb, var(--menu-fill) 80%, transparent) 0%, color-mix(in srgb, var(--menu-fill) 40%, transparent) 55%, transparent 100%);
   opacity: 0;
   pointer-events: none;
   transform: translateY(calc(var(--pointed) * var(--step)));
@@ -346,8 +567,7 @@
   .collapsed & {
     right: auto;
     width: var(--dot);
-    border-radius: 999px;
-    background: color-mix(in srgb, color-mix(in srgb, var(--menu-fill) 80%, var(--color-change-text)) 70%, transparent);
+    background: color-mix(in srgb, var(--menu-fill) 70%, transparent);
   }
 }
 
@@ -431,12 +651,12 @@
   padding: 0;
   border: 0;
   border-radius: 50%;
-  background: color-mix(in srgb, var(--menu-fill) 75%, transparent);
+  background: color-mix(in srgb, var(--menu-fill) 45%, transparent);
   color: var(--menu-text);
   cursor: pointer;
 
   &:hover {
-    background: color-mix(in srgb, color-mix(in srgb, var(--menu-fill) 80%, var(--color-change-text)) 70%, transparent);
+    background: color-mix(in srgb, var(--menu-fill) 70%, transparent);
   }
 
   &:focus-visible {
@@ -456,7 +676,25 @@
   .hoverPill,
   .backgroundLogo,
   .userInfo,
-  .collapsed .userInfo {
+  .collapsed .userInfo,
+  .toggle,
+  .headerLogo,
+  .tooltip {
     transition: none;
+    animation: none;
+  }
+
+  .toggle:hover,
+  .headerLogo:hover {
+    transform: none;
+  }
+
+  .collapsed .activePill {
+    transition: none;
+  }
+
+  .collapsed .bubbleA,
+  .collapsed .bubbleB {
+    animation: none;
   }
 }

@@ -104,6 +104,7 @@ export function PatientPage() {
             isLoading={isLoading}
             isError={isError}
             hasRecords={patients.length > 0}
+            selectedPatientId={selectedPatientId}
             onViewDetails={(patient) => setSelectedPatientId(patient.id)}
           />
 

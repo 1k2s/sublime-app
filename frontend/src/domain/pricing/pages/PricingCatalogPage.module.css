@@ -1,11 +1,5 @@
-/* A tela de Preços usa o verde da sidebar (casca do app) no lugar da paleta do conteúdo: as
-   variáveis redefinidas aqui valem para tudo dentro da tela, inclusive os modais e o
-   PriceFormModal, que são renderizados dentro dela.
-   A tela ocupa a altura do conteúdo e só a tabela rola (o cabeçalho e os filtros ficam parados) */
+/* A tela ocupa a altura do conteúdo e só a tabela rola (o cabeçalho e os filtros ficam parados) */
 .page {
-  --color-primary: var(--shell-active);
-  --color-primary-soft: #dcf1ea;
-
   display: flex;
   flex-direction: column;
   gap: 24px;
@@ -30,64 +24,4 @@
 .picker {
   width: 320px;
   max-width: 100%;
-}
-
-/* A área que rola: a altura das linhas mostradas, até o fim da tela; passando disso, rola só na
-   vertical, com o cabeçalho das colunas parado.
-   Sem rolagem lateral: a tabela cabe na largura, com os títulos das colunas quebrando linha e o
-   espaço entre as colunas menor. "div" e "table" no seletor vencem os do DataTable, que dizem o
-   contrário (rolagem lateral e títulos numa linha só) */
-div.tableScroll {
-  /* Não cresce além do conteúdo; encolhe até caber no resto da altura */
-  flex: 0 1 auto;
-  min-height: 0;
-  overflow-x: hidden;
-  overflow-y: auto;
-
-  & table th {
-    position: sticky;
-    top: 0;
-    z-index: 1;
-    white-space: normal;
-    /* Sombra sob o cabeçalho parado: as linhas passam por baixo dele ao rolar */
-    box-shadow: 0 3px 8px rgb(16 24 40 / 0.14);
-  }
-
-  & table th,
-  & table td {
-    padding-inline: 14px;
-  }
-
-  /* Barra de rolagem fina, dentro do card: o trilho começa abaixo do cabeçalho e para antes do
-     canto de baixo, para não cortar as bordas arredondadas; o polegar é uma pílula no verde da
-     casca, mais forte ao passar o mouse */
-  &::-webkit-scrollbar {
-    width: 12px;
-  }
-
-  &::-webkit-scrollbar-track {
-    margin-top: 46px;
-    margin-bottom: var(--radius);
-    background: transparent;
-  }
-
-  &::-webkit-scrollbar-thumb {
-    border: 3px solid transparent;
-    border-radius: 9999px;
-    background-color: color-mix(in srgb, var(--shell-bg) 30%, transparent);
-    background-clip: padding-box;
-  }
-
-  &::-webkit-scrollbar-thumb:hover {
-    background-color: color-mix(in srgb, var(--shell-bg) 55%, transparent);
-  }
-}
-
-/* Firefox (sem ::-webkit-scrollbar): a barra fina, nas mesmas cores. Fica fora do bloco acima
-   porque, no Chrome, o scrollbar-color desliga os estilos ::-webkit-scrollbar */
-@supports not selector(::-webkit-scrollbar) {
-  div.tableScroll {
-    scrollbar-width: thin;
-    scrollbar-color: color-mix(in srgb, var(--shell-bg) 40%, transparent) transparent;
-  }
 }

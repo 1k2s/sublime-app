@@ -21,8 +21,8 @@
   width: 40px;
   height: 40px;
   border-radius: 50%;
-  background: #dfe8dc;
-  color: #5f7a58;
+  background: var(--color-primary-soft);
+  color: var(--color-primary);
 }
 
 .section-text {
@@ -31,7 +31,7 @@
 
 .section-title {
   margin: 0;
-  color: #374151;
+  color: var(--color-text);
   font-size: 16px;
   font-weight: 600;
   line-height: 20px;
@@ -40,7 +40,7 @@
 .section-description {
   overflow: hidden;
   margin: 2px 0 0;
-  color: #6b7280;
+  color: var(--color-muted);
   font-size: 13px;
   line-height: 18px;
   text-overflow: ellipsis;

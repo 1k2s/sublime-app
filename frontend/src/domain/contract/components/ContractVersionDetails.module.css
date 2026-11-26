@@ -11,9 +11,9 @@
 /* Moldura de fundo claro: uma para os dados, outra para os itens. Sólida na versão atual */
 .frame {
   padding: 14px;
-  border: 1px solid #c9d2cc;
+  border: 1px solid var(--color-frame-line);
   border-radius: var(--radius);
-  background: #fbfcfb;
+  background: var(--color-frame-bg);
 }
 
 /* Versão anterior (substituída), no histórico: a borda tracejada */

@@ -1,13 +1,12 @@
 import { Eye } from "lucide-react";
-import { AvatarName } from "@/shared/components/AvatarName";
-import { ContractBadge } from "./ContractBadge";
+import { Badge } from "@/shared/components/Badge";
 import { DataTable } from "@/shared/components/DataTable";
 import { IconButton } from "@/shared/components/IconButton";
 import { ListMessage } from "@/shared/components/ListMessage";
 import { formatDate } from "@/shared/utils/date";
 import { formatCurrency } from "@/shared/utils/money";
 import { getContractStatus } from "../display/contractStatus";
-import { getVersionLabel, hasAmendment } from "../display/contractVersions";
+import { getVersionLabel } from "../display/contractVersions";
 import styles from "./ContractTable.module.css";
 
 // As técnicas dos itens (um item por grupo de preço)
@@ -50,11 +49,12 @@ export function ContractTable({
     {
       key: "patient",
       header: "Titular",
+      // O titular e, embaixo, o beneficiário (se houver)
       cell: (contract) => (
-        <AvatarName
-          name={contract.patientName}
-          detail={contract.beneficiaryName && `Benef.: ${contract.beneficiaryName}`}
-        />
+        <div className={styles.person}>
+          <span>{contract.patientName}</span>
+          {contract.beneficiaryName && <span className={styles.detail}>Benef.: {contract.beneficiaryName}</span>}
+        </div>
       ),
     },
     { key: "plan", header: "Plano", cell: (contract) => contract.planName },
@@ -70,23 +70,19 @@ export function ContractTable({
       align: "right",
       cell: (contract) => (
         <div className={styles.value}>
-          <span className={styles.total}>{formatCurrency(contract.totalValue)}</span>
-          <span className={styles.installments}>em {contract.installments}x</span>
+          <span>{formatCurrency(contract.totalValue)}</span>
+          <span className={styles.detail}>em {contract.installments}x</span>
         </div>
       ),
     },
+    // A versão em texto ("Original", "Aditivo 2"): o Status fica só com o estado, em etiqueta
+    { key: "version", header: "Versão", cell: getVersionLabel },
     {
       key: "status",
       header: "Status",
-      // O estado e, se houve aditivo, o selo "Aditivo N" (a versão original fica só com o estado)
       cell: (contract) => {
         const status = getContractStatus(contract);
-        return (
-          <div className={styles.badges}>
-            <ContractBadge variant={status.badge}>{status.label}</ContractBadge>
-            {hasAmendment(contract) && <ContractBadge>{getVersionLabel(contract)}</ContractBadge>}
-          </div>
-        );
+        return <Badge variant={status.badge}>{status.label}</Badge>;
       },
     },
     {
@@ -95,7 +91,6 @@ export function ContractTable({
       align: "center",
       cell: (contract) => (
         <IconButton
-          variant="soft"
           label={`Ver contrato de ${contract.patientName ?? "paciente"}`}
           title="Ver detalhes"
           onClick={() => onViewDetails?.(contract)}
@@ -106,13 +101,12 @@ export function ContractTable({
     },
   ];
 
-  // Variante clara, nos tons dos modais do contrato. A linha inteira abre o detalhe (o botão do olho
-  // continua, para o teclado; o clique nele também chega à linha, e abre o mesmo detalhe)
+  // A linha inteira abre o detalhe (o botão do olho continua, para o teclado; o clique nele também
+  // chega à linha, e abre o mesmo detalhe)
   return (
     <DataTable
       columns={columns}
       rows={contracts}
-      variant="light"
       onRowClick={(contract) => onViewDetails?.(contract)}
       selectedRowKey={selectedContractId}
       className={className}

@@ -416,9 +416,11 @@ do Pilates em Grupo, **independente da frequência**
     Grupo" em `Contract`);
   - resolver o preço do atendimento fora do grupo contratado (caso 2 da "Resolução
     de preço" em `Consultation`), nos dois sentidos: paciente de pacote numa aula do
-    Grupo (Evolução → Trimestral) e contrato só com Grupo numa sessão por duração
-    (Trimestral → Evolução). É por esse segundo sentido que o de-para está nos dois
-    lados.
+    Grupo (Evolução → Trimestral) e contrato de mensalidade numa sessão por duração
+    que ele não cobre (Trimestral → Evolução). É por esse segundo sentido que o de-para
+    está nos dois lados;
+  - definir a linha do item por duração num contrato de mensalidade (Trimestral →
+    Evolução; ver "Plano do item" em `ContractItem`).
 - A regra mora no plano: `PlanEntity.planFor(PricingModel)` devolve o próprio plano
   se o tipo dele é precificado naquele modelo (os grupos por duração compartilham os
   planos), senão o equivalente (400 se não houver).
@@ -607,8 +609,13 @@ não a repete):
 - `POST /api/contracts/preview` — na criação, com o plano, o início, os itens já escolhidos
   e as parcelas (opcional): vigência em semanas, `endDate` calculado, plano do Grupo
   sugerido e opções, valor de cada item, total e parcelas (ver "Valor e parcelas").
-- `GET /api/contracts/{id}/group-plan-options` — no aditivo: opções do plano do
-  Grupo pela vigência atual do contrato.
+- `POST /api/contracts/{id}/amendments/preview` — no aditivo, com os itens do formulário,
+  o `endDate` (opcional, prorrogação) e as parcelas (opcional): a mesma resposta da prévia da
+  criação, calculada pela **nova** vigência (ver "Versionamento (aditivos)").
+- `GET /api/contracts/{id}/versions` — o histórico: a versão e as anteriores, da mais nova
+  para a mais antiga.
+- Nas duas prévias, a lista de itens pode vir **incompleta ou vazia** (o formulário em
+  preenchimento: a tela manda só os itens com a linha escolhida).
 
 ### `Contract` (cabeçalho)
 
@@ -624,6 +631,8 @@ não a repete):
 | `installments` | int | número de parcelas, de 1 até os meses do contrato (máximo 12; ver "Valor e parcelas") |
 | `active` | boolean | soft delete |
 | `previousContractId` | FK → Contract, nullable, unique | versão anterior (aditivo); null na primeira versão |
+| `amendmentNumber` | int | 0 na versão original, o da anterior + 1 em cada aditivo; gravado, nunca muda (ver "Versionamento") |
+| `createdAt` | date | dia em que a versão foi criada (cadastro ou aditivo), "hoje" no fuso da clínica; nunca muda |
 
 ### `ContractItem` (um por grupo de preço)
 
@@ -641,15 +650,21 @@ não a repete):
   (vem da linha travada — derivável), então a regra é garantida pelo agregado
   (`Contract`), não por `unique` no banco.
 - **Plano do item:** item de grupo por duração usa uma linha do **plano do
-  contrato**. Item do Pilates em Grupo usa um plano do Grupo escolhido pela regra
-  de "Plano do item do Grupo" (abaixo). Num contrato só com Grupo, o plano do
-  contrato é o próprio plano do Grupo — por isso ele não pode receber item de grupo
-  por duração (exigiria trocar o plano; ver "Versionamento").
+  contrato**, ou, num contrato de plano de mensalidade, do **pacote equivalente**
+  pelo de-para (`PlanEntity.planFor`: Trimestral → Evolução; ver "Equivalência de
+  planos" em `Plan`; sem equivalente, 400;
+  [ADR 0040](adr/0040-item-por-duracao-em-contrato-de-mensalidade.md)). Item do Pilates em Grupo usa um plano do
+  Grupo escolhido pela regra de "Plano do item do Grupo" (abaixo); num contrato de
+  mensalidade, o próprio plano do contrato. Linha de outro plano: 400 "O preço do
+  item precisa ser do plano X (equivalente do Y)." (ou "do plano do contrato").
 - **Contrato de pacote precisa de pelo menos um item por duração.** Sem item por
   duração, um contrato de pacote não teria como calcular o fim (o pacote não tem
   `termWeeks`). Consequência no aditivo: remover todos os itens por duração de um
   contrato misto é recusado (400) — para ficar só no Grupo, contrato novo com plano
   de mensalidade.
+- **Contrato de mensalidade precisa do item do Pilates em Grupo** (400, na criação e
+  no aditivo): o plano define o contrato; para ficar só com itens por duração,
+  contrato novo de pacote.
 - **Técnica só informativa:** registra o que foi vendido (ex: "Liberação
   Miofascial e Quiropraxia" no contrato impresso), mas não restringe o
   atendimento — o paciente pode ser atendido em qualquer técnica do grupo do item.
@@ -754,9 +769,11 @@ semanas) e Quiropraxia quinzenal (24) → contrato de 24 semanas.
   sem controle rigoroso de sessões realizadas. Ele **acompanha** a vigência do
   contrato e termina junto. Ex: Evolução 2x/semana (6 semanas) + Grupo = contrato
   de 6 semanas; para continuar no Grupo depois disso, renovação ou aditivo.
-- **Contrato só com Grupo:** a vigência vem do prazo do plano do Grupo
-  (`Plan.termWeeks`: Mensal 4, Trimestral 13, Semestral 26, Anual 52 — ver
-  `Plan`).
+- **Contrato de plano de mensalidade:** a vigência vem do prazo do plano
+  (`Plan.termWeeks`: Mensal 4, Trimestral 13, Semestral 26, Anual 52 — ver `Plan`)
+  ou, se um item por duração passar disso, do prazo desse item (as sessões do pacote
+  equivalente no ritmo do item). Ex: Trimestral (13 semanas) + RPG da Evolução
+  quinzenal (24) → 24 semanas.
 
 ### Plano do item do Grupo
 
@@ -782,9 +799,8 @@ Grupo até o primeiro cujo prazo cubra a vigência do contrato**
 - **Sem restrição de família:** as opções são **todos** os planos de mensalidade
   até o primeiro que cubra a vigência, Familiares ou não. A sugestão do de-para já
   leva ao Familiar certo (Transformação Familiar → Semestral Familiar).
-- A regra fica no backend: valida na criação e no aditivo e expõe as opções nos
-  endpoints de apoio (`preview` e `group-plan-options`); o frontend não repete
-  a regra.
+- A regra fica no backend: valida na criação e no aditivo e expõe as opções nas
+  prévias (da criação e do aditivo); o frontend não repete a regra.
 
 **Como as opções são montadas** (`ContractService`, depende do catálogo de planos):
 - Só mensalidades **ativas**, do prazo mais curto ao mais longo.
@@ -793,12 +809,13 @@ Grupo até o primeiro cujo prazo cubra a vigência do contrato**
   Semestral Familiar, as duas com 26).
 - Se nenhuma cobrir a vigência (contrato prorrogado além de 52 semanas), **todas**
   valem.
-- Contrato só com Grupo: a única opção é o próprio plano do contrato.
+- Contrato de mensalidade: a única opção é o próprio plano do contrato.
 - A sugestão é o equivalente do plano do contrato (ou o próprio plano, se for de
   mensalidade), quando estiver entre as opções.
-- **No aditivo**, a vigência usada é a atual do contrato (início → fim, incluindo
-  prorrogação), e o plano do Grupo **só é revalidado se o item do Grupo for novo ou
-  trocar de linha** — o que é igual à versão anterior é aceito como está.
+- **No aditivo**, a vigência usada é a da **nova** versão (início → novo fim, com a
+  prorrogação e o item novo), a mesma da prévia do aditivo, e o plano do Grupo **só é
+  revalidado se o item do Grupo for novo ou trocar de linha** — o que é igual à versão
+  anterior é aceito como está.
 
 ### Vigente, vencimento e prorrogação
 
@@ -811,8 +828,9 @@ paciente pode ter, temporariamente, mais de um contrato ativo.
 
 **A resposta do contrato traz `current`** (vigente hoje, `ContractEntity.isCurrentOn`), para a
 tela não repetir a regra: `active` e `current` = Vigente; `active` sem `current` = Vencido;
-sem `active` = Inativo (inativado ou substituído por aditivo). Um contrato com início futuro
-já é vigente, como na regra do 409 acima.
+sem `active` = Inativo (inativado). A versão substituída por aditivo também tem `active` falso,
+mas não aparece na listagem (só a versão atual de cada contrato; ver "Versionamento") e traz
+`superseded` verdadeiro. Um contrato com início futuro já é vigente, como na regra do 409 acima.
 
 **Contrato vencido** continua ativo até o administrador decidir. A ação disponível é
 **prorrogar** (aditivo com novo `endDate`, abaixo).
@@ -844,10 +862,13 @@ Calculados pelo backend (`ContractItemValue`, `Installments`); a tela só mostra
   o valor das parcelas saem das linhas travadas nos itens, que não mudam: não há um total
   gravado para ficar diferente dos itens.
 - **Na criação:** parcelas acima do máximo → 400 "O número de parcelas deve ser de 1 a N (meses
-  do contrato).". **Na prévia** (`POST /api/contracts/preview`), parcelas acima do máximo valem
-  o máximo, e a resposta diz as aplicadas (a tela não perde o resultado quando o plano muda
+  do contrato).". **Nas prévias** (da criação e do aditivo), parcelas vazias ou acima do máximo
+  valem o máximo, e a resposta diz as aplicadas (a tela não perde o resultado quando o plano muda
   para um mais curto).
-- **Aditivo:** copia as parcelas da versão anterior.
+- **Aditivo:** as parcelas são escolhidas em todo aditivo (`installments` obrigatório), de 1 até
+  os meses da **nova** vigência, e dividem o total da nova versão. As parcelas são o plano de
+  pagamento, não a dívida: incluir ou remover um item muda o total, e prorrogar muda o máximo
+  ([ADR 0037](adr/0037-parcelas-escolhidas-no-aditivo.md)).
 - A resposta do contrato traz `totalValue`, `installments`, `firstInstallmentValue` e
   `installmentValue`; cada item traz `sessionCount` e `totalValue`.
 
@@ -867,20 +888,45 @@ fica preservado ([ADR 0011](adr/0011-contrato-versionado-por-aditivos.md)). Regr
 - O **titular nunca muda** (é copiado): trocar o titular é um contrato novo.
 - O **início nunca muda** (é copiado): o `startDate` é do acordo, não da versão.
 - O **plano nunca muda** (é copiado): trocar o plano é encerrar o contrato e fazer
-  outro. Sem exceção: um contrato só com Grupo que precise de item por duração
-  também vira contrato novo.
+  outro. Um contrato de mensalidade que precise de item por duração não precisa
+  trocar o plano: o item usa o pacote equivalente (ver "Plano do item" em
+  `ContractItem`).
 - **Itens podem ser incluídos e removidos.** Remover um item não muda o fim e não
   pode deixar o contrato sem itens (400). O histórico do item removido fica nas
   versões anteriores.
+- **As parcelas são escolhidas em todo aditivo** (ver "Valor e parcelas").
+- **Aditivo sem alteração é recusado** (400 "Nenhuma alteração no contrato."). Conta
+  como alteração: item incluído ou removido; num item mantido, outra técnica, linha de
+  preço ou frequência; outro beneficiário; outra forma de pagamento; outras parcelas;
+  `endDate` informado (prorrogação). Uma versão idêntica só criaria um aditivo vazio
+  no histórico.
 - **O que for igual à versão anterior é aceito como está; o que for novo precisa
   ser válido.** Manter a mesma linha de preço é permitido mesmo após um reajuste
-  (o contrato mantém o valor combinado); trocar de linha exige uma linha vigente.
-  O mesmo vale para técnica e beneficiário inativos.
+  (o contrato mantém o valor combinado) e mesmo que o de-para do plano tenha mudado
+  depois; trocar de linha exige uma linha vigente, do plano certo. O mesmo vale para
+  técnica e beneficiário inativos.
 - Só a versão **ativa** pode ser alterada (409). Ativa porém vencida pode — é assim
   que se prorroga.
 - `previousContractId` é `unique`: cada versão tem no máximo uma sucessora
   (impede duas alterações simultâneas da mesma versão).
-- O número da versão (1, 2, 3…) não é persistido: é derivável pela cadeia.
+- **Prévia do aditivo** (`POST /api/contracts/{id}/amendments/preview`): as contas do
+  aditivo sem gravar e sem inativar a versão (o novo fim pela mesma conta do aditivo,
+  `ContractEntity.calculateAmendedEndDate`). O pedido é próprio e só traz o que muda as
+  contas (itens, `endDate` e parcelas, todos opcionais). Segue a regra do aditivo: só
+  a versão ativa (409) ([ADR 0038](adr/0038-previa-do-aditivo.md)).
+
+**Versões na leitura** ([ADR 0039](adr/0039-lista-pela-versao-atual.md)):
+- **A listagem (`GET /api/contracts`) traz só a versão atual de cada contrato** (a que
+  nenhum aditivo substituiu), incluindo a inativada; as anteriores ficam no
+  histórico, `GET /api/contracts/{id}/versions` (a versão e as anteriores, da mais nova
+  para a mais antiga).
+- **`amendmentNumber` é gravado** (0 na original, o da anterior + 1): a lista não
+  percorre a cadeia de versões (relação LAZY, uma consulta por passo) a cada leitura.
+- **`createdAt` é gravado**: o dia em que cada versão foi criada (no aditivo, a data
+  que calculou o fim).
+- **`superseded`** (versão substituída por aditivo) é calculado, não gravado: na
+  listagem é sempre falso; no `/versions`, todas menos a primeira (e a primeira, se um
+  aditivo a substituiu); no `GET /{id}`, uma consulta pela sucessora.
 
 **O fim no aditivo:**
 - **Por padrão o aditivo mantém o `endDate` atual.** O request traz um `endDate`
@@ -1181,7 +1227,7 @@ hoje (`validTo` nulo), mesmo em lançamento retroativo.
 | 1 — o contrato cobre o grupo, por duração, **mesma duração** da linha travada | `CONTRACT_ITEM` | travada do item (vale para qualquer técnica do grupo) | debita |
 | 1 — por duração, **outra duração** | `CONTRACT_ITEM` | atual, plano do contrato, duração do atendimento | debita |
 | 1 — Pilates em Grupo | `CONTRACT_ITEM` | travada do item | — (sem saldo) |
-| 2 — o contrato não cobre o grupo, por duração | `EQUIVALENT_PLAN` | atual, `planFor` (o próprio plano; contrato só com Grupo → equivalente), duração do atendimento | não debita |
+| 2 — o contrato não cobre o grupo, por duração | `EQUIVALENT_PLAN` | atual, `planFor` (o próprio plano; contrato de mensalidade → equivalente), duração do atendimento | não debita |
 | 2 — Pilates em Grupo | `EQUIVALENT_PLAN` | atual, plano equivalente, **1x por semana** (aula experimental) | não debita |
 | 3 — sem contrato, por duração | `SINGLE_SESSION` | atual do Avulso (único `SINGLE_SESSION` ativo), duração do atendimento | não debita |
 | 3 — Pilates em Grupo | — | **400**: o Grupo exige contrato | — |

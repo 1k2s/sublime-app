@@ -1,3 +1,4 @@
+/* No hover: o verde suave (o das etiquetas) e o ícone um pouco maior */
 .button {
   display: inline-flex;
   align-items: center;
@@ -10,11 +11,12 @@
   background: none;
   color: var(--color-muted);
   cursor: pointer;
-  transition: background-color 0.15s ease, color 0.15s ease;
+  transition: background-color 0.15s ease, color 0.15s ease, transform 0.15s ease;
 
   &:hover:not(:disabled) {
-    background: var(--color-surface);
+    background: var(--color-primary-soft);
     color: var(--color-primary);
+    transform: scale(1.12);
   }
 
   &:focus-visible {
@@ -25,20 +27,6 @@
   &:disabled {
     cursor: not-allowed;
     opacity: 0.5;
-  }
-
-  @media (prefers-reduced-motion: reduce) {
-    transition: none;
-  }
-}
-
-.soft {
-  transition: background-color 0.15s ease, color 0.15s ease, transform 0.15s ease;
-
-  &:hover:not(:disabled) {
-    background: var(--color-primary-soft);
-    color: var(--color-primary);
-    transform: scale(1.12);
   }
 
   @media (prefers-reduced-motion: reduce) {

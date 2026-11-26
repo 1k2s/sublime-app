@@ -5,10 +5,6 @@ Ela é o "contrato" da feature enquanto ela não está pronta.
 
 **Em andamento:**
 
-- [`contrato-aditivo.md`](contrato-aditivo.md): tela do aditivo do contrato (prorrogar,
-  incluir e remover itens, parcelas), com prévia antes de salvar.
-- [Layout das telas](layout-das-telas.md): cores do menu, fundo creme, tabela padrão e
-  cabeçalho das telas.
 - [Cadastro do catálogo](cadastro-do-catalogo.md): renomear, inativar e reativar técnicas,
   grupos e planos, as telas de cadastro e as técnicas na tabela de Preços.
 
