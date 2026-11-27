@@ -12,7 +12,7 @@
   --color-table-head-text: var(--color-muted);
   --color-table-head-line: var(--color-frame-line);
   /* Linhas da tabela: a divisória entre elas e o fundo com o mouse em cima (ou da linha aberta) */
-  --color-row-line: #f0ebe0;
+  --color-row-line: #e8eef0;
   --color-row-hover: #f4f5f4;
   /* Creme e areia da tela de Configurações (fundo do cartão da conta, hover do olho da senha, a força
      "média" da senha, alterações não salvas e o destaque da senha atual) */
@@ -25,6 +25,12 @@
   --color-warning-bg: #fffbeb;
   --color-warning-soft: #fef3c7;
   --color-warning-text: #92400e;
+  /* Azul das lâminas de enfeite da casca: o claro (destaque de fundo, ex: o cabeçalho da conta em
+     Configurações) e o mais forte (formas do login) */
+  --color-sky-soft: #e3edf1;
+  --color-sky: #b4cde0;
+  /* Verde vivo de "feito" (ex: os critérios da senha já atendidos), mais forte que o primário */
+  --color-success: #2e7d4f;
   --color-primary: #5f7a58;
   --color-primary-soft: #dfe8dc;
   --color-primary-strong: #496345;

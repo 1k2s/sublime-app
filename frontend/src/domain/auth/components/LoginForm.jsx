@@ -3,7 +3,9 @@ import { useForm } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
 import { Button } from "@/shared/components/Button";
 import { FormField } from "@/shared/components/FormField";
+import { ArrowRight, Mail } from "lucide-react";
 import { Input } from "@/shared/components/Input";
+import { PasswordInput } from "@/shared/components/PasswordInput";
 import { loginSchema } from "../schemas/loginSchema";
 import styles from "./LoginForm.module.css";
 
@@ -23,6 +25,7 @@ export function LoginForm({ onSubmit, isSubmitting = false }) {
         <Input
           id="login-email"
           type="email"
+          icon={Mail}
           autoComplete="username"
           placeholder="voce@exemplo.com"
           invalid={Boolean(errors.email)}
@@ -31,10 +34,10 @@ export function LoginForm({ onSubmit, isSubmitting = false }) {
       </FormField>
 
       <FormField label="Senha" htmlFor="login-password" error={errors.password?.message}>
-        <Input
+        <PasswordInput
           id="login-password"
-          type="password"
           autoComplete="current-password"
+          placeholder="Digite sua senha"
           invalid={Boolean(errors.password)}
           {...register("password")}
         />
@@ -42,6 +45,7 @@ export function LoginForm({ onSubmit, isSubmitting = false }) {
 
       <Button type="submit" className={styles["form-submit"]} loading={isSubmitting}>
         Entrar
+        <ArrowRight size={16} aria-hidden />
       </Button>
     </form>
   );
