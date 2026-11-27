@@ -25,9 +25,25 @@ export async function getDaySummary({ providerId }) {
   return data;
 }
 
-// Ativos e inativos, do mais recente para o mais antigo
-export async function listConsultations({ providerId, from, to }) {
-  const { data } = await apiClient.get("/consultations", { params: { providerId, from, to } });
+// Ativos e inativos, do mais recente para o mais antigo (pela data do atendimento).
+// from/to: período pela data do atendimento; launchedFrom/launchedTo: pela do lançamento
+export async function listConsultations({ providerId, from, to, launchedFrom, launchedTo, status }) {
+  const { data } = await apiClient.get("/consultations", {
+    params: { providerId, from, to, launchedFrom, launchedTo, status },
+  });
+  return data;
+}
+
+// Rendimento de hoje, da semana e do mês, com os limites de cada período.
+// providerId: só o ADMIN informa (vazio = todos)
+export async function getEarningsSummary({ providerId }) {
+  const { data } = await apiClient.get("/consultations/earnings-summary", { params: { providerId } });
+  return data;
+}
+
+// Rendimento de um período (from/to pela data do lançamento); byProvider só para o ADMIN sem prestador
+export async function getEarnings({ providerId, from, to }) {
+  const { data } = await apiClient.get("/consultations/earnings", { params: { providerId, from, to } });
   return data;
 }
 

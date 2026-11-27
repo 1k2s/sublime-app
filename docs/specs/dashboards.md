@@ -303,7 +303,11 @@ abas**:
 
 - [x] Instalar o `echarts` (6.1.0, 2026-11-26).
 - [x] `Chart.jsx` em `shared/components/` (registra só a pizza, a legenda e o tooltip).
-- [ ] Camada `api/` e hooks.
+- [x] Camada `api/` e hooks (2026-11-26): `getEarningsSummary`, `getEarnings` e os filtros
+  novos do `listConsultations`; `useEarningsSummary`, `useEarnings` e
+  `useLaunchedConsultations`. O filtro por status da lista roda em memória, na page (lista
+  pequena, ver "Camada `api/`" no `architecture.md`); os períodos Hoje, Semana e Mês usam o
+  `from`/`to` do `earnings-summary`.
 - [ ] Tela, pizza, rota e menu (tirar o `disabled` do Dashboard).
 - [ ] "Repasse do dia" da tela de Lançamento com as faltas à parte (`DaySummary`).
 - [ ] `npm run build` e `npm run lint`.
