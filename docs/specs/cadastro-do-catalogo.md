@@ -212,13 +212,9 @@ inativos em cadastro novo.
 **Banco**
 
 - Coluna `active BIT(1) NOT NULL` em `pricing_group`, com os grupos do seed ativos.
-- *Em aberto:* **editar a V1 e a V4 ou criar uma V5.**
-  - O precedente é editar a V1, como em 2026-11-07, 2026-11-12 e 2026-11-13
-    ([ADR 0028](../adr/0028-migrations-editaveis-ate-versao-estavel.md)), mas todo o time
-    precisa zerar o banco local.
-  - Recomendação: uma `V5__pricing_group_active.sql` (`ADD COLUMN active BIT(1) NOT NULL
-    DEFAULT 1`). Ninguém zera o banco, e a consolidação antes da versão 1 (pendência do
-    roadmap) junta tudo depois.
+- **Uma migration nova** (a versão estável, [ADR 0052](../adr/0052-versao-estavel-do-banco.md):
+  as migrations aplicadas não se editam mais): `V5__pricing_group_active.sql` (`ADD COLUMN
+  active BIT(1) NOT NULL DEFAULT 1`), com os grupos que já existem ativos pelo `DEFAULT`.
 
 ## 5. Desenho do frontend
 

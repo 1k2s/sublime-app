@@ -294,7 +294,7 @@ inativo; o que é **novo** precisa ser válido.
 | `name` | string | obrigatório |
 | `cpf` | string, unique | obrigatório; só os 11 dígitos, sem pontuação |
 | `birthDate` | date | obrigatório; não pode ser futura |
-| `phone` | string, nullable | opcional |
+| `phone` | string, nullable | opcional; só os dígitos, até 20 (400 "O telefone deve ter no máximo 20 dígitos.") |
 | `email` | string, nullable | opcional; formato validado quando informado |
 | `address` | VO embutido (street, numberHouse, city, complement, cep), nullable | `@Embeddable`/`@Embedded`, imutável (sem setter); opcional |
 | `referringProviderId` | FK → Provider, nullable | origem: prestador que trouxe o paciente; `null` = paciente da clínica |

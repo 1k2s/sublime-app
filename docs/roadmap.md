@@ -47,15 +47,12 @@ feature em andamento fica na spec dela, em [`specs/`](specs/).
 - **Monorepo** desde 2026-10-29 ([ADR 0022](adr/0022-monorepo.md)): o backend em
   `backend/` e o frontend, importado com o histórico, em `frontend/`.
 - **Schema versionado pelo Flyway** (V1 a V4, com o seed do catálogo na V4; ver
-  [`development.md`](development.md)), com `ddl-auto=validate`. **Até a versão estável, as
-  migrations podem ser editadas** ([ADR 0028](adr/0028-migrations-editaveis-ate-versao-estavel.md)):
-  a V1 foi editada em 2026-11-07 (colunas `default_admin`, `password_change_required` e
-  `launched_by_user_id`) e em 2026-11-12 (coluna `installments` do contrato), então quem puxar
-  zera o banco local (`docker compose down -v`). Editada de novo em 2026-11-13 (tabela
-  `retroactive_launch_grant`), em 2026-11-25 (colunas `amendment_number` e `created_at` do
-  contrato; coluna `launched_at` e o índice `idx_consultation_provider_launched` do
-  atendimento) e em 2026-11-27 (tabelas `payment` e `balance_transfer`; colunas `first_due_date`,
-  `installment_base` e `deactivated_on` do contrato).
+  [`development.md`](development.md)), com `ddl-auto=validate`. **Versão estável desde
+  2026-11-27** ([ADR 0052](adr/0052-versao-estavel-do-banco.md)): a V1 revisada (o tamanho das
+  colunas do paciente e os `CHECK` das regras das entidades) e congelada; daqui em diante,
+  mudança de schema é uma migration nova. **MySQL 8.4 LTS** (8.4.11), no desenvolvimento e nos
+  testes. Até então, a V1 era editada a cada mudança e o time zerava o banco local
+  ([ADR 0028](adr/0028-migrations-editaveis-ate-versao-estavel.md)).
 - **Teste manual do fluxo completo pela API** (2026-10-29, comandos manuais, sem script): o
   catálogo, os cadastros, o contrato (incluindo o aditivo), os três casos de
   lançamento, o saldo, a reativação e as constraints do banco funcionaram como
@@ -144,7 +141,7 @@ feature em andamento fica na spec dela, em [`specs/`](specs/).
 3. **CI no GitHub Actions**, agora que há testes: a cada PR, `./mvnw test` no backend (o
    runner do GitHub já tem o Docker, que o Testcontainers usa), build e lint do front e
    `node scripts/check-docs.mjs`, com o resultado no PR.
-   CD (deploy automático) fica para quando houver a versão 1 no ar.
+   O CD (deploy automático) entra com a homologação (item 5).
    - **Separar os testes de unidade dos de integração** (notado em 2026-11-26): hoje os dois rodam
      juntos no `./mvnw test`, e sem o Docker no ar a suíte inteira falha, inclusive os de unidade,
      que não precisam dele. Proposta: `@Tag("integration")` na anotação `@IntegrationTest` (todas
@@ -166,25 +163,25 @@ feature em andamento fica na spec dela, em [`specs/`](specs/).
    igual à soma do devido das contas no mesmo período; o Faturamento só com os ativos, pela data
    do pagamento, no total e por forma; o "a receber" de um crédito 3x de líquido R$ 1.603,20 =
    R$ 534,40 em cada um dos 3 meses seguintes.
-5. **MVP no servidor** (plano de 2026-11-27): depois do dashboard financeiro, a primeira versão com os
-   dados da clínica num servidor, e o CI/CD estruturado com ele no ar (o CD depende do
-   servidor; o CI, do item 3, não). **Antes de subir os dados reais:** a "versão estável" do
-   [ADR 0028](adr/0028-migrations-editaveis-ate-versao-estavel.md) (ver as "Pendências
-   técnicas": consolidar as migrations e não editá-las mais, porque o banco de produção não pode
-   ser zerado) e a versão do MySQL. O teste das telas pelos outros devs pode rodar no servidor.
+5. **Homologação na VPS, e depois o MVP** (plano de 2026-11-27). Antes do MVP (a produção da
+   clínica), um **ambiente de homologação** numa VPS da Hostinger (o domínio já existe), para o
+   time treinar o fluxo de um projeto real. A versão estável do banco já está feita
+   ([ADR 0052](adr/0052-versao-estavel-do-banco.md)). Falta:
+   - **a homologação:** a imagem Docker do backend, o front buildado, um nginx com HTTPS (Let's
+     Encrypt) num subdomínio, o MySQL próprio e um seed de pacientes de teste (o catálogo já vem
+     pela V4; o seed roda só na homologação, nunca na produção). Uma VPS KVM 1 (1 vCPU, 4 GB)
+     basta para ela; o build e os testes rodam no CI, não na VPS;
+   - **o CI/CD:** a cada PR, os testes, o build, o lint e o `check-docs` (item 3); a cada merge na
+     `dev`, o deploy na homologação;
+   - **o MVP:** a produção criada do zero, recebendo a `main`, só com os dados reais. Antes dela,
+     o backup diário do MySQL guardado fora da VPS (o backup semanal da Hostinger não basta) e,
+     com a produção junto da homologação, uma VPS maior (KVM 2).
    - **Depois do MVP** (decidido em 2026-11-27): a impressão do contrato para assinatura, a
      impressão da planilha de faturamento do prestador e o cadastro do catálogo (item 1.2). Ver
      "Não modelado ainda".
 
 ## Pendências técnicas
 
-- **Antes da versão 1 no ar:** revisar e consolidar as migrations e voltar a regra de
-  nunca editá-las ([ADR 0028](adr/0028-migrations-editaveis-ate-versao-estavel.md)); zerar
-  o banco de produção.
-- **Antes da versão 1 no ar: versão do MySQL** (notado na revisão dos testes, 2026-11-13). O
-  projeto usa o MySQL 8.0, que chegou ao fim do suporte em abril de 2026. Avaliar a migração
-  para o 8.4 (LTS) antes de subir o banco de produção: rodar as migrations e a suíte de testes
-  na versão nova (mudar a imagem no `docker-compose.yml` e no `TestcontainersConfiguration`).
 - **`equals` e `hashCode` das entidades** (revisão dos testes, 2026-11-17). As 12 entidades
   usam `@EqualsAndHashCode(onlyExplicitlyIncluded = true)` só pelo `id`: duas entidades novas
   (com `id` nulo) contam como iguais, num `HashSet` ou num `equals`. O `isSameAs` da

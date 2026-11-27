@@ -1,6 +1,6 @@
 # 0021 — Schema versionado pelo Flyway, com `validate`, e enums como `varchar`
 
-- **Status:** aceito (em parte substituído por [0028](0028-migrations-editaveis-ate-versao-estavel.md), até a versão estável, e por [0030](0030-seed-do-catalogo-por-migration.md): o catálogo)
+- **Status:** aceito (em parte substituído por [0030](0030-seed-do-catalogo-por-migration.md): o catálogo; o [0028](0028-migrations-editaveis-ate-versao-estavel.md), que o suspendia até a versão estável, foi substituído pelo [0052](0052-versao-estavel-do-banco.md))
 - **Data:** 2026-10-29
 
 ## Contexto

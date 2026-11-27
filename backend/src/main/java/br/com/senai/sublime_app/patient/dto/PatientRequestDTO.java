@@ -25,6 +25,8 @@ public record PatientRequestDTO(
         @Past(message = "A data de nascimento deve estar no passado.")
         LocalDate birthDate,
 
+        // Só os dígitos (o front tira a máscara)
+        @Size(max = 20, message = "O telefone deve ter no máximo 20 dígitos.")
         String phone,
 
         @Email(message = "O e-mail informado é inválido.")

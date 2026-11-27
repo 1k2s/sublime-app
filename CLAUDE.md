@@ -159,9 +159,9 @@ Antes de dizer que terminou, confira (e diga o que foi ou não conferido):
 7. **ADRs:** status dos substituídos atualizado; numeração sequencial.
 8. **Roadmap:** tire o que foi resolvido; o que a spec deixou para depois vira item
    antes de a spec ser removida.
-9. **Ambiente:** variável nova entra no `backend/.env.example`; migration editada
-   ([ADR 0028](docs/adr/0028-migrations-editaveis-ate-versao-estavel.md)) vira aviso na
-   descrição do PR ("zerem o banco local").
+9. **Ambiente:** variável nova entra no `backend/.env.example`; mudança de schema é uma
+   migration nova, nunca a edição de uma já aplicada
+   ([ADR 0052](docs/adr/0052-versao-estavel-do-banco.md)).
 10. **Sugira o commit e a descrição do PR:**
    - **commit em uma linha**, no padrão do histórico (`feat:`, `fix:`, `docs:`,
      `chore:` + descrição em português);

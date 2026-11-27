@@ -1,6 +1,6 @@
 # 0036 — Testes de integração com o MySQL do Testcontainers
 
-- **Status:** aceito
+- **Status:** aceito (em parte substituído por [0052](0052-versao-estavel-do-banco.md): a versão do MySQL)
 - **Data:** 2026-11-13
 
 ## Contexto

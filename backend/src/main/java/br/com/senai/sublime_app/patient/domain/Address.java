@@ -30,7 +30,7 @@ public class Address {
     @Column(name = "complement")
     private String complement;
 
-    @Column(name = "cep")
+    @Column(name = "cep", length = 8)
     private String cep;
 
     // Construtor de negócio do VO: um endereço só existe completo (o complemento é o

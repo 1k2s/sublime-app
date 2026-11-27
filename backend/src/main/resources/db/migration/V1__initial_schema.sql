@@ -7,10 +7,11 @@
 --   num enum não exige migration (a validação dos valores fica no enum Java);
 -- - collation utf8mb4_0900_ai_ci: a unicidade de nomes e e-mails ignora maiúsculas e
 --   acentos ("Essencial" = "essencial").
+-- - CHECK nas regras que a entidade já valida: a última barreira para um caminho que escape
+--   dela (ex: um UPDATE manual).
 -- Regras que o Hibernate não gera entram nas migrations seguintes (V2, V3).
--- Até a versão estável, as migrations podem ser editadas (quem puxar a mudança zera o
--- banco local); depois dela, uma migration já aplicada NUNCA é editada: mudança nova =
--- arquivo novo.
+-- Versão estável: uma migration já aplicada NUNCA é editada; mudança nova = arquivo novo
+-- (V5, V6...). Ver o ADR 0052.
 
 -- ---------------------------------------------------------------------------
 -- user / provider
@@ -37,6 +38,8 @@ CREATE TABLE provider (
     user_id                        BIGINT       NOT NULL,
     CONSTRAINT pk_provider PRIMARY KEY (id),
     CONSTRAINT uk_provider_user UNIQUE (user_id),
+    CONSTRAINT chk_provider_commission_percentage CHECK (commission_percentage BETWEEN 0 AND 100),
+    CONSTRAINT chk_provider_referral_commission_percentage CHECK (referral_commission_percentage BETWEEN 0 AND 100),
     CONSTRAINT fk_provider_user FOREIGN KEY (user_id) REFERENCES `user` (id)
 ) ENGINE = InnoDB DEFAULT CHARSET = utf8mb4 COLLATE = utf8mb4_0900_ai_ci;
 
@@ -51,7 +54,7 @@ CREATE TABLE retroactive_launch_grant (
     granted_by_user_id BIGINT NOT NULL,
     provider_id        BIGINT NOT NULL,
     CONSTRAINT pk_retroactive_launch_grant PRIMARY KEY (id),
-    CONSTRAINT ck_retroactive_launch_grant_counts
+    CONSTRAINT chk_retroactive_launch_grant_counts
         CHECK (allowed_count BETWEEN 1 AND 50 AND used_count BETWEEN 0 AND allowed_count),
     CONSTRAINT fk_retroactive_launch_grant_provider FOREIGN KEY (provider_id) REFERENCES provider (id),
     CONSTRAINT fk_retroactive_launch_grant_user FOREIGN KEY (granted_by_user_id) REFERENCES `user` (id),
@@ -65,16 +68,19 @@ CREATE TABLE retroactive_launch_grant (
 CREATE TABLE patient (
     id                    BIGINT       NOT NULL AUTO_INCREMENT,
     active                BIT(1)       NOT NULL,
-    cep                   VARCHAR(255) NULL,
+    -- só os 8 dígitos
+    cep                   VARCHAR(8)   NULL,
     city                  VARCHAR(255) NULL,
     complement            VARCHAR(255) NULL,
     number_house          VARCHAR(255) NULL,
     street                VARCHAR(255) NULL,
     birth_date            DATE         NOT NULL,
-    cpf                   VARCHAR(255) NOT NULL,
+    -- só os 11 dígitos
+    cpf                   VARCHAR(11)  NOT NULL,
     email                 VARCHAR(255) NULL,
     name                  VARCHAR(255) NOT NULL,
-    phone                 VARCHAR(255) NULL,
+    -- só os dígitos (o front tira a máscara)
+    phone                 VARCHAR(20)  NULL,
     referring_provider_id BIGINT       NULL,
     CONSTRAINT pk_patient PRIMARY KEY (id),
     CONSTRAINT uk_patient_cpf UNIQUE (cpf),
@@ -113,6 +119,8 @@ CREATE TABLE plan (
     equivalent_plan_id BIGINT       NULL,
     CONSTRAINT pk_plan PRIMARY KEY (id),
     CONSTRAINT uk_plan_name UNIQUE (name),
+    CONSTRAINT chk_plan_session_count CHECK (session_count IS NULL OR session_count >= 1),
+    CONSTRAINT chk_plan_term_weeks CHECK (term_weeks IS NULL OR term_weeks >= 1),
     CONSTRAINT fk_plan_equivalent_plan FOREIGN KEY (equivalent_plan_id) REFERENCES plan (id)
 ) ENGINE = InnoDB DEFAULT CHARSET = utf8mb4 COLLATE = utf8mb4_0900_ai_ci;
 
@@ -125,6 +133,8 @@ CREATE TABLE session_duration_price (
     plan_id          BIGINT        NOT NULL,
     pricing_group_id BIGINT        NOT NULL,
     CONSTRAINT pk_session_duration_price PRIMARY KEY (id),
+    CONSTRAINT chk_duration_price_minutes CHECK (duration_minutes >= 1),
+    CONSTRAINT chk_duration_price_value CHECK (session_value > 0),
     CONSTRAINT fk_duration_price_plan FOREIGN KEY (plan_id) REFERENCES plan (id),
     CONSTRAINT fk_duration_price_pricing_group FOREIGN KEY (pricing_group_id) REFERENCES pricing_group (id)
 ) ENGINE = InnoDB DEFAULT CHARSET = utf8mb4 COLLATE = utf8mb4_0900_ai_ci;
@@ -138,6 +148,8 @@ CREATE TABLE session_frequency_price (
     plan_id          BIGINT        NOT NULL,
     pricing_group_id BIGINT        NOT NULL,
     CONSTRAINT pk_session_frequency_price PRIMARY KEY (id),
+    CONSTRAINT chk_frequency_price_weekly_frequency CHECK (weekly_frequency >= 1),
+    CONSTRAINT chk_frequency_price_value CHECK (session_value > 0),
     CONSTRAINT fk_frequency_price_plan FOREIGN KEY (plan_id) REFERENCES plan (id),
     CONSTRAINT fk_frequency_price_pricing_group FOREIGN KEY (pricing_group_id) REFERENCES pricing_group (id)
 ) ENGINE = InnoDB DEFAULT CHARSET = utf8mb4 COLLATE = utf8mb4_0900_ai_ci;
@@ -171,8 +183,9 @@ CREATE TABLE contract (
     CONSTRAINT pk_contract PRIMARY KEY (id),
     -- cada versão tem no máximo uma sucessora (aditivo)
     CONSTRAINT uk_contract_previous_contract UNIQUE (previous_contract_id),
-    CONSTRAINT ck_contract_installments CHECK (installments BETWEEN 1 AND 12),
-    CONSTRAINT ck_contract_installment_base CHECK (installment_base >= 0),
+    CONSTRAINT chk_contract_installments CHECK (installments BETWEEN 1 AND 12),
+    CONSTRAINT chk_contract_installment_base CHECK (installment_base >= 0),
+    CONSTRAINT chk_contract_period CHECK (end_date >= start_date),
     CONSTRAINT fk_contract_patient FOREIGN KEY (patient_id) REFERENCES patient (id),
     CONSTRAINT fk_contract_beneficiary FOREIGN KEY (beneficiary_id) REFERENCES patient (id),
     CONSTRAINT fk_contract_plan FOREIGN KEY (plan_id) REFERENCES plan (id),
@@ -216,6 +229,8 @@ CREATE TABLE consultation (
     session_frequency_price_id    BIGINT        NULL,
     technique_id                  BIGINT        NOT NULL,
     CONSTRAINT pk_consultation PRIMARY KEY (id),
+    CONSTRAINT chk_consultation_duration CHECK (duration_minutes >= 1),
+    CONSTRAINT chk_consultation_values CHECK (base_value >= 0 AND payout_value >= 0),
     CONSTRAINT fk_consultation_contract FOREIGN KEY (contract_id) REFERENCES contract (id),
     CONSTRAINT fk_consultation_launched_by_user FOREIGN KEY (launched_by_user_id) REFERENCES `user` (id),
     CONSTRAINT fk_consultation_patient FOREIGN KEY (patient_id) REFERENCES patient (id),
@@ -246,9 +261,9 @@ CREATE TABLE payment (
     CONSTRAINT fk_payment_contract FOREIGN KEY (contract_id) REFERENCES contract (id),
     CONSTRAINT fk_payment_patient FOREIGN KEY (patient_id) REFERENCES patient (id),
     CONSTRAINT fk_payment_registered_by_user FOREIGN KEY (registered_by_user_id) REFERENCES `user` (id),
-    CONSTRAINT ck_payment_amount CHECK (amount > 0),
-    CONSTRAINT ck_payment_net_amount CHECK (net_amount BETWEEN 0 AND amount),
-    CONSTRAINT ck_payment_card_installments CHECK (card_installments BETWEEN 1 AND 12)
+    CONSTRAINT chk_payment_amount CHECK (amount > 0),
+    CONSTRAINT chk_payment_net_amount CHECK (net_amount BETWEEN 0 AND amount),
+    CONSTRAINT chk_payment_card_installments CHECK (card_installments BETWEEN 1 AND 12)
 ) ENGINE = InnoDB DEFAULT CHARSET = utf8mb4 COLLATE = utf8mb4_0900_ai_ci;
 
 -- ---------------------------------------------------------------------------
@@ -264,6 +279,6 @@ CREATE TABLE balance_transfer (
     CONSTRAINT pk_balance_transfer PRIMARY KEY (id),
     CONSTRAINT fk_balance_transfer_from_contract FOREIGN KEY (from_contract_id) REFERENCES contract (id),
     CONSTRAINT fk_balance_transfer_to_contract FOREIGN KEY (to_contract_id) REFERENCES contract (id),
-    CONSTRAINT ck_balance_transfer_amount CHECK (amount > 0),
-    CONSTRAINT ck_balance_transfer_contracts CHECK (from_contract_id <> to_contract_id)
+    CONSTRAINT chk_balance_transfer_amount CHECK (amount > 0),
+    CONSTRAINT chk_balance_transfer_contracts CHECK (from_contract_id <> to_contract_id)
 ) ENGINE = InnoDB DEFAULT CHARSET = utf8mb4 COLLATE = utf8mb4_0900_ai_ci;

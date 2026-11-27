@@ -14,21 +14,10 @@ public class TestcontainersConfiguration {
 
     // Versão exata, a mesma do docker-compose.yml (na raiz): mude nos dois. O
     // MySqlImageTest falha se os dois divergirem.
-    static final String MYSQL_IMAGE = "mysql:8.0.46";
+    static final String MYSQL_IMAGE = "mysql:8.4.11";
 
-    // Inicializa a SublimeAppApplication antes do container e das conexões: o bloco static
-    // dela aplica o fuso da clínica, e nos testes (sem o main) ela só seria inicializada no
-    // meio da subida do Spring, com o pool já aberto em UTC (o driver leria as datas um dia
-    // antes). É o código da própria aplicação que aplica o fuso: o teste do fuso continua
-    // valendo. Ver o ADR 0034.
-    static {
-        try {
-            Class.forName(SublimeAppApplication.class.getName(), true,
-                    TestcontainersConfiguration.class.getClassLoader());
-        } catch (ClassNotFoundException e) {
-            throw new IllegalStateException(e);
-        }
-    }
+    // O fuso da clínica é aplicado antes de o Spring subir pela ClinicTimeZoneExtension, que a
+    // @IntegrationTest declara
 
     @Bean
     @ServiceConnection
