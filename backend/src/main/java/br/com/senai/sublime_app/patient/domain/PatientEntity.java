@@ -35,12 +35,13 @@ public class PatientEntity {
     @Column(nullable = false)
     private String name;
 
-    @Column(nullable = false, unique = true)
+    @Column(nullable = false, unique = true, length = 11)
     private String cpf;
 
     @Column(name = "birth_date", nullable = false)
     private LocalDate birthDate;
 
+    @Column(length = 20)
     private String phone;
 
     private String email;

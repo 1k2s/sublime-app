@@ -1,6 +1,6 @@
 # 0028 — Migrations editáveis até a versão estável
 
-- **Status:** aceito
+- **Status:** substituído por [0052](0052-versao-estavel-do-banco.md)
 - **Data:** 2026-11-07
 
 ## Contexto

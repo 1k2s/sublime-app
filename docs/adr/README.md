@@ -66,14 +66,14 @@ discussões que estavam no `domain-model.md` e no `architecture.md`.
 | [0018](0018-saldo-esgotado-aceita-lancamento.md) | Saldo esgotado aceita o lançamento | aceito |
 | [0019](0019-repasse-com-half-up.md) | Repasse arredondado com `HALF_UP` | aceito |
 | [0020](0020-lancamento-imutavel.md) | Lançamento de atendimento imutável | aceito |
-| [0021](0021-schema-versionado-flyway.md) | Schema versionado pelo Flyway, com `validate`, e enums como `varchar` | aceito (em parte substituído por 0028, até a versão estável, e por 0030: o catálogo) |
+| [0021](0021-schema-versionado-flyway.md) | Schema versionado pelo Flyway, com `validate`, e enums como `varchar` | aceito (em parte substituído por 0030: o catálogo; o 0028, que o suspendia até a versão estável, foi substituído pelo 0052) |
 | [0022](0022-monorepo.md) | Monorepo: backend e frontend no mesmo repositório | aceito |
 | [0023](0023-autenticacao-jwt-resource-server.md) | Autenticação por JWT próprio, validado pelo resource server do Spring | aceito (em parte substituído por 0027: o primeiro admin) |
 | [0024](0024-sessao-frontend-localstorage.md) | Sessão do frontend no `localStorage`, encerrada pela `expiresAt` e pelo 401 | aceito |
 | [0025](0025-primeiro-acesso-com-senha-provisoria.md) | Primeiro acesso com senha provisória no próprio hash e troca automática no login | aceito (em parte substituído por 0029: como o estado é guardado) |
 | [0026](0026-acesso-por-perfil-centralizado.md) | Autorização por perfil: tabela única no `SecurityConfig`, com o `ADMIN` como padrão | aceito |
 | [0027](0027-admin-padrao-protegido.md) | Admin padrão protegido por uma marca no usuário | aceito |
-| [0028](0028-migrations-editaveis-ate-versao-estavel.md) | Migrations editáveis até a versão estável | aceito |
+| [0028](0028-migrations-editaveis-ate-versao-estavel.md) | Migrations editáveis até a versão estável | substituído por 0052 |
 | [0029](0029-senha-provisoria-por-coluna.md) | Senha provisória marcada por uma coluna, não por prefixo no hash | aceito |
 | [0030](0030-seed-do-catalogo-por-migration.md) | Seed do catálogo de preços por migration | aceito |
 | [0031](0031-prestador-com-usuario-revisto.md) | Prestador continua sempre com usuário, com o admin lançando por ele | aceito |
@@ -81,7 +81,7 @@ discussões que estavam no `domain-model.md` e no `architecture.md`.
 | [0033](0033-lancamento-retroativo-com-liberacao.md) | Lançamento só de hoje para o prestador, com o retroativo liberado pelo admin | aceito |
 | [0034](0034-hoje-no-fuso-da-clinica.md) | "Hoje" no fuso da clínica, fixado na inicialização | aceito (em parte substituído por 0036: onde o fuso é aplicado) |
 | [0035](0035-sessao-sincronizada-entre-abas.md) | Uma sessão por navegador, com as abas sincronizadas pelo evento `storage` | aceito |
-| [0036](0036-testes-de-integracao-com-testcontainers.md) | Testes de integração com o MySQL do Testcontainers | aceito |
+| [0036](0036-testes-de-integracao-com-testcontainers.md) | Testes de integração com o MySQL do Testcontainers | aceito (em parte substituído por 0052: a versão do MySQL) |
 | [0037](0037-parcelas-escolhidas-no-aditivo.md) | Parcelas escolhidas em todo aditivo | aceito (em parte substituído por 0049: o que as parcelas dividem e o máximo) |
 | [0038](0038-previa-do-aditivo.md) | Prévia do aditivo num endpoint e num pedido próprios | aceito |
 | [0039](0039-lista-pela-versao-atual.md) | Lista pela versão atual, com o número do aditivo e a data gravados | aceito |
@@ -97,3 +97,4 @@ discussões que estavam no `domain-model.md` e no `architecture.md`.
 | [0049](0049-parcelas-do-aditivo-sobre-o-que-falta.md) | As parcelas do aditivo sobre o que falta pagar, até os meses que faltam | aceito |
 | [0050](0050-paid-amount-provider.md) | O `contract` declara o `PaidAmountProvider`, o `billing` implementa | aceito |
 | [0051](0051-status-pelo-saldo-e-credito-transferido.md) | O status do contrato terminado pelo saldo, e o crédito transferido ao contrato novo | aceito |
+| [0052](0052-versao-estavel-do-banco.md) | A versão estável do banco: as migrations congeladas e o MySQL 8.4 LTS | aceito |

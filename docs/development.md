@@ -26,7 +26,7 @@ frontend). Para a arquitetura e as regras de negócio, ver
 
 - **Spring Boot 4.1.1**, **Java 25**, **Jackson 3** (pacote `tools.jackson`, não
   `com.fasterxml`), Lombok, springdoc (Swagger).
-- **MySQL 8.0.46** via `docker-compose.yml` (versão exata, a mesma dos testes; container `mysql-dev`, porta **3307**,
+- **MySQL 8.4.11** (8.4 LTS, [ADR 0052](adr/0052-versao-estavel-do-banco.md)) via `docker-compose.yml` (versão exata, a mesma dos testes; container `mysql-dev`, porta **3307**,
   banco `sublime_db`, usuário `root`/`root`).
 - **Frontend:** React 19 + Vite, JavaScript (sem TypeScript), CSS Modules, React
   Router, TanStack Query, React Hook Form + Zod, Axios. Node 22. Convenções na seção
@@ -183,13 +183,11 @@ O schema é criado e alterado **só pelas migrations do Flyway**
    `validate` confere se a entidade e o banco ficaram iguais.
 
 Regras:
-- **Até a versão estável (a versão 1 no ar), as migrations podem ser editadas**
-  ([ADR 0028](adr/0028-migrations-editaveis-ate-versao-estavel.md)): o Flyway guarda um
-  checksum de cada arquivo e recusa subir se ele mudar, então **quem puxar uma migration
-  editada zera o banco local** (`docker compose down -v` e `up -d`); a `V4` recarrega o
-  catálogo e o admin padrão é recriado. Quem editar avisa o time no PR.
-- **Depois da versão estável, uma migration já aplicada nunca é editada**
-  ([ADR 0021](adr/0021-schema-versionado-flyway.md)): corrigir = um arquivo novo.
+- **Uma migration já aplicada nunca é editada** (a versão estável,
+  [ADR 0052](adr/0052-versao-estavel-do-banco.md)): corrigir ou mudar = um arquivo novo. O
+  Flyway guarda um checksum de cada arquivo e recusa subir se ele mudar.
+- **O dado que já existe precisa cumprir a regra nova:** uma coluna `NOT NULL` nova leva um
+  `DEFAULT` (ou um `UPDATE` antes); um `CHECK` novo, o dado corrigido antes dele.
 - Enum novo ou valor novo num enum **não exige migration**: as colunas de enum são
   `varchar(30)`, e quem valida o valor é o enum Java.
 
@@ -215,14 +213,19 @@ para a mensagem de erro já dizer qual regra foi violada:
 | `fk_` | foreign key (aponta para outra tabela) | `fk_contract_patient` |
 | `uk_` | unique key (valor que não pode repetir) | `uk_patient_cpf` |
 | `chk_` | check (condição que a linha precisa cumprir) | `chk_consultation_one_price` |
+| `idx_` | índice só de desempenho | `idx_consultation_provider_launched` |
 
 **`UNIQUE` é um índice.** O MySQL implementa todo `UNIQUE` como um índice: uma
 estrutura ordenada, à parte da tabela, como o índice remissivo de um livro. É
 consultando o índice que o banco descobre rapidamente se o valor já existe. Como
 efeito colateral, ele acelera buscas por essas colunas. As foreign keys também ganham
-índice automaticamente. Índices só de desempenho (`idx_`) ainda não foram
-necessários. Todo índice ocupa espaço e deixa a gravação um pouco mais lenta, então
-só entram onde se pagam.
+índice automaticamente. Índice só de desempenho (`idx_`) entra onde se paga (ex: o
+rendimento, sempre filtrado por prestador e período do lançamento): todo índice ocupa
+espaço e deixa a gravação um pouco mais lenta.
+
+**Os `CHECK` das regras das entidades (V1):** os valores em dinheiro, os percentuais, as
+durações, as parcelas e o período do contrato. A entidade já valida (com a mensagem ao
+usuário); o `CHECK` é a última barreira para um `UPDATE` manual ou um caminho que escape dela.
 
 **`CHECK` do exclusive arc (V2).** Item de contrato e atendimento apontam para
 exatamente uma linha de preço: por duração **ou** por frequência.
