@@ -39,6 +39,7 @@
   - [Repasse](#repasse)
   - [Ciclo de vida](#ciclo-de-vida)
   - [Quem lança](#quem-lança)
+  - [Rendimento](#rendimento)
   - [Leituras](#leituras)
 
 ## Diagrama entidade-relacionamento
@@ -196,6 +197,7 @@ erDiagram
     Money baseValue
     Money payoutValue
     bigint launchedByUserId FK
+    datetime launchedAt
     boolean active
   }
 ```
@@ -1095,6 +1097,7 @@ prestador, sem fluxo de aprovação.
 | `baseValue` | `Money` (VO), `DECIMAL(10,2)` | snapshot do valor da sessão (cópia do `sessionValue` da linha usada) |
 | `payoutValue` | `Money` (VO), `DECIMAL(10,2)` | snapshot do **repasse** ao prestador (ver "Repasse"). *Payout* = valor pago a quem prestou o serviço (`commissionValue` se confundiria com o percentual) |
 | `launchedByUserId` | FK → User | **quem lançou**: o usuário logado (pode ser diferente de quem atendeu, quando o admin lança por um prestador) |
+| `launchedAt` | datetime | **data e hora do lançamento**, no fuso da clínica: o service passa o `now()` ao construtor (a entidade não o chama). É a referência do rendimento (ver "Rendimento"); num retroativo, difere da `occurredAt`. `DATETIME`, não `DATE`: guarda a ordem dos lançamentos do mesmo dia |
 | `active` | boolean | soft delete: inativo não conta no saldo nem no repasse |
 
 **Snapshots:** `baseValue`, `commissionPercentageApplied` e `payoutValue` são sempre
@@ -1114,8 +1117,8 @@ lançamento; gravado, o saldo vira um `count` simples e os relatórios filtram p
 campo ([ADR 0017](adr/0017-contrato-e-origem-do-preco-gravados.md)). Só
 `CONTRACT_ITEM` debita o saldo (`PricingSource.debitsContractItem()`).
 
-**Validações da entidade** (400): paciente, prestador e técnica ativos;
-`durationMinutes ≥ 1` e `status` obrigatório; `occurredAt` não futuro; exatamente
+**Validações da entidade** (400): paciente, prestador e técnica ativos; `launchedAt`
+obrigatório; `durationMinutes ≥ 1` e `status` obrigatório; `occurredAt` não futuro; exatamente
 uma linha de preço, do grupo da técnica e, se for por duração, na duração do
 atendimento; contrato informado ativo, cobrindo `occurredAt` e com o paciente como
 titular ou beneficiário. Se o contrato cobre ou não o grupo da técnica define o
@@ -1252,11 +1255,46 @@ qualquer um.
   "Lançamento retroativo precisa de liberação do administrador.". O `ADMIN` lança qualquer data
   não futura, sem liberação.
 
+### Rendimento
+
+O quanto o prestador rendeu num período, a base do dashboard e do resumo do dia
+([ADR 0037](adr/0037-rendimento-do-prestador.md)).
+
+- **Rendimento = soma do `payoutValue`** dos atendimentos **ativos** com status `ATTENDED`,
+  cuja **`launchedAt`** cai no período. Um retroativo lançado hoje, com o atendimento da semana
+  passada, conta hoje: nada muda depois de lançado, e um período já visto não muda (só quando o
+  admin desfaz um lançamento dele).
+- **Faltas cobradas à parte:** o `NO_SHOW` e o `CANCELED_LATE` (`ConsultationStatus.isChargedAbsence()`)
+  geram repasse com o mesmo cálculo ([ADR 0014](adr/0014-tres-status-cobrados.md)), mas ficam
+  fora do rendimento; cada período traz a quantidade e o repasse delas, e o **repasse total**
+  (rendimento + faltas cobradas). O backend soma; o front só mostra.
+- **Períodos**, no fuso da clínica: **hoje**; a **semana** de segunda a domingo (ISO); o **mês**
+  do calendário. Cada um volta com o `from` e o `to`, inclusivos, para a tela não calcular datas.
+  O filtro por dia usa o intervalo `[início do dia, início do dia seguinte)`.
+- **Quem vê:** o `PROVIDER`, só os próprios, qualquer que seja o `providerId` da URL (sem
+  prestador vinculado → 403); o `ADMIN`, todos ou, com o `providerId`, só aquele (404 se não
+  existir). Diferente do `day-summary`, aqui o `providerId` do admin é opcional.
+- **Por prestador** (`byProvider`, só no `earnings` do admin sem `providerId`): todos os
+  prestadores **ativos**, zerados quando não lançaram, mais os **inativos com lançamento** no
+  período, por nome; a soma das linhas bate com o total.
+- **A soma é no banco** (`ConsultationRepository.sumEarnings`, SQL nativo sobre a coluna
+  `payout_value`, agrupado por prestador e status): uma consulta por período, e o service separa
+  o rendimento das faltas (ver "Soma de dinheiro" em "Padrão de construção", no
+  [`architecture.md`](architecture.md#padrão-de-construção-todos-os-módulos-implementados-seguem)).
+
 ### Leituras
 
-- `GET /api/consultations?providerId&patientId&from&to`: filtros opcionais (período
-  pela `occurredAt`, inclusivo), ativos e inativos, do mais recente para o mais
-  antigo. **Para o `PROVIDER`, o `providerId` é sempre o dele**, qualquer que seja o da URL.
+- `GET /api/consultations?providerId&patientId&from&to&launchedFrom&launchedTo&status`:
+  filtros opcionais, ativos e inativos, do mais recente para o mais antigo pela `occurredAt`.
+  Dois períodos, inclusivos: `from`/`to` pela `occurredAt` (a tela de Lançamento) e
+  `launchedFrom`/`launchedTo` pela `launchedAt` (a do rendimento, usada no dashboard).
+  **Para o `PROVIDER`, o `providerId` é sempre o dele**, qualquer que seja o da URL.
+- `GET /api/consultations/earnings-summary?providerId`: o rendimento de hoje, da semana e do
+  mês (`today`, `week` e `month`, cada um com o `from`/`to`, a quantidade e o repasse dos
+  realizados, as faltas cobradas e o repasse total). Ver "Rendimento".
+- `GET /api/consultations/earnings?providerId&from&to`: o rendimento de um período qualquer
+  (`from` depois do `to` → 400 "A data inicial do período não pode ser depois da data final."),
+  com o `byProvider` para o admin sem prestador. Ver "Rendimento".
 - `GET /api/consultations/{id}`. O lançamento de outro prestador responde **404**, com a
   mesma mensagem de um id inexistente (não revela que existe); o mesmo vale para a
   inativação (`DELETE`).
@@ -1266,9 +1304,10 @@ qualquer um.
 - `GET /api/consultations/recent-patients?providerId` (apoio do lançamento): os **8**
   pacientes distintos mais recentes do prestador, cada um com a técnica e a duração do último
   atendimento **ativo** (paciente ou técnica inativos ficam de fora).
-- `GET /api/consultations/day-summary?providerId` (apoio do lançamento): hoje, a quantidade
-  de atendimentos **ativos** do prestador com a data de hoje, o **repasse somado** (nos três
-  status: todos são cobrados) e quantos lançamentos retroativos a liberação de hoje ainda
-  permite.
-- Nos dois, como na listagem: o `ADMIN` informa o `providerId` (sem ele, 400 "O prestador é
-  obrigatório."); para o `PROVIDER`, é sempre o dele.
+- `GET /api/consultations/day-summary?providerId` (apoio do lançamento): hoje, **pela regra do
+  rendimento** (a mesma consulta do rendimento de hoje): a quantidade de atendimentos realizados
+  ativos lançados hoje e o repasse deles, as faltas cobradas à parte e quantos lançamentos
+  retroativos a liberação de hoje ainda permite. Assim, "hoje" tem um número só no Lançamento
+  e no dashboard.
+- No `recent-patients` e no `day-summary`, o `ADMIN` informa o `providerId` (sem ele, 400 "O
+  prestador é obrigatório."); para o `PROVIDER`, é sempre o dele.

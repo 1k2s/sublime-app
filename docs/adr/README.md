@@ -82,3 +82,5 @@ discussões que estavam no `domain-model.md` e no `architecture.md`.
 | [0034](0034-hoje-no-fuso-da-clinica.md) | "Hoje" no fuso da clínica, fixado na inicialização | aceito (em parte substituído por 0036: onde o fuso é aplicado) |
 | [0035](0035-sessao-sincronizada-entre-abas.md) | Uma sessão por navegador, com as abas sincronizadas pelo evento `storage` | aceito |
 | [0036](0036-testes-de-integracao-com-testcontainers.md) | Testes de integração com o MySQL do Testcontainers | aceito |
+| [0037](0037-rendimento-do-prestador.md) | Rendimento do prestador: só os realizados, pela data do lançamento | aceito |
+| [0038](0038-graficos-com-echarts.md) | Gráficos do frontend com o ECharts, import modular e invólucro próprio | aceito |

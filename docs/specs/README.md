@@ -9,8 +9,6 @@ Ela é o "contrato" da feature enquanto ela não está pronta.
   cabeçalho das telas.
 - [Cadastro do catálogo](cadastro-do-catalogo.md): renomear, inativar e reativar técnicas,
   grupos e planos, as telas de cadastro e as técnicas na tabela de Preços.
-- [Dashboards](dashboards.md): rendimento do prestador (hoje, semana, mês), gráficos e
-  atendimentos por período, para o prestador e o admin.
 
 As próximas estão nos "Próximos passos" do [`roadmap.md`](../roadmap.md).
 

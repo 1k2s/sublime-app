@@ -20,6 +20,7 @@
   - [Estado](#estado)
   - [Quando criar um componente](#quando-criar-um-componente)
   - [Telas de listagem](#telas-de-listagem)
+  - [Gráficos](#gráficos)
   - [Componentes: tamanho e layout](#componentes-tamanho-e-layout)
   - [Estilo](#estilo)
   - [Rotas e sessão](#rotas-e-sessão)
@@ -222,7 +223,9 @@ de propor mudanças de schema.
 | Consulta que o nome do método não expressa | `@Query` (JPQL) com `@Param`, só quando o método derivado não dá conta (ex: "ou" com `left join`, filtros opcionais `(:x is null or ...)`); senão, método derivado | `ContractRepository.findActiveCoveringDateByHolderOrBeneficiary`, `ConsultationRepository.search` |
 | Endpoint de apoio à tela | leitura que expõe uma regra do backend para o frontend não repetir | `GET /api/techniques/{id}/prices`, `POST /api/contracts/preview` |
 | Tabela de preços: por técnica ou por grupo | a técnica responde "quanto custa esta técnica" (contrato: `GET /api/techniques/{id}/prices`, o front não precisa saber que o preço mora no grupo); o grupo responde "qual é a tabela deste grupo" (tela de preços: `GET /api/pricing-groups/{id}/prices`, as vigentes, e `GET /api/pricing-groups/{id}/prices/history`, também as encerradas, com `validTo`). Os do grupo respondem mesmo sem técnica ativa: o preço pertence ao grupo ([ADR 0004](adr/0004-grupo-de-preco-e-duas-tabelas.md)) | `PricingService.findCurrentPrices`, `findPriceHistoryByGroup` |
-| "Hoje" | `LocalDate.now()`, sem fuso explícito: o fuso padrão da aplicação é o da clínica (`America/Sao_Paulo`), fixado no bloco `static` do `SublimeAppApplication`, antes do Spring subir, que roda também nos testes de integração (eles carregam a classe sem chamar o `main`). Vale para todo `now()` e para o `@PastOrPresent`; num servidor em UTC, depois das 21h o "hoje" já seria o dia seguinte ([ADR 0034](adr/0034-hoje-no-fuso-da-clinica.md), [ADR 0036](adr/0036-testes-de-integracao-com-testcontainers.md)) | `SublimeAppApplication`, `ContractResponseDTO` (`current`) |
+
+| "Hoje" | `LocalDate.now()` e `LocalDateTime.now()`, sem fuso explícito: o fuso padrão da aplicação é o da clínica (`America/Sao_Paulo`), fixado no bloco `static` do `SublimeAppApplication`, antes do Spring subir. Nos testes de integração, que não chamam o `main`, o `TestcontainersConfiguration` inicializa a classe antes do container e do pool de conexões: sem isso, o bloco rodaria no meio da subida, com o pool já aberto em UTC, e o driver leria as datas (`DATE`) um dia antes. Vale para todo `now()` (inclusive a data e hora do lançamento, `launchedAt`) e para o `@PastOrPresent`; num servidor em UTC, depois das 21h o "hoje" já seria o dia seguinte ([ADR 0034](adr/0034-hoje-no-fuso-da-clinica.md), [ADR 0036](adr/0036-testes-de-integracao-com-testcontainers.md)) | `SublimeAppApplication`, `ContractResponseDTO` (`current`), `TestcontainersConfiguration` |
+| Soma de dinheiro | **SQL nativo sobre a coluna** (`sum(payout_value)`), não o `sum` do JPQL sobre o atributo: o atributo passa pelo `MoneyConverter`, e o tipo que o JPQL devolve para a soma não é garantido. A soma fica no banco (não no service), agrupada para uma consulta só servir ao total e às linhas por prestador; o service junta as linhas em `BigDecimal` (`EarningsTally`) | `ConsultationRepository.sumEarnings` |
 
 ## Formato dos erros
 
@@ -366,6 +369,7 @@ não as decide. Como rodar: [`development.md`](development.md). Estado e pendên
 | Rotas | React Router (data router, rotas `lazy`) |
 | Formulários | React Hook Form + Zod (`@hookform/resolvers`) |
 | HTTP | Axios, num cliente único (`shared/http/apiClient.js`) |
+| Gráficos | ECharts, com import modular e invólucro próprio (`shared/components/Chart.jsx`; ver "Gráficos" e o [ADR 0038](adr/0038-graficos-com-echarts.md)) |
 
 Lista de dependências: [`development.md`](development.md).
 
@@ -384,7 +388,8 @@ frontend/src/
 │   ├── http/                # apiClient.js (axios: baseURL, token, 401) e apiFieldErrors.js
 │   ├── utils/               # money, date, masks, alert (SweetAlert2), viacep, text (normalizeText, getInitials)
 │   └── components/          # Button, Card, Input, Select, RichSelect, Combobox, FormField, Modal,
-│                            # FilterPills, ListMessage, Stepper, Badge, DataTable, IconButton, PageHeader, PageLoader...
+│                            # FilterPills, ListMessage, Stepper, Badge, DataTable, IconButton, PageHeader, PageLoader,
+│                            # Chart (ECharts)...
 └── domain/                  # um módulo por módulo do backend
     ├── auth/                # sessão, login, ProtectedRoute, roles.js (transversal)
     ├── user/
@@ -581,6 +586,33 @@ Contratos), escolhido em 2026-11-11 a partir do que cada uma fazia melhor:
   botões, sempre à vista. O modal grande não fecha pelo clique no fundo
   (`closeOnBackdrop={false}`): um clique sem querer perderia o formulário.
 - **Busca sem `useTransition`:** com listas pequenas, filtrar a cada tecla é imediato.
+- **Tabela sempre na tela** (Lançamento e Dashboard): a page ocupa a altura do conteúdo
+  (`height: 100%` e `flex` em coluna), os filtros e os números ficam parados, e a tabela recebe
+  o que sobra (`flex: 1; min-height: 0` pelo `className`) e rola por dentro, com o cabeçalho
+  fixo (o `DataTable` tem o cabeçalho `sticky` e a rolagem nos dois eixos). Sem altura limitada
+  pelo pai, a tabela cresce com a página, como nos cadastros.
+
+### Gráficos
+
+- **ECharts** ([ADR 0038](adr/0038-graficos-com-echarts.md)), pelo invólucro
+  `shared/components/Chart.jsx`: recebe o `option` pronto e só desenha; cria o gráfico uma vez,
+  acompanha o tamanho do contêiner (`ResizeObserver`: o menu lateral empurra o conteúdo sem
+  evento de janela) e o descarta ao desmontar. `onEvents` liga os eventos do ECharts (memorize o
+  objeto); o `ref` expõe o `dispatchAction`, para a tela destacar uma parte do gráfico de fora
+  (ex: o hover na legenda).
+- **Import modular** (`echarts/core` + o `echarts.use` no `Chart.jsx`, só com os tipos usados,
+  como a pizza e o renderizador canvas). Um gráfico novo registra o tipo dele ali. A tela com gráfico carrega
+  o componente dele com `React.lazy`: o ECharts só baixa quando ele aparece.
+- **Os números vêm prontos da API:** o `option` é montado por uma função pura em `display/` do
+  módulo (ex: `payoutCompositionOption.js`), que só desenha; o front não soma nem agrupa.
+- **Cores da paleta:** o componente lê as variáveis CSS (`getComputedStyle`) e as passa ao
+  `option`, porque o canvas não entende `var()`.
+- **Texto em HTML, não no canvas:** o centro e a legenda (com os valores) ficam no componente,
+  por cima ou ao lado do gráfico: o leitor de tela lê, e o texto segue a fonte da tela. O
+  `Chart.jsx` dá um `aria-label` ao canvas.
+- **Movimento:** animação de entrada e de atualização do ECharts, desligada com
+  `prefers-reduced-motion` (o `Chart.jsx` confere). Um número que anima (ex: o total subindo)
+  termina no valor exato da API.
 
 ### Componentes: tamanho e layout
 
@@ -625,20 +657,23 @@ Contratos), escolhido em 2026-11-11 a partir do que cada uma fazia melhor:
   preenchido, e o `onConfirm` leva ao próximo campo; ex: a barra do Lançamento).
 - **Cards se destacam do fundo pela sombra (`--shadow-card`), não pela borda.** A borda fica
   para separações dentro do card (linhas da tabela, itens de uma lista, campos).
+- **Controle tem cara de controle; informação, de card.** Filtros e escolhas ficam em controles
+  com borda ou trilho (controle segmentado, `Select`, linhas clicáveis com seta); o card branco
+  com sombra é só leitura. Um valor não se repete num botão e num card (ex: o Dashboard).
 
 ### Rotas e sessão
 
 - `app/router.jsx`: `createBrowserRouter` com rotas `lazy`. `/login` é pública; as demais
   ficam dentro do `ProtectedRoute` + `AppLayout`, em dois grupos por papel: só `ADMIN`
   (`/patients`, `/pricing`, `/providers`, `/users`, `/contracts`) e `ADMIN` + `PROVIDER`
-  (`/consultations`, `/settings`); `*` é a página de não encontrado.
+  (`/dashboard`, `/consultations`, `/settings`); `*` é a página de não encontrado.
 - **`ProtectedRoute`:** sem sessão, leva ao `/login` (e volta à rota pedida depois do
   login); com `roles`, quem não tem o papel vai para a tela inicial do próprio papel. É só
   experiência de uso: a proteção real é o 403 da API (princípio 3).
 - **Menu por papel** (`app/layout/navigationItems.js`, campo `roles`): o `ADMIN` vê
-  Pacientes, Contratos, Preços, Lançamentos, Prestadores, Usuários e Configurações; o
-  `PROVIDER`, Lançamentos e Configurações. Itens sem tela pronta (Dashboard) ficam
-  desabilitados.
+  Dashboard, Pacientes, Contratos, Preços, Lançamentos, Prestadores, Usuários e Configurações;
+  o `PROVIDER`, Dashboard, Lançamentos e Configurações. Um item sem tela pronta fica com
+  `disabled: true`.
 - **Sessão no `localStorage`** ([ADR 0024](adr/0024-sessao-frontend-localstorage.md)): o
   `signIn` do `AuthProvider` guarda a resposta do `POST /api/auth/login` em
   `sublime.authToken`, `sublime.authUser` e `sublime.authExpiresAt`.
