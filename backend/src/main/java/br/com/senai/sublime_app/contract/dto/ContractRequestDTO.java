@@ -37,10 +37,19 @@ public record ContractRequestDTO(
         @Max(value = Installments.MAX_COUNT, message = "O número de parcelas deve ser no máximo 12.")
         Integer installments,
 
+        // Opcional: o 1º vencimento (do início até 1 mês depois); vazio = o início do contrato
+        LocalDate firstDueDate,
+
         // Um item por grupo de preço contratado
         @NotEmpty(message = "O contrato precisa ter pelo menos um item.")
         @Valid
-        List<ContractItemRequestDTO> items
+        List<ContractItemRequestDTO> items,
+
+        // Opcional: aplicar o crédito dos contratos anteriores do titular (vazio = não aplica)
+        Boolean applyCredit
 
 ) {
+    public boolean isApplyingCredit() {
+        return Boolean.TRUE.equals(applyCredit);
+    }
 }

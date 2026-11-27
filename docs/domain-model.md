@@ -6,8 +6,8 @@
 > - O **porquê** das decisões principais (contexto e alternativas descartadas)
 >   está nos [ADRs](adr/README.md), linkados em cada regra.
 > - Feature em andamento, quando houver, fica em [`specs/`](specs/README.md).
-> - O que ainda não existe (saldo do paciente, `Payment`, pagamento do repasse,
->   agendamento) está no [`roadmap.md`](roadmap.md).
+> - O que ainda não existe (o estorno do crédito, o app do paciente, o agendamento) está no
+>   [`roadmap.md`](roadmap.md).
 
 ## Índice <!-- omit from toc -->
 
@@ -25,6 +25,7 @@
   - [Vigência e frequência](#vigência-e-frequência)
   - [Plano do item do Grupo](#plano-do-item-do-grupo)
   - [Vigente, vencimento e prorrogação](#vigente-vencimento-e-prorrogação)
+  - [Status do contrato](#status-do-contrato)
   - [Valor e parcelas](#valor-e-parcelas)
   - [Versionamento (aditivos)](#versionamento-aditivos)
 - [`User`](#user)
@@ -41,6 +42,17 @@
   - [Quem lança](#quem-lança)
   - [Rendimento](#rendimento)
   - [Leituras](#leituras)
+- [`Payment`](#payment)
+  - [Registro e inativação](#registro-e-inativação)
+  - [Previsão de recebimento](#previsão-de-recebimento)
+  - [Conta do contrato](#conta-do-contrato)
+  - [Mensalidades do Grupo](#mensalidades-do-grupo)
+  - [Situação das parcelas](#situação-das-parcelas)
+  - [Conta do paciente](#conta-do-paciente)
+  - [Crédito de contratos anteriores](#crédito-de-contratos-anteriores)
+  - [Lista do Financeiro](#lista-do-financeiro)
+  - [Numeração das sessões](#numeração-das-sessões)
+  - [Leituras da conta](#leituras-da-conta)
 
 ## Diagrama entidade-relacionamento
 
@@ -71,6 +83,11 @@ erDiagram
   TECHNIQUE ||--o{ CONSULTATION : executada
   SESSION_DURATION_PRICE |o--o{ CONSULTATION : aplicado
   SESSION_FREQUENCY_PRICE |o--o{ CONSULTATION : aplicado
+  PATIENT ||--o{ PAYMENT : paga
+  CONTRACT |o--o{ PAYMENT : pagamento_do_contrato
+  USER ||--o{ PAYMENT : registra
+  CONTRACT ||--o{ BALANCE_TRANSFER : envia_credito
+  CONTRACT ||--o{ BALANCE_TRANSFER : recebe_credito
 
   PATIENT {
     bigint id PK
@@ -140,8 +157,13 @@ erDiagram
     date endDate "calculado"
     string paymentMethod
     int installments "1 a 12"
+    Money installmentBase "gravado por versão"
+    date firstDueDate
     boolean active
+    date deactivatedOn "nullable"
     bigint previousContractId FK, UK "nullable"
+    int amendmentNumber
+    date createdAt
   }
 
   CONTRACT_ITEM {
@@ -200,14 +222,37 @@ erDiagram
     datetime launchedAt
     boolean active
   }
+
+  PAYMENT {
+    bigint id PK
+    bigint patientId FK
+    bigint contractId FK "nullable"
+    Money amount "bruto"
+    Money netAmount "líquido"
+    int cardInstallments "1 a 12"
+    date paidAt
+    string paymentMethod "ENUM"
+    bigint registeredByUserId FK
+    boolean active
+  }
+
+  BALANCE_TRANSFER {
+    bigint id PK
+    bigint fromContractId FK
+    bigint toContractId FK
+    Money amount
+    date transferredAt
+  }
 ```
 
 Legenda: `addressStreet`/`addressNumberHouse`/`addressCity`/`addressComplement`/
 `addressCep` em `Patient` são um Value Object embutido (`@Embeddable`), não uma
 tabela própria (`cep`, não `zipCode` — é um conceito específico do endereçamento
 brasileiro, não uma tradução literal de "zip code"). `pricingModel`, `type` (`Plan`),
-`role`, `paymentMethod`, `frequency` (`ContractItem`), `status` e `pricingSource`
-(`Consultation`) são ENUMs. `sessionDurationPriceId`/`sessionFrequencyPriceId` em
+`role`, `paymentMethod` (`Contract` e `Payment`), `frequency` (`ContractItem`), `status` e
+`pricingSource` (`Consultation`) são ENUMs. `contractId` nulo em `Payment` é o pagamento do
+avulso. `BalanceTransfer` é o crédito de um contrato aplicado em outro (ver "Crédito de contratos
+anteriores" em `Payment`). `sessionDurationPriceId`/`sessionFrequencyPriceId` em
 `ContractItem` e `Consultation` são nullable, em padrão "exclusive arc": sempre um
 preenchido, nunca os dois. `Contract` +
 `ContractItem` formam um agregado: o item só existe dentro do contrato (ver
@@ -215,8 +260,8 @@ preenchido, nunca os dois. `Contract` +
 como `DECIMAL` por `AttributeConverter` (ver `SessionDurationPrice` e `Provider`).
 `UK` = coluna `unique`.
 
-**Soft delete:** `Patient`, `Technique`, `Contract`, `User`, `Provider` e `Consultation` nunca são
-removidos do banco; o `DELETE` só inativa (`active = false`). Inativar um registro
+**Soft delete:** `Patient`, `Technique`, `Contract`, `User`, `Provider`, `Consultation` e `Payment`
+nunca são removidos do banco; o `DELETE` só inativa (`active = false`). Inativar um registro
 que **já está inativo** é rejeitado com 409 — a regra fica no `deactivate()` da
 própria entidade, que conhece o próprio estado.
 
@@ -225,8 +270,8 @@ própria entidade, que conhece o próprio estado.
 inativar: reativar um registro **já ativo** → 409 (`activate()` com
 `requireInactive()`). É o caminho de volta para quem foi inativado e volta à
 clínica: registro inativo não entra em contrato nem em atendimento novo, e usuário
-inativo não faz login. `Contract` e `Consultation` não têm reativação (contrato e
-atendimento se corrigem por aditivo e por novo lançamento).
+inativo não faz login. `Contract`, `Consultation` e `Payment` não têm reativação (contrato,
+atendimento e pagamento se corrigem por aditivo, por novo lançamento e por novo registro).
 
 **Unicidade de nome e CPF:** nome de `PricingGroup`, `Technique` e `Plan`, CPF de
 `Patient` e e-mail de `User` são únicos. A garantia real é o `unique` da coluna; o
@@ -608,12 +653,16 @@ Especializado ([ADR 0008](adr/0008-contrato-com-itens.md)).
 
 **Endpoints de apoio à tela** (nada é gravado; a regra fica no backend e o frontend
 não a repete):
-- `POST /api/contracts/preview` — na criação, com o plano, o início, os itens já escolhidos
-  e as parcelas (opcional): vigência em semanas, `endDate` calculado, plano do Grupo
-  sugerido e opções, valor de cada item, total e parcelas (ver "Valor e parcelas").
+- `POST /api/contracts/preview` — na criação, com o plano, o início, os itens já escolhidos,
+  as parcelas e o 1º vencimento (os dois opcionais): vigência em semanas, `endDate` calculado,
+  plano do Grupo sugerido e opções, valor de cada item, total, parcelas e o cronograma (ver
+  "Valor e parcelas"). Com o `patientId`, traz o crédito disponível do titular
+  (`availableCredit`) e, com o `applyCredit`, o aplicado (`creditApplied`), já descontado do
+  valor parcelado (ver "Crédito de contratos anteriores" em `Payment`).
 - `POST /api/contracts/{id}/amendments/preview` — no aditivo, com os itens do formulário,
-  o `endDate` (opcional, prorrogação) e as parcelas (opcional): a mesma resposta da prévia da
-  criação, calculada pela **nova** vigência (ver "Versionamento (aditivos)").
+  o `endDate` (opcional, prorrogação), as parcelas e o 1º vencimento (opcionais): a mesma
+  resposta da prévia da criação, calculada pela **nova** vigência, com o pago até agora e o 1º
+  vencimento sugerido (ver "Versionamento (aditivos)").
 - `GET /api/contracts/{id}/versions` — o histórico: a versão e as anteriores, da mais nova
   para a mais antiga.
 - Nas duas prévias, a lista de itens pode vir **incompleta ou vazia** (o formulário em
@@ -631,7 +680,10 @@ não a repete):
 | `endDate` | date | **calculado pelo sistema**, inclusivo (ver "Vigência e frequência") |
 | `paymentMethod` | ENUM | única para o contrato inteiro |
 | `installments` | int | número de parcelas, de 1 até os meses do contrato (máximo 12; ver "Valor e parcelas") |
+| `installmentBase` | Money | o valor parcelado da versão: o total (− o crédito aplicado), no cadastro; o total − o pago, no aditivo; gravado, nunca muda (ver "Valor e parcelas") |
+| `firstDueDate` | date | 1º vencimento; os outros são ele + N meses (ver "Valor e parcelas") |
 | `active` | boolean | soft delete |
+| `deactivatedOn` | date, nullable | dia da inativação ou, na versão substituída, o `createdAt` da sucessora; depois dele nada vence (ver "Vigente, vencimento e prorrogação") |
 | `previousContractId` | FK → Contract, nullable, unique | versão anterior (aditivo); null na primeira versão |
 | `amendmentNumber` | int | 0 na versão original, o da anterior + 1 em cada aditivo; gravado, nunca muda (ver "Versionamento") |
 | `createdAt` | date | dia em que a versão foi criada (cadastro ou aditivo), "hoje" no fuso da clínica; nunca muda |
@@ -695,10 +747,12 @@ linha usa a tabela de onde ela veio (`pricingModel`) não é revalidado no contr
 a própria linha de preço garante isso na criação dela.
 
 **Saldo de sessões por item:** cada item de grupo por duração tem as
-`sessionCount` do plano — contrato Evolução com RPG + Quiropraxia = 12 sessões do
-Individual Padrão **e** 12 do Individual Especializado. Item do Grupo não tem
-saldo de sessões. O cálculo do saldo consome os atendimentos e por isso fica no
-módulo `consultation` (ver "Saldo de sessões" em `Consultation`).
+`sessionCount` do plano da linha travada — contrato Evolução com RPG + Quiropraxia = 12
+sessões do Individual Padrão **e** 12 do Individual Especializado. O item do Grupo tem um
+saldo de **aulas**, só de controle: as aulas da vigência (ver "Valor e parcelas"), sem
+mudar o que o paciente deve ([ADR 0045](adr/0045-pilates-em-grupo-com-duas-contas.md)). O
+cálculo do saldo consome os atendimentos e por isso fica no módulo `consultation` (ver
+"Saldo de sessões" em `Consultation`).
 
 ### Titular e beneficiário
 
@@ -830,21 +884,46 @@ apenas um contrato vigente como titular:** só um contrato vigente bloqueia a
 criação de outro (409). Um contrato ativo porém vencido não bloqueia — por isso um
 paciente pode ter, temporariamente, mais de um contrato ativo.
 
-**A resposta do contrato traz `current`** (vigente hoje, `ContractEntity.isCurrentOn`), para a
-tela não repetir a regra: `active` e `current` = Vigente; `active` sem `current` = Vencido;
-sem `active` = Inativo (inativado). A versão substituída por aditivo também tem `active` falso,
-mas não aparece na listagem (só a versão atual de cada contrato; ver "Versionamento") e traz
-`superseded` verdadeiro. Um contrato com início futuro já é vigente, como na regra do 409 acima.
+**A resposta do contrato traz `current`** (vigente hoje, `ContractEntity.isCurrentOn`) e o
+**`status`** (abaixo), para a tela não repetir a regra. A versão substituída por aditivo tem
+`active` falso, não aparece na listagem (só a versão atual de cada contrato; ver
+"Versionamento") e traz `superseded` verdadeiro. Um contrato com início futuro já é vigente, como
+na regra do 409 acima.
 
-**Contrato vencido** continua ativo até o administrador decidir. A ação disponível é
+**Contrato terminado** continua ativo até o administrador decidir. A ação disponível é
 **prorrogar** (aditivo com novo `endDate`, abaixo).
 
 **Prorrogação:** o admin informa o novo fim **livremente**, desde que depois do
 fim atual.
 
+**Cancelamento com data** ([ADR 0047](adr/0047-vencimento-das-parcelas.md)): cancelar é inativar
+o contrato à mão (`DELETE /api/contracts/{id}`; de novo → 409). Grava o `deactivatedOn` (hoje, no
+fuso da clínica); o aditivo grava na versão substituída o `createdAt` da sucessora. Depois dessa
+data nada vence: as parcelas não ficam atrasadas e o Grupo para de somar mensalidades (ver
+`Payment`). O contrato cancelado continua na conta do paciente enquanto o saldo for diferente de
+zero.
+
 **Cadastros inativos:** paciente titular, beneficiário, plano e a técnica de cada
 item precisam estar ativos para um contrato novo. No aditivo, o que é mantido da
 versão anterior é aceito mesmo inativo (titular e plano são sempre copiados).
+
+### Status do contrato
+
+Calculado pelo backend na leitura (`ContractEntity.statusOn`), nunca gravado: depois do fim
+depende do saldo da conta, que é do `billing` e chega pelo `ContractBalanceProvider`
+([ADR 0051](adr/0051-status-pelo-saldo-e-credito-transferido.md)). Vem na resposta do contrato
+(`status`), na lista do Financeiro e na conta do paciente (`contractStatus`).
+- **Vigente** (`CURRENT`): ativo e na vigência (`endDate` hoje ou depois).
+- **Encerrado** (`CLOSED`): ativo, passou do fim e o saldo é zero (nada a cobrar nem a devolver).
+- **Vencido** (`EXPIRED`): ativo, passou do fim e tem pendência: saldo devedor ou credor.
+- **Cancelado** (`CANCELED`): inativado à mão (ver "Cancelamento com data", acima).
+- **Substituída** (`SUPERSEDED`): a versão que um aditivo substituiu; só no histórico.
+
+O status muda sozinho: um pagamento ou uma transferência de crédito que zera o saldo leva o
+vencido a encerrado. O saldo devedor de um contrato terminado se quita registrando um pagamento
+nele (o pagamento em contrato terminado ou cancelado é aceito; ver `Payment`). **Sem N+1:** os
+saldos dos contratos terminados são lidos de uma vez, para a lista inteira; os vigentes e os
+cancelados não precisam do saldo.
 
 ### Valor e parcelas
 
@@ -864,21 +943,49 @@ Calculados pelo backend (`ContractItemValue`, `Installments`); a tela só mostra
   sem juros. Meses pelas semanas da vigência (52 semanas = 12 meses), arredondados para o mais
   próximo: 4 semanas = 1, 12 e 13 = 3, 24 e 26 = 6, 52 = 12. Pelas semanas, e não pelo
   calendário: o mesmo prazo dá sempre o mesmo máximo, qualquer que seja o início.
-- **Valor das parcelas:** o total dividido pelas parcelas, com os centavos que sobram na
-  primeira (R$ 1.711,06 em 3x = 1ª de R$ 570,36 + 2 × R$ 570,35).
-- **Só o número de parcelas é gravado** (`installments`, `CHECK` de 1 a 12 no banco). O total e
-  o valor das parcelas saem das linhas travadas nos itens, que não mudam: não há um total
-  gravado para ficar diferente dos itens.
+- **Valor parcelado (`installmentBase`), gravado por versão**
+  ([ADR 0048](adr/0048-valor-parcelado-gravado-por-versao.md)): o total, no cadastro (menos o
+  crédito aplicado, ver "Crédito de contratos anteriores" em `Payment`); no aditivo, o total da
+  nova versão − o pago da cadeia até então, no mínimo 0. Depois, não muda: um
+  pagamento retroativo ou inativado muda só o saldo da conta, nunca o valor das parcelas
+  assinadas. O total não é gravado: sai das linhas travadas nos itens, que não mudam.
+- **Valor das parcelas:** o valor parcelado dividido pelas parcelas, com os centavos que sobram
+  na primeira (R$ 1.711,06 em 3x = 1ª de R$ 570,36 + 2 × R$ 570,35). `installments` tem `CHECK`
+  de 1 a 12 no banco; `installmentBase`, `CHECK >= 0`.
 - **Na criação:** parcelas acima do máximo → 400 "O número de parcelas deve ser de 1 a N (meses
   do contrato).". **Nas prévias** (da criação e do aditivo), parcelas vazias ou acima do máximo
   valem o máximo, e a resposta diz as aplicadas (a tela não perde o resultado quando o plano muda
   para um mais curto).
-- **Aditivo:** as parcelas são escolhidas em todo aditivo (`installments` obrigatório), de 1 até
-  os meses da **nova** vigência, e dividem o total da nova versão. As parcelas são o plano de
-  pagamento, não a dívida: incluir ou remover um item muda o total, e prorrogar muda o máximo
-  ([ADR 0037](adr/0037-parcelas-escolhidas-no-aditivo.md)).
-- A resposta do contrato traz `totalValue`, `installments`, `firstInstallmentValue` e
-  `installmentValue`; cada item traz `sessionCount` e `totalValue`.
+- **As parcelas são o plano de pagamento, não a dívida:** a dívida é o consumo, comparado com os
+  pagamentos (ver `Payment`; [ADR 0044](adr/0044-conta-do-paciente-pelo-consumo.md)).
+
+**Vencimento** ([ADR 0047](adr/0047-vencimento-das-parcelas.md)):
+- **O 1º vencimento (`firstDueDate`) é opcional no pedido.** Sem ele, o início do contrato (no
+  cadastro) ou o sugerido (no aditivo, abaixo).
+- **No cadastro:** do início do contrato até 1 mês depois (400 "O 1º vencimento deve ser entre o
+  início do contrato e um mês depois.").
+- **Cada vencimento sai do 1º:** o 1º vencimento + N meses (`plusMonths`), e não o anterior + 1
+  mês. Nos dias 29 a 31, no mês mais curto a parcela vence no último dia: 31/01 → 28/02 (29/02 no
+  ano bissexto) → 31/03.
+
+**Parcelas no aditivo** ([ADR 0049](adr/0049-parcelas-do-aditivo-sobre-o-que-falta.md); as
+parcelas continuam escolhidas em todo aditivo, [ADR 0037](adr/0037-parcelas-escolhidas-no-aditivo.md)):
+- **Dividem o que falta pagar:** o `installmentBase` do aditivo (o total da nova versão − o
+  pago). O pago vem do `billing` pelo `PaidAmountProvider`
+  ([ADR 0050](adr/0050-paid-amount-provider.md)).
+- **O pago que cobre o total:** o valor parcelado fica 0, e a versão grava 1 parcela de R$ 0,00 (já
+  paga), qualquer que seja o número pedido; o que passar do total fica como saldo credor.
+- **O máximo são os meses que faltam:** do novo 1º vencimento até o fim do contrato, no mínimo 1
+  (`Installments.maxForPeriod`). Ex: contrato de 12 meses com aditivo no 10º mês: até 2 parcelas.
+- **O 1º vencimento é a partir da data do aditivo** (400 "No aditivo, o 1º vencimento deve ser a
+  partir da data do aditivo."). **O sugerido** (na prévia, e o padrão quando o pedido não traz): o
+  dia de vencimento da versão no mês do aditivo; se a parcela desse mês já está paga, ou se o dia
+  já passou, o mesmo dia no mês seguinte.
+- **A resposta do contrato** traz `totalValue`, `installments`, `installmentBase`,
+  `firstInstallmentValue`, `installmentValue`, `firstDueDate`, `deactivatedOn` e o cronograma
+  (`installmentSchedule`: `number`, `dueDate` e `value` de cada parcela, sem a situação, que é do
+  `billing`); cada item traz `sessionCount` e `totalValue`. A prévia do aditivo traz também o
+  `paidSoFar`, o `installmentBase`, o `maxInstallments` e o `suggestedFirstDueDate`.
 
 ### Versionamento (aditivos)
 
@@ -902,12 +1009,16 @@ fica preservado ([ADR 0011](adr/0011-contrato-versionado-por-aditivos.md)). Regr
 - **Itens podem ser incluídos e removidos.** Remover um item não muda o fim e não
   pode deixar o contrato sem itens (400). O histórico do item removido fica nas
   versões anteriores.
-- **As parcelas são escolhidas em todo aditivo** (ver "Valor e parcelas").
+- **As parcelas são escolhidas em todo aditivo** e dividem o que falta pagar (ver "Parcelas no
+  aditivo" em "Valor e parcelas").
 - **Aditivo sem alteração é recusado** (400 "Nenhuma alteração no contrato."). Conta
   como alteração: item incluído ou removido; num item mantido, outra técnica, linha de
-  preço ou frequência; outro beneficiário; outra forma de pagamento; outras parcelas;
-  `endDate` informado (prorrogação). Uma versão idêntica só criaria um aditivo vazio
-  no histórico.
+  preço ou frequência; outro beneficiário; outra forma de pagamento; `endDate` informado
+  (prorrogação); e, nas parcelas, **outro dia de vencimento** ou **um número de parcelas
+  diferente das que ainda faltam vencer** na versão anterior (contadas pela data, sem depender
+  dos pagamentos; [ADR 0049](adr/0049-parcelas-do-aditivo-sobre-o-que-falta.md)). Ex: 3 parcelas
+  no dia 10; um aditivo depois da 1ª, mantendo o dia 10 e as 2 que faltam, não é alteração. Uma
+  versão idêntica só criaria um aditivo vazio no histórico.
 - **O que for igual à versão anterior é aceito como está; o que for novo precisa
   ser válido.** Manter a mesma linha de preço é permitido mesmo após um reajuste
   (o contrato mantém o valor combinado) e mesmo que o de-para do plano tenha mudado
@@ -920,8 +1031,8 @@ fica preservado ([ADR 0011](adr/0011-contrato-versionado-por-aditivos.md)). Regr
 - **Prévia do aditivo** (`POST /api/contracts/{id}/amendments/preview`): as contas do
   aditivo sem gravar e sem inativar a versão (o novo fim pela mesma conta do aditivo,
   `ContractEntity.calculateAmendedEndDate`). O pedido é próprio e só traz o que muda as
-  contas (itens, `endDate` e parcelas, todos opcionais). Segue a regra do aditivo: só
-  a versão ativa (409) ([ADR 0038](adr/0038-previa-do-aditivo.md)).
+  contas (itens, `endDate`, parcelas e 1º vencimento, todos opcionais). Segue a regra do
+  aditivo: só a versão ativa (409) ([ADR 0038](adr/0038-previa-do-aditivo.md)).
 
 **Versões na leitura** ([ADR 0039](adr/0039-lista-pela-versao-atual.md)):
 - **A listagem (`GET /api/contracts`) traz só a versão atual de cada contrato** (a que
@@ -1247,18 +1358,22 @@ preço aproximado.
 
 ### Saldo de sessões
 
-- **Por item de grupo por duração:** `sessionCount` do plano do contrato −
-  atendimentos **ativos** com `pricingSource = CONTRACT_ITEM`, `contractId` em
-  **qualquer versão da cadeia** (`ContractEntity.getVersionChainIds()`) e linha do
-  **grupo do item**. Todos os status contam.
-- **Item do Pilates em Grupo:** não tem saldo de sessões (é mensalidade).
+- **Por item de grupo por duração:** as sessões do item (`sessionCount` da linha travada: no
+  contrato de mensalidade, a do pacote equivalente) − atendimentos **ativos** com
+  `pricingSource = CONTRACT_ITEM`, `contractId` em **qualquer versão da cadeia**
+  (`ContractEntity.getVersionChainIds()`) e linha do **grupo do item**. Todos os status contam.
+- **Item do Pilates em Grupo: o saldo de aulas**, só de controle
+  ([ADR 0045](adr/0045-pilates-em-grupo-com-duas-contas.md)): as aulas da vigência (semanas do
+  contrato × vezes por semana; ver "Valor e parcelas" em `Contract`) − as aulas lançadas pelo item,
+  na cadeia toda. Não muda o que o paciente deve (a mensalidade é que cobra; ver `Payment`) e
+  **não tem o aviso do lançamento**: daria a entender que a aula será cobrada à parte.
 - **Casos 2 e 3** não mexem em saldo.
 - **Saldo esgotado:** o lançamento é aceito e o saldo fica **negativo**
   ([ADR 0018](adr/0018-saldo-esgotado-aceita-lancamento.md)). A resposta do
   lançamento traz `remainingSessions` (só no caso 1 por duração); negativo = aviso.
 - O cálculo fica no `consultation` (o `contract` não pode depender dele).
-  `GET /api/consultations/session-balance?contractId` devolve o saldo de cada item
-  por duração para a tela do aditivo.
+  `GET /api/consultations/session-balance?contractId` devolve o saldo de cada item, o do Grupo
+  marcado (`groupItem`, para a tela dizer "aulas"), para a tela do aditivo.
 
 ### Comissão
 
@@ -1363,3 +1478,218 @@ O quanto o prestador rendeu num período, a base do dashboard e do resumo do dia
   e no dashboard.
 - No `recent-patients` e no `day-summary`, o `ADMIN` informa o `providerId` (sem ele, 400 "O
   prestador é obrigatório."); para o `PROVIDER`, é sempre o dele.
+
+---
+
+## `Payment`
+
+O pagamento do paciente e a **conta**: o que ele usou comparado com o que pagou. Módulo
+`billing`, acima do `consultation` no mapa de módulos: lê o contrato e os atendimentos, e nenhum
+dos dois o conhece. **A dívida é o consumo; as parcelas do contrato são a referência** do que se
+espera receber ([ADR 0044](adr/0044-conta-do-paciente-pelo-consumo.md)). A conta é calculada na
+leitura, nunca gravada. Só o `ADMIN` acessa (registra, inativa e lê); o prestador não recebe pelo
+sistema.
+
+| Atributo | Tipo | Observação |
+|---|---|---|
+| `id` | Long | auto-increment |
+| `patientId` | FK → Patient | o dono da conta: o titular do contrato, ou o paciente do avulso |
+| `contractId` | FK → Contract, nullable | qualquer versão da cadeia (conta para a cadeia toda); nulo = pagamento do avulso |
+| `amount` | Money | **bruto**, o que o paciente pagou; maior que zero, sem teto (`CHECK`) |
+| `netAmount` | Money | **líquido**, o que a clínica recebe; de 0 ao bruto (`CHECK`) |
+| `cardInstallments` | int | o "parcelado em" do cartão, de 1 a 12 (`CHECK`); maior que 1 só no crédito |
+| `paidAt` | date | a data do pagamento; não futura (no fuso da clínica) |
+| `paymentMethod` | ENUM `PaymentMethod` | a forma deste pagamento (a do contrato é só a referência do combinado) |
+| `registeredByUserId` | FK → User | quem registrou (o usuário logado) |
+| `active` | boolean | soft delete |
+
+### Registro e inativação
+
+**O pagamento é de valor livre** ([ADR 0046](adr/0046-pagamento-bruto-liquido-e-cartao-parcelado.md)):
+não paga uma parcela, entra na conta. A tela sugere o valor (ver "Conta do contrato"), e o admin
+pode mudar.
+- **Bruto e líquido:** a conta do paciente usa o **bruto** (a taxa da maquininha é custo da
+  clínica, não dívida do paciente); o líquido serve ao faturamento. A taxa (bruto − líquido) e o %
+  dela são calculados, não gravados.
+- **Validações** (`PaymentEntity`, 400): valor maior que zero ("O valor do pagamento deve ser
+  maior que zero."); líquido de 0 ao bruto ("O valor líquido deve ser de R$ 0,00 até o valor
+  pago."); "parcelado em" de 1 a 12 ("O cartão pode ser parcelado de 1 a 12 vezes.") e maior que 1
+  só no crédito ("Só o cartão de crédito pode ser parcelado."); data não futura ("A data do
+  pagamento não pode ser futura."); forma entre Pix, cartão de crédito, cartão de débito e dinheiro
+  ("Forma de pagamento não aceita: use Pix, cartão de crédito, cartão de débito ou dinheiro.": o
+  boleto entra com um gateway); o contrato do paciente como titular ("O contrato não pertence a
+  este paciente."). Pagamento em contrato **cancelado ou terminado** é aceito: é assim que o
+  paciente quita a dívida de um contrato que já terminou.
+- **O cartão parcelado é um pagamento só:** uma passada na maquininha é uma transação, um
+  registro, inativado de uma vez. Para o paciente, o bruto inteiro conta na data do pagamento.
+- **Imutável:** sem `PUT`. Para corrigir, `DELETE /api/payments/{id}` (inativa; de novo → 409 "O
+  pagamento já está inativo.") e registrar de novo, como o lançamento
+  ([ADR 0020](adr/0020-lancamento-imutavel.md)). Inativar é **corrigir** um registro errado, não
+  estornar: o pagamento inativado sai da conta.
+
+### Previsão de recebimento
+
+Calculada, não gravada (`Receivables`), para a prévia do pagamento e o faturamento: Pix, dinheiro
+e débito, o líquido inteiro na data do pagamento; o crédito em N vezes, N partes do líquido, na
+data + 1, + 2… meses (o dia como os vencimentos: no mês curto, o último dia), com os centavos na
+primeira. Ex: crédito 3x, bruto R$ 1.670,00, líquido R$ 1.603,20 → taxa R$ 66,80 (4,0%) e 3 ×
+R$ 534,40.
+
+### Conta do contrato
+
+A conta de um contrato (`ContractAccount`), pela versão atual, com as contas somadas pela **cadeia
+de versões** (cada aditivo é uma versão nova):
+- **Consumido:** os atendimentos **ativos** da cadeia × `baseValue`, nos três status (atendido,
+  falta e desmarcação fora do prazo), no **caso 1 por duração** (o item do contrato) e no **caso 2**
+  (de-para: a técnica fora do contrato, que grava o contrato de origem). As aulas do Grupo não somam
+  (ver "Mensalidades do Grupo"). O atendimento do beneficiário soma na conta do **titular**.
+- **Devido** = consumido + as mensalidades do Grupo vencidas. **Pago** = o bruto dos pagamentos
+  ativos da cadeia + o crédito recebido de contratos anteriores − o crédito enviado a um contrato
+  novo (ver "Crédito de contratos anteriores"). **Saldo = pago − devido:** positivo = saldo
+  credor; negativo = devedor.
+- **Itens:** por item da versão atual, o usado (os atendimentos do caso 1 pelo grupo do item, na
+  cadeia toda), o contratado, o valor usado e o contratado (no Grupo, só as aulas, sem valor
+  usado), e o **excesso** dos itens por duração: as sessões além das contratadas × o valor da sessão
+  travada (cobradas, porque somam no consumido). O item incluído pelo aditivo vem marcado.
+- **Avisos** (o tipo e os dados; a tela monta o texto): parcelas vencidas (a quantidade, o que
+  falta delas e a mais antiga), sessões além do contratado (por técnica), contrato cancelado com
+  saldo devedor.
+- **Sugestões do pagamento** (só as que valem, sem repetir o mesmo valor): **a parcela em aberto**
+  (o que falta da vencida mais antiga, ou da próxima, com o vencimento), **todas as parcelas em
+  aberto** (o que falta do valor parcelado da versão) e **o saldo devedor** (devido − pago, quando
+  maior que zero; ex: parcelas quitadas, mas 2 sessões além das contratadas, que as parcelas não
+  cobrem).
+- **Situação:** **atrasado** (alguma parcela vencida em aberto, mesmo com saldo credor: pagou parte,
+  mas não a parcela combinada); senão, pelo saldo: **devendo**, **com crédito** ou **em dia**. O
+  contrato que terminou nunca fica atrasado (as parcelas em aberto dele são "não cobradas", abaixo):
+  vale só pelo saldo.
+
+### Mensalidades do Grupo
+
+O Pilates em Grupo tem duas contas, que não se afetam
+([ADR 0045](adr/0045-pilates-em-grupo-com-duas-contas.md)): **o dinheiro**, as mensalidades
+vencidas, e **as aulas**, só de controle (ver "Saldo de sessões" em `Consultation`).
+- **A mensalidade:** o valor do item do Grupo ÷ os meses da versão (`Installments.maxFor`), com os
+  centavos na primeira. Cada uma vence num vencimento do contrato (o 1º vencimento + N meses),
+  **mesmo com menos parcelas que meses**: quem pagou à vista fica com saldo credor, abatido mês a
+  mês. Ex: Trimestral 2x, R$ 1.711,06 → R$ 570,36 + 2 × R$ 570,35.
+- **Vence até hoje:** soma a mensalidade com vencimento até hoje. Com aditivo, **cada versão conta as
+  próprias**, as que vencem enquanto ela valeu (do `createdAt` dela ao `deactivatedOn`; a original,
+  desde o início); o total da cadeia fica nos meses do contrato. Depois da inativação, nada mais
+  vence.
+- **No contrato misto**, o devido é o consumo dos itens por duração + as mensalidades vencidas.
+
+### Situação das parcelas
+
+As parcelas de cada versão (o cronograma do contrato, ver "Valor e parcelas" em `Contract`) com o
+pago que vale para elas, **distribuído pela ordem de vencimento**
+([ADR 0048](adr/0048-valor-parcelado-gravado-por-versao.md)):
+- **O pago das parcelas da versão atual:** o pago da cadeia − o pago antes do aditivo (o total da
+  versão − o `installmentBase`), **limitado entre 0 e o `installmentBase`**. Aqui o pago são os
+  pagamentos + o crédito recebido, **sem tirar o crédito enviado**: transferir o crédito de um
+  contrato terminado não desfaz as parcelas que ele pagou. Numa versão
+  substituída, o que entrou enquanto ela valeu (o pago antes do aditivo seguinte − o pago antes
+  dela), com o mesmo limite.
+- **Situação de cada parcela, nesta ordem:** **paga** (o pago cobre o valor); **substituída pelo
+  aditivo** (numa versão substituída, a que não foi paga: o aditivo parcelou de novo o que
+  faltava); **cancelada** (vence a partir do `deactivatedOn`: nada vence depois da inativação);
+  **não cobrada** (o contrato já terminou, `endDate` antes de hoje: a conta dele vale só pelo saldo;
+  sem isso, quem terminou com crédito, por ter usado menos do que pagou, ficaria atrasado);
+  **atrasada** (venceu antes de hoje); senão, a primeira é a **próxima** e as outras, **a vencer**.
+- **Inativar um pagamento de antes do aditivo faz a dívida reaparecer na versão atual**
+  (comportamento esperado): o `installmentBase` não muda, e o pago dela diminui.
+
+### Conta do paciente
+
+`PatientAccountSummary`: as contas do paciente juntas.
+- **Os contratos na conta:** aqueles em que ele é **titular**, pela versão atual. O ativo
+  (vigente, vencido ou encerrado) sempre; o cancelado, **só enquanto o saldo for diferente de
+  zero** (a dívida, ou o crédito, não some). O ativo primeiro, depois do mais novo para o mais
+  antigo.
+- **Na tela, os encerrados ficam recolhidos** (continuam ligados ao paciente e na tela de
+  Contratos): no Resumo, numa seção "Contratos encerrados (N)" no fim, aberta a um clique; nas abas
+  Parcelas e Sessões, atrás da pílula "Encerrados (N)" (já abertos quando o escolhido é um
+  encerrado ou não há outro), e as abas abrem no primeiro contrato não encerrado. Ficam fora do
+  "Registrar pagamento": não há o que pagar.
+- **O avulso** (`SingleSessionAccount`): os atendimentos ativos sem contrato do paciente (o
+  caso 3: o atendimento entra como débito) e os pagamentos sem contrato. Sugestão: o **débito em
+  aberto**; aviso: o avulso em aberto. Sem parcelas: nunca fica atrasado.
+- **Contrato e avulso são contas separadas:** o crédito de uma não passa para a outra.
+- **O beneficiário** vê na conta dele só o que é dele (o avulso e os contratos em que ele é
+  titular): o atendimento dele pelo contrato do titular fica na conta do titular.
+
+### Crédito de contratos anteriores
+
+O saldo credor de um contrato que não está mais vigente pode ir para o contrato novo do mesmo
+titular, como uma **transferência gravada** (`BalanceTransfer`,
+[ADR 0051](adr/0051-status-pelo-saldo-e-credito-transferido.md)).
+- **O crédito disponível:** a soma dos saldos credores dos contratos em que o paciente é
+  **titular** e que não estão vigentes (vencidos ou cancelados). O avulso fica de fora: a clínica
+  resolve com um pagamento de "Outro valor".
+- **Aplicar no cadastro:** com crédito disponível, a tela pergunta (a caixa vem desmarcada;
+  `applyCredit` no pedido). Aplicado, entra **o crédito inteiro** até o total do contrato novo, e
+  o valor parcelado é o total − o crédito; com o crédito cobrindo o total, 1 parcela de R$ 0,00.
+  A prévia mostra o disponível e o aplicado (ver "Endpoints de apoio à tela" em `Contract`).
+- **De mais de um contrato:** do mais antigo para o mais novo (pelo início), cada um até o próprio
+  crédito, até cobrir o total. **O que não cabe** continua como crédito no contrato antigo.
+- **Uma transferência por contrato de origem** (`fromContractId`, `toContractId`, `amount` > 0,
+  `transferredAt`; dois contratos diferentes do mesmo titular, 400 nos outros casos). Sai do saldo
+  do antigo e entra no novo como pago; **não é faturamento** (não entrou dinheiro). O antigo, com o
+  saldo zerado, fica encerrado.
+- **Imutável:** cancelar o contrato novo não devolve o crédito ao antigo; ele fica no novo como
+  saldo credor e volta a estar disponível para o próximo contrato.
+- Na conta, cada contrato traz o crédito recebido e o enviado; no histórico de pagamentos, a
+  transferência aparece como "Crédito aplicado", sem inativação.
+
+### Lista do Financeiro
+
+Uma linha por paciente com conta:
+- **Quem entra:** o paciente com algum contrato na conta ou com avulso lançado ou pago, inclusive o
+  paciente inativado com saldo.
+- **O saldo** é a soma das contas; **a situação** é avaliada conta a conta, nesta prioridade:
+  atrasado (alguma parcela vencida em aberto, em qualquer contrato) → devendo (alguma conta com
+  saldo devedor) → com crédito (alguma com saldo credor) → em dia.
+- **Próximo vencimento:** a parcela vencida mais antiga, entre os contratos (com a quantidade de
+  vencidas e o que falta delas); sem vencida, a próxima a vencer.
+- **Ordem:** os atrasados, da parcela vencida mais antiga para a mais recente; depois os devendo,
+  do maior saldo devedor para o menor; depois os outros, por nome (palavra a palavra, com os
+  acentos do português: "Ana Zélia" antes de "Anabela").
+- **Sem N+1:** a lista inteira sai de no máximo 5 consultas, qualquer que seja o número de
+  pacientes (todas as versões dos contratos com os itens, o consumo, os pagamentos, as
+  transferências de crédito e os pacientes só do avulso), com as cadeias de versões montadas em
+  memória e as somas em Java.
+- Os filtros da tela são pelos campos da resposta (devendo = saldo negativo; atrasados =
+  `hasOverdue`; com crédito = saldo positivo): um paciente pode estar em dois.
+
+### Numeração das sessões
+
+Os atendimentos de um contrato numerados ("7ª de 6"), pelo backend (`ContractSessions`):
+- só os **ativos** (o inativado não é cobrado); inativar um antigo renumera os seguintes;
+- **por item** (o grupo de preço), na cadeia de versões toda, pela data e, no mesmo dia, pela ordem
+  do lançamento; o contratado é o do item na **versão atual**;
+- acima do contratado: **além do contratado** (cobrada) ou, no Grupo, **além das aulas
+  previstas** (sem valor a mais);
+- o de-para: sem número, **fora do contrato**; o item que o aditivo removeu: as sessões continuam
+  numeradas, sem o contratado, com **item removido no aditivo**.
+
+### Leituras da conta
+
+Todas do `ADMIN`, calculadas na leitura (nada é gravado):
+- `GET /api/billing/accounts`: a lista do Financeiro, já na ordem.
+- `GET /api/billing/patients/{id}/account`: cada contrato na conta (o status do contrato, o
+  consumido, as mensalidades, o devido, o pago e o % do total, o crédito recebido e o enviado, o
+  saldo, a situação, o resumo das parcelas, os itens, os avisos e as sugestões) e o avulso (nulo,
+  sem atendimento nem pagamento sem contrato).
+- `GET /api/billing/patients/{id}/transfers`: as transferências de crédito entre os contratos do
+  paciente, da mais recente para a mais antiga, com os dois contratos (o plano e o aditivo), para
+  o histórico de pagamentos.
+- `GET /api/billing/contracts/{id}/installments`: as parcelas de cada versão, da mais nova para a
+  mais antiga, com o pago, o que falta e a situação de cada uma, o valor parcelado e o pago antes
+  do aditivo.
+- `GET /api/billing/contracts/{id}/sessions`: os atendimentos ativos numerados e se o contrato tem
+  beneficiário.
+- Nas duas do contrato, **o `id` de qualquer versão leva à atual**.
+- `GET /api/payments?patientId&contractId`: os pagamentos do paciente, ativos e inativos, do mais
+  recente para o mais antigo, com o contrato (o plano e o aditivo) e a taxa.
+- `POST /api/payments/preview`: a taxa e a previsão de recebimento, sem gravar, com as mesmas
+  validações do registro.

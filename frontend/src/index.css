@@ -46,6 +46,14 @@
   --color-danger-bg: #fef2f2;
   --color-danger-soft: #fee2e2;
   --color-border: #e4e9e6;
+  /* A bolinha da contagem nos filtros (FilterPills) e o trilho das barras de uso */
+  --color-count-bg: #eef1ef;
+  /* Neutro, sem destaque (selo "A vencer", "Faltou"): fundo, borda e texto */
+  --color-neutral-bg: #f3f4f6;
+  --color-neutral-border: #e5e7eb;
+  --color-neutral-text: #4b5563;
+  /* Além do contratado: a extensão da barra de uso do item */
+  --color-extra: #d97706;
   --color-text: #374151;
   --color-title: #1f2937;
   --color-muted: #6b7280;

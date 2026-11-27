@@ -5,6 +5,7 @@ import java.lang.annotation.Retention;
 import java.lang.annotation.RetentionPolicy;
 import java.lang.annotation.Target;
 
+import org.junit.jupiter.api.extension.ExtendWith;
 import org.springframework.boot.test.context.SpringBootTest;
 import org.springframework.boot.webmvc.test.autoconfigure.AutoConfigureMockMvc;
 import org.springframework.context.annotation.Import;
@@ -20,8 +21,11 @@ import org.springframework.test.context.ActiveProfiles;
 //   e nunca supõe uma tabela vazia.
 // - Todas as classes com esta anotação dividem o mesmo contexto do Spring e, por isso, o
 //   mesmo container: ele sobe uma vez por execução.
+// - O fuso da clínica é aplicado antes de o Spring subir (ClinicTimeZoneExtension, declarada
+//   antes do @SpringBootTest): sem isso, as datas lidas do banco voltavam um dia antes.
 @Target(ElementType.TYPE)
 @Retention(RetentionPolicy.RUNTIME)
+@ExtendWith(ClinicTimeZoneExtension.class)
 @SpringBootTest
 @Import(TestcontainersConfiguration.class)
 @ActiveProfiles("test")

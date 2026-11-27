@@ -1,0 +1,68 @@
+.box {
+  overflow: hidden;
+  border: 1px solid var(--color-frame-line);
+  border-radius: var(--radius);
+  background: var(--color-surface);
+}
+
+.header {
+  display: flex;
+  align-items: baseline;
+  justify-content: space-between;
+  gap: 12px;
+  padding: 14px 20px;
+  border-bottom: 1px solid var(--color-border);
+  background: var(--color-frame-bg);
+}
+
+.title {
+  margin: 0;
+  color: var(--color-title);
+  font-size: 15px;
+  font-weight: 600;
+}
+
+.cells {
+  display: grid;
+}
+
+.cell {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+  min-width: 0;
+  padding: 18px 20px;
+}
+
+.cell + .cell {
+  border-left: 1px solid var(--color-border);
+}
+
+.label {
+  color: var(--color-muted);
+  font-size: 12px;
+  font-weight: 700;
+  letter-spacing: 0.06em;
+  text-transform: uppercase;
+}
+
+.money {
+  color: var(--color-title);
+  font-size: 20px;
+  font-weight: 700;
+  font-variant-numeric: tabular-nums;
+  line-height: 1.2;
+}
+
+.note {
+  color: var(--color-muted);
+  font-size: 13px;
+}
+
+.negative {
+  color: var(--color-danger);
+}
+
+.positive {
+  color: var(--color-change-text);
+}

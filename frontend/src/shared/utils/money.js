@@ -36,6 +36,12 @@ export function formatPercentage(value) {
   }
 }
 
+// Valor digitado no formato da API (texto com ponto, lido como BigDecimal exato): "1670,5" ->
+// "1670.5". Devolve "" para valor vazio
+export function toApiDecimal(text) {
+  return String(text ?? "").trim().replace(",", ".");
+}
+
 // Valor da API no formato do campo de texto: 113 -> "113,00". Devolve "" para valor vazio
 export function toMoneyInputValue(value) {
   if (value === null || value === undefined || value === "") return "";

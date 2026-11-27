@@ -309,17 +309,16 @@ public class ConsultationService {
     }
 
     /**
-     * Saldo de sessões de cada item por duração do contrato, somando toda a cadeia de
-     * versões até a versão informada (o frontend usa a versão ativa).
+     * Saldo de cada item do contrato, somando toda a cadeia de versões até a versão informada
+     * (o frontend usa a versão ativa): as sessões do item por duração e as aulas do Pilates em
+     * Grupo (só controle de presença).
      */
     @Transactional(readOnly = true)
     public List<ContractSessionBalanceResponseDTO> findSessionBalance(Long contractId) {
         ContractEntity contract = contractRepository.findById(contractId)
                 .orElseThrow(() -> new ResourceNotFoundException("Contrato não encontrado com id: " + contractId));
         return contract.getItems().stream()
-                .filter(ContractItemEntity::isDurationBased)
-                .map(item -> ContractSessionBalanceResponseDTO.fromItem(item,
-                        contract.getPlan().getSessionCount(), usedSessionsOf(contract, item.getPricingGroup())))
+                .map(item -> ContractSessionBalanceResponseDTO.fromItem(item, usedOf(contract, item)))
                 .toList();
     }
 
@@ -646,7 +645,8 @@ public class ConsultationService {
     // ---------------------------------------------------------------------------
 
     // Saldo do item depois do lançamento: só quando o atendimento debitou um item por
-    // duração (o Grupo não tem saldo; de-para e Avulso não debitam)
+    // duração (o saldo de aulas do Grupo fica sem aviso no lançamento; de-para e Avulso não
+    // debitam)
     private Integer remainingSessionsAfter(ConsultationEntity consultation) {
         if (!consultation.getPricingSource().debitsContractItem() || consultation.getSessionDurationPrice() == null) {
             return null;
@@ -657,15 +657,31 @@ public class ConsultationService {
                 .orElse(null);
     }
 
-    // Sessões do plano − sessões usadas na cadeia toda. Pode ficar negativo.
+    // Sessões do item − sessões usadas na cadeia toda. Pode ficar negativo. As sessões vêm do
+    // item (a linha travada), não do plano do contrato: no contrato de mensalidade, a linha do
+    // item por duração é do pacote equivalente, e o plano do contrato não tem sessões
     private int remainingSessionsOf(ContractEntity contract, ContractItemEntity item) {
-        return contract.getPlan().getSessionCount() - usedSessionsOf(contract, item.getPricingGroup());
+        return item.getValue().sessionCount() - usedSessionsOf(contract, item.getPricingGroup());
+    }
+
+    // O usado do item: as sessões (item por duração) ou as aulas (Pilates em Grupo)
+    private int usedOf(ContractEntity contract, ContractItemEntity item) {
+        return item.isDurationBased()
+                ? usedSessionsOf(contract, item.getPricingGroup())
+                : usedClassesOf(contract, item.getPricingGroup());
     }
 
     // Atendimentos ativos que debitaram o item (contrato + grupo) em qualquer versão
     // da cadeia. long → int: é uma contagem de sessões de um contrato (dezenas).
     private int usedSessionsOf(ContractEntity contract, PricingGroupEntity pricingGroup) {
         return (int) consultationRepository.countByContractIdInAndPricingSourceAndActiveTrueAndSessionDurationPricePricingGroupId(
+                contract.getVersionChainIds(), PricingSource.CONTRACT_ITEM, pricingGroup.getId());
+    }
+
+    // Aulas do Pilates em Grupo lançadas pelo item (caso 1, linha de frequência do grupo), na
+    // cadeia toda: só controle de presença, não entram no consumido
+    private int usedClassesOf(ContractEntity contract, PricingGroupEntity pricingGroup) {
+        return (int) consultationRepository.countByContractIdInAndPricingSourceAndActiveTrueAndSessionFrequencyPricePricingGroupId(
                 contract.getVersionChainIds(), PricingSource.CONTRACT_ITEM, pricingGroup.getId());
     }
 

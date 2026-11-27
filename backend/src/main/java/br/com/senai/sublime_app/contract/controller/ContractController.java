@@ -45,7 +45,8 @@ public class ContractController {
             Cria um contrato com um plano e um item por grupo de preço, e responde com ele. Cada
             item informa a técnica e uma linha de preço (`GET /api/techniques/{id}/prices`): no
             item por duração, `sessionDurationPriceId` + `frequency`; no Pilates em Grupo,
-            `sessionFrequencyPriceId`.
+            `sessionFrequencyPriceId`. O `firstDueDate` (1º vencimento) e o `applyCredit` (aplicar o
+            crédito de contratos anteriores do titular) são opcionais.
 
             Regras: "Contract e ContractItem" no `docs/domain-model.md`.
             """)
@@ -62,8 +63,8 @@ public class ContractController {
     }
 
     @Operation(summary = "Listar contratos", description = """
-            Retorna a versão atual de cada contrato, incluindo as inativadas. As versões
-            anteriores ficam em `GET /api/contracts/{id}/versions`.
+            Retorna a versão atual de cada contrato, com o status, incluindo as canceladas. As
+            versões anteriores ficam em `GET /api/contracts/{id}/versions`.
 
             Regras: "Contract e ContractItem" no `docs/domain-model.md`.
             """)
@@ -108,8 +109,10 @@ public class ContractController {
 
     @Operation(summary = "Prévia do contrato (tela de criação)", description = """
             Calcula, sem gravar, o que o cadastro calcularia: o fim, as opções do plano do Pilates
-            em Grupo, o valor de cada item, o total e as parcelas. Envie o plano, o início, os
-            itens já escolhidos (no formato do cadastro) e, opcionalmente, as parcelas.
+            em Grupo, o valor de cada item, o total, as parcelas e o cronograma. Envie o plano, o
+            início, os itens já escolhidos (no formato do cadastro) e, opcionalmente, as parcelas,
+            o `firstDueDate`, o `patientId` (para trazer o crédito disponível do titular) e o
+            `applyCredit`.
 
             Regras: "Valor e parcelas" em Contract, no `docs/domain-model.md`.
             """)
@@ -126,7 +129,7 @@ public class ContractController {
     @Operation(summary = "Alterar contrato (aditivo)", description = """
             Gera uma nova versão do contrato e responde com ela; a versão atual é inativada. Envie
             o estado completo da nova versão (o item que não vier é removido) e, opcionalmente, o
-            `endDate` (prorrogação).
+            `endDate` (prorrogação) e o `firstDueDate`.
 
             Regras: "Versionamento (aditivos)" no `docs/domain-model.md`.
             """)
@@ -146,9 +149,10 @@ public class ContractController {
 
     @Operation(summary = "Prévia do aditivo", description = """
             Calcula, sem gravar, o que o aditivo calcularia: o novo fim, as opções do plano do
-            Pilates em Grupo, o valor de cada item, o total e as parcelas. Envie os itens do
-            formulário (no formato do aditivo) e, opcionalmente, o `endDate` (prorrogação) e as
-            parcelas. A versão continua ativa.
+            Pilates em Grupo, o valor de cada item, o total, o pago até agora, as parcelas e o
+            cronograma (com o 1º vencimento sugerido). Envie os itens do formulário (no formato do
+            aditivo) e, opcionalmente, o `endDate` (prorrogação), as parcelas e o `firstDueDate`.
+            A versão continua ativa.
 
             Regras: "Versionamento (aditivos)" no `docs/domain-model.md`.
             """)
@@ -165,13 +169,15 @@ public class ContractController {
         return ResponseEntity.ok(contractService.previewAmendment(id, requestDTO));
     }
 
-    @Operation(summary = "Inativar contrato", description = """
-            Inativa o contrato (soft delete): ele continua no histórico.
+    @Operation(summary = "Cancelar contrato", description = """
+            Cancela o contrato (soft delete): ele continua no histórico, com o status "Cancelado".
+
+            Regras: "Status do contrato" em Contract, no `docs/domain-model.md`.
             """)
     @ApiResponses({
-            @ApiResponse(responseCode = "204", description = "Contrato inativado com sucesso"),
+            @ApiResponse(responseCode = "204", description = "Contrato cancelado com sucesso"),
             @ApiResponse(responseCode = "404", description = "Contrato não encontrado", content = @Content),
-            @ApiResponse(responseCode = "409", description = "O contrato já está inativo (substituído por aditivo ou já encerrado)", content = @Content)
+            @ApiResponse(responseCode = "409", description = "O contrato já está inativo (substituído por aditivo ou já cancelado)", content = @Content)
     })
     @DeleteMapping("/{id}")
     public ResponseEntity<Void> deactivate(

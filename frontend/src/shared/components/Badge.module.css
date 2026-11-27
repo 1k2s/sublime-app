@@ -8,7 +8,6 @@
   font-size: 12px;
   font-weight: 500;
   line-height: 1;
-  text-transform: capitalize;
 }
 
 /* Ativo, vigente, atual: o verde suave do app (o mesmo do default) */
@@ -39,4 +38,18 @@
 .default {
   background-color: var(--color-primary-soft);
   color: var(--color-primary);
+}
+
+/* Neutro, sem destaque (ex: parcela "A vencer", atendimento "Faltou") */
+.neutral {
+  background-color: var(--color-neutral-bg);
+  color: var(--color-neutral-text);
+  border: 1px solid var(--color-neutral-border);
+}
+
+/* O próximo da fila (ex: a parcela "Próxima"): só a borda verde */
+.outline {
+  background-color: var(--color-surface);
+  color: var(--color-primary);
+  border: 1px solid var(--color-primary);
 }

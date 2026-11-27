@@ -2,11 +2,12 @@ import { ArrowRight, Check } from "lucide-react";
 import { Button } from "@/shared/components/Button";
 import { formatDate } from "@/shared/utils/date";
 import { formatCurrency } from "@/shared/utils/money";
-import { formatInstallments } from "../display/formatInstallments";
+import { formatAmendedInstallments, formatCreatedInstallments } from "../display/formatInstallments";
 import styles from "./ContractResultBar.module.css";
 
 // Rodapé fixo do cadastro e do aditivo: o resultado do contrato (o fim e o valor total com as
-// parcelas, da prévia do backend) e os botões. Fica sempre à vista: o efeito de cada escolha aparece
+// parcelas e os vencimentos, da prévia do backend; no aditivo, também o já pago, descontado do
+// total) e os botões. Fica sempre à vista: o efeito de cada escolha aparece
 // sem rolar. Ver "Vigência e frequência" e "Valor e parcelas" em Contract, no domain-model.
 // preview: { isEnabled, isLoading, isError, data } da prévia. previous: no aditivo, a versão atual
 // (o fim e o total aparecem como "antes → depois" quando mudam). hasChanges: no aditivo, sem
@@ -54,7 +55,10 @@ export function ContractResultBar({ preview, previous = null, hasChanges = true,
           <span className={[styles.value, styles.total].join(" ")}>
             {isAmendment && <Before value={formatCurrency(previous.totalValue)} current={total} />}
             {total}
-            <span className={styles.detail}> · {formatInstallments(data)}</span>
+            <span className={styles.detail}>
+              {" "}
+              · {isAmendment ? formatAmendedInstallments(data) : formatCreatedInstallments(data)}
+            </span>
           </span>
         ) : (
           <span className={styles.value}>

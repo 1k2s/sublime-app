@@ -1,0 +1,49 @@
+/* As abas com a mesma largura, para a linha da ativa deslizar entre elas só com o transform */
+.tabs {
+  --tab-width: 140px;
+
+  position: relative;
+  display: grid;
+  flex-shrink: 0;
+  grid-template-columns: repeat(var(--tab-count), var(--tab-width));
+  border-bottom: 1px solid var(--color-border);
+}
+
+.tab {
+  padding: 8px 14px;
+  border: none;
+  background: none;
+  color: var(--color-muted);
+  font: inherit;
+  font-size: 14px;
+  font-weight: 500;
+  cursor: pointer;
+  transition: color 0.2s ease;
+}
+
+.tab:hover {
+  color: var(--color-text);
+}
+
+.tabActive {
+  color: var(--color-primary);
+  font-weight: 600;
+}
+
+.indicator {
+  position: absolute;
+  bottom: -1px;
+  left: 0;
+  width: var(--tab-width);
+  height: 2px;
+  background: var(--color-primary);
+  transform: translateX(calc(var(--tab-index) * 100%));
+  transition: transform 0.25s ease;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .tab,
+  .indicator {
+    transition: none;
+  }
+}

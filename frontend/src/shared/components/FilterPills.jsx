@@ -1,4 +1,5 @@
-// Grupo de pílulas para escolher um valor (ex: filtro de status). Só uma fica ativa
+// Grupo de pílulas para escolher um valor (ex: filtro de status). Só uma fica ativa.
+// options: [{ label, value, count? }]; count (opcional) aparece ao lado do rótulo (ex: "Atrasados 3")
 import styles from "./FilterPills.module.css";
 
 export function FilterPills({ options, value, onChange, className }) {
@@ -13,6 +14,7 @@ export function FilterPills({ options, value, onChange, className }) {
           onClick={() => onChange(option.value)}
         >
           {option.label}
+          {option.count != null && <span className={styles.count}>{option.count}</span>}
         </button>
       ))}
     </div>

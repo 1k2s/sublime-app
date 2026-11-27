@@ -1,0 +1,39 @@
+/* Duas linhas numa célula (o valor e a nota embaixo), como na ContractTable */
+.stack {
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+}
+
+.end {
+  align-items: flex-end;
+  white-space: nowrap;
+}
+
+.name {
+  color: var(--color-title);
+}
+
+/* A segunda linha, menor */
+.detail {
+  font-size: 12px;
+}
+
+/* Saldo devedor e parcela vencida: vermelho; saldo credor: azul */
+.negative,
+.late {
+  color: var(--color-danger);
+  font-weight: 600;
+}
+
+.positive {
+  color: var(--color-change-text);
+  font-weight: 600;
+}
+
+/* Os avisos quebram linha, para a tabela caber na largura */
+.warnings {
+  display: inline-block;
+  max-width: 280px;
+  white-space: normal;
+}

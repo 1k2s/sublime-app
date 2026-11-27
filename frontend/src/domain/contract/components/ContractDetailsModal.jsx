@@ -1,9 +1,11 @@
 import { useState } from "react";
-import { ArrowLeft, FileText, Pencil, XCircle } from "lucide-react";
+import { useNavigate } from "react-router-dom";
+import { ArrowLeft, FileText, Pencil, Wallet, XCircle } from "lucide-react";
 import { Badge } from "@/shared/components/Badge";
 import { Button } from "@/shared/components/Button";
 import { ListMessage } from "@/shared/components/ListMessage";
 import { Modal } from "@/shared/components/Modal";
+import { Tabs } from "@/shared/components/Tabs";
 import { formatDate } from "@/shared/utils/date";
 import { getContractStatus } from "../display/contractStatus";
 import { getVersionBadge, getVersionLabel, hasAmendment } from "../display/contractVersions";
@@ -20,7 +22,7 @@ const VERSION_MESSAGES = {
   empty: "Nenhuma versão encontrada",
 };
 
-// Detalhe do contrato, em duas abas: "Contrato" (a versão atual, com Inativar e Editar) e
+// Detalhe do contrato, em duas abas: "Contrato" (a versão atual, com Cancelar e Editar) e
 // "Histórico" (abre na versão mais nova, com a linha do tempo das versões no topo para abrir as
 // outras e o que mudou em relação à anterior marcado em azul). O
 // histórico é só para consultar: voltar a uma versão anterior é fazer um novo aditivo. Ver
@@ -37,6 +39,7 @@ export function ContractDetailsModal({
   onEdit,
   onClose,
 }) {
+  const navigate = useNavigate();
   const [isConfirming, setIsConfirming] = useState(false);
   const [tab, setTab] = useState(TABS.CONTRACT);
   const [openedVersionId, setOpenedVersionId] = useState(null);
@@ -85,21 +88,26 @@ export function ContractDetailsModal({
         </div>
       );
     }
-    // Durante a confirmação, o rodapé sai: as ações ficam na caixa de confirmação. Inativar e
-    // Editar só no contrato ativo (vigente ou vencido): contrato não tem reativação
+    // Durante a confirmação, o rodapé sai: as ações ficam na caixa de confirmação. Cancelar e
+    // Editar só no contrato ativo (vigente, vencido ou encerrado): contrato não tem reativação
     if (isConfirming) return null;
     return (
       <div className={styles.footer}>
         <div>
           {contract.active && (
             <Button variant="danger" onClick={() => setIsConfirming(true)} disabled={isDeactivating}>
-              <XCircle size={16} /> Inativar contrato
+              <XCircle size={16} /> Cancelar contrato
             </Button>
           )}
         </div>
         <div className={styles.actions}>
           <Button variant="outline" onClick={close}>
             Fechar
+          </Button>
+          {/* A conta do titular no Financeiro (o que foi pago e a situação das parcelas): pela
+              URL, sem importar o billing, que está acima do contract no mapa de módulos */}
+          <Button variant="outline" onClick={() => navigate(`/billing?patientId=${contract.patientId}`)}>
+            <Wallet size={16} aria-hidden /> Ver conta
           </Button>
           {contract.active && (
             <Button onClick={() => onEdit?.(contract)} disabled={isDeactivating}>
@@ -204,31 +212,15 @@ export function ContractDetailsModal({
       onClose={close}
     >
       <div className={styles.content}>
-        <div role="tablist" aria-label="Detalhe do contrato" className={styles.tabs}>
-          <button
-            type="button"
-            role="tab"
-            aria-selected={tab === TABS.CONTRACT}
-            className={[styles.tab, tab === TABS.CONTRACT && styles.tabActive].filter(Boolean).join(" ")}
-            onClick={() => changeTab(TABS.CONTRACT)}
-          >
-            Contrato
-          </button>
-          <button
-            type="button"
-            role="tab"
-            aria-selected={tab === TABS.HISTORY}
-            className={[styles.tab, tab === TABS.HISTORY && styles.tabActive].filter(Boolean).join(" ")}
-            onClick={() => changeTab(TABS.HISTORY)}
-          >
-            Histórico{versions.length > 0 ? ` (${versions.length})` : ""}
-          </button>
-          {/* A linha da aba ativa desliza de uma aba para a outra (as duas têm a mesma largura) */}
-          <span
-            className={[styles.tabIndicator, tab === TABS.HISTORY && styles.tabIndicatorSecond].filter(Boolean).join(" ")}
-            aria-hidden
-          />
-        </div>
+        <Tabs
+          label="Detalhe do contrato"
+          tabs={[
+            { value: TABS.CONTRACT, label: "Contrato" },
+            { value: TABS.HISTORY, label: `Histórico${versions.length > 0 ? ` (${versions.length})` : ""}` },
+          ]}
+          value={tab}
+          onChange={changeTab}
+        />
 
         {/* A mesma altura nas duas abas (o modal não muda de tamanho ao trocar): as listas rolam
             por dentro */}
@@ -239,15 +231,15 @@ export function ContractDetailsModal({
         {tab === TABS.CONTRACT && isConfirming && (
           <div className={styles.confirmBox}>
             <p className={styles.confirmText}>
-              Inativar este contrato? Não tem volta: contrato não pode ser reativado. Use só para corrigir um
-              contrato criado errado (ex: plano ou titular errado).
+              Cancelar este contrato? Não tem volta: o contrato cancelado não pode ser reativado. Nada mais vence
+              depois de hoje, e o saldo dele continua na conta do paciente.
             </p>
             <div className={styles.actions}>
               <Button variant="outline" onClick={() => setIsConfirming(false)}>
-                Cancelar
+                Voltar
               </Button>
               <Button variant="danger" onClick={confirmDeactivate} disabled={isDeactivating}>
-                Confirmar inativação
+                Confirmar cancelamento
               </Button>
             </div>
           </div>

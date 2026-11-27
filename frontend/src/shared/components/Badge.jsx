@@ -10,13 +10,15 @@
  *   - "warning": amarelo suave com texto âmbar (ex.: contrato "Vencido").
  *   - "suggestion": azul suave, para o que é novo ou mudou (ex.: item "Novo" no aditivo).
  *   - "default": o mesmo verde suave, para rótulos neutros (ex.: "Aditivo 2").
+ *   - "neutral": cinza, sem destaque (ex.: parcela "A vencer", atendimento "Faltou").
+ *   - "outline": só a borda verde, para o próximo da fila (ex.: parcela "Próxima").
  */
 
 import styles from "./Badge.module.css";
 
 /**
  * @param {Object} props
- * @param {"default"|"active"|"inactive"|"warning"|"suggestion"} [props.variant="default"] - Variante visual do badge
+ * @param {"default"|"active"|"inactive"|"warning"|"suggestion"|"neutral"|"outline"} [props.variant="default"] - Variante visual do badge
  * @param {string} [props.className] - Classes CSS adicionais
  * @param {import("react").ReactNode} props.children - Texto ou conteúdo da tag
  */

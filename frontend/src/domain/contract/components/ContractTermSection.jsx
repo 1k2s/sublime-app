@@ -3,17 +3,25 @@ import { CalendarDays } from "lucide-react";
 import { FormField } from "@/shared/components/FormField";
 import { Input } from "@/shared/components/Input";
 import { Select } from "@/shared/components/Select";
-import { addDaysToIsoDate } from "@/shared/utils/date";
+import { addDaysToIsoDate, formatDate } from "@/shared/utils/date";
+import { formatCurrency } from "@/shared/utils/money";
 import { PAYMENT_METHOD_OPTIONS } from "../display/paymentMethods";
 import { ContractSection } from "./ContractSection";
 import styles from "./ContractTermSection.module.css";
+
+// A dica do 1º vencimento vazio: no cadastro, o início; no aditivo, o sugerido pela prévia (o dia
+// do vencimento no mês em aberto, calculado pelo backend)
+function firstDueDateHint(isAmendment, data) {
+  if (!isAmendment) return "Vazio: o início do contrato";
+  return data?.suggestedFirstDueDate ? `Vazio: ${formatDate(data.suggestedFirstDueDate)} (sugerido)` : "Vazio: o sugerido";
+}
 
 // Do máximo para baixo: o máximo (os meses do contrato) é o caso comum
 function installmentOptions(maxInstallments) {
   return Array.from({ length: maxInstallments }, (_, index) => maxInstallments - index);
 }
 
-// Card de vigência e pagamento: início, forma de pagamento e parcelas. O fim e o valor total
+// Card de vigência e pagamento: início, forma de pagamento, parcelas e o 1º vencimento. O fim e o valor total
 // aparecem no rodapé fixo (ContractResultBar); aqui fica a mensagem da prévia quando ela falha.
 // As parcelas vêm da prévia do backend (o máximo são os meses do contrato): ver "Valor e
 // parcelas" em Contract, no domain-model. preview: { isEnabled, isError, error, data }.
@@ -100,7 +108,37 @@ export function ContractTermSection({
               )}
             />
           </FormField>
+
+          {/* Opcional: vazio, o backend aplica o padrão (o início, no cadastro; o sugerido pela prévia,
+              no aditivo). O intervalo aceito é regra do backend: a mensagem dele aparece no erro */}
+          <FormField
+            label="1º vencimento"
+            htmlFor="contract-first-due-date"
+            error={errors.firstDueDate?.message}
+            hint={firstDueDateHint(isAmendment, data)}
+            reserveErrorSpace
+          >
+            <Input
+              id="contract-first-due-date"
+              type="date"
+              invalid={Boolean(errors.firstDueDate)}
+              {...register("firstDueDate")}
+            />
+          </FormField>
         </div>
+
+        {/* Só no cadastro, com crédito disponível do titular (contratos anteriores com saldo credor,
+            pela prévia): a caixa vem desmarcada. Aplicado, entra o crédito inteiro, e o valor
+            parcelado é o total menos ele (o rodapé mostra) */}
+        {!isAmendment && Number(data?.availableCredit) > 0 && (
+          <label className={styles.credit}>
+            <input type="checkbox" {...register("applyCredit")} />
+            <span>
+              Aplicar o crédito de <strong>{formatCurrency(data.availableCredit)}</strong> dos contratos anteriores
+              <span className={styles["credit-hint"]}> (o valor parcelado fica o total menos o crédito)</span>
+            </span>
+          </label>
+        )}
 
         {/* A mensagem da API (ex: "passa do prazo máximo de 52 semanas") por inteiro, sem travar a edição */}
         {preview.isEnabled && preview.isError && <p className={styles["term-note"]}>{preview.error?.message}</p>}

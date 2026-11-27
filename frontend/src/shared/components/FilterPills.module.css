@@ -32,3 +32,26 @@
   color: var(--color-primary);
   font-weight: 600;
 }
+
+/* A contagem ao lado do rótulo, numa bolinha (branca na pílula ativa) */
+.count {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  min-width: 20px;
+  height: 20px;
+  margin-left: 8px;
+  padding: 0 6px;
+  box-sizing: border-box;
+  border-radius: 9999px;
+  background: var(--color-count-bg);
+  color: var(--color-text);
+  font-size: 12px;
+  font-weight: 600;
+  font-variant-numeric: tabular-nums;
+}
+
+.pillActive .count {
+  background: var(--color-surface);
+  color: var(--color-primary);
+}

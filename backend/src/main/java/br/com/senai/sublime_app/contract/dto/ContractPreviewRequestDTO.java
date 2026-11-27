@@ -26,9 +26,22 @@ public record ContractPreviewRequestDTO(
         // Opcional: vazio ou acima do máximo do contrato = o máximo (a resposta diz as aplicadas)
         @Min(value = 1, message = "O número de parcelas deve ser no mínimo 1.")
         @Max(value = Installments.MAX_COUNT, message = "O número de parcelas deve ser no máximo 12.")
-        Integer installments
+        Integer installments,
+
+        // Opcional: o 1º vencimento; vazio = o início (a resposta traz o aplicado e o cronograma)
+        LocalDate firstDueDate,
+
+        // Opcional: o titular, para a resposta trazer o crédito disponível dele
+        Long patientId,
+
+        // Opcional: aplicar o crédito disponível (vazio = não aplica)
+        Boolean applyCredit
 
 ) {
+    public boolean isApplyingCredit() {
+        return Boolean.TRUE.equals(applyCredit);
+    }
+
     // Sem itens = lista vazia (o plano de mensalidade calcula a vigência sem eles)
     public List<ContractItemRequestDTO> itemsOrEmpty() {
         return items != null ? items : List.of();

@@ -125,9 +125,36 @@ class AuthorizationIntegrationTest {
     // adminAccessesAdminRoutes (um 403 sozinho não distingue "só do admin" de "quebrada
     // para todos"), exceto /api/consultations/resumo, que não existe: só confere que o
     // PROVIDER não passa pelo {id}
+    // As rotas do Financeiro (a conta e os pagamentos) são só do ADMIN, como as de administração
+    @ParameterizedTest(name = "Sem token, GET {0} responde 401")
+    @ValueSource(strings = { "/api/billing/accounts", "/api/payments?patientId=1" })
+    @DisplayName("Sem token, as rotas do Financeiro respondem 401")
+    void rejectsBillingRequestWithoutToken(String path) throws Exception {
+        mockMvc.perform(get(path))
+                .andExpect(status().isUnauthorized())
+                .andExpect(jsonPath("$.status").value(401));
+    }
+
+    // Antes de qualquer validação do corpo: o 403 vem da autorização, não de um 400
+    @Test
+    @DisplayName("PROVIDER recebe 403 ao registrar, prever e inativar pagamento")
+    void providerIsForbiddenOnPaymentWrites() throws Exception {
+        String token = loginAs(Role.PROVIDER);
+
+        mockMvc.perform(post("/api/payments").header(HttpHeaders.AUTHORIZATION, bearer(token))
+                .contentType(MediaType.APPLICATION_JSON).content("{}"))
+                .andExpect(status().isForbidden());
+        mockMvc.perform(post("/api/payments/preview").header(HttpHeaders.AUTHORIZATION, bearer(token))
+                .contentType(MediaType.APPLICATION_JSON).content("{}"))
+                .andExpect(status().isForbidden());
+        mockMvc.perform(delete("/api/payments/{id}", 1).header(HttpHeaders.AUTHORIZATION, bearer(token)))
+                .andExpect(status().isForbidden());
+    }
+
     @ParameterizedTest(name = "PROVIDER recebe 403 em GET {0}")
     @ValueSource(strings = { "/api/users", "/api/contracts", "/api/providers", "/api/patients",
-            "/api/techniques/all", "/api/consultations/resumo" })
+            "/api/techniques/all", "/api/consultations/resumo", "/api/billing/accounts",
+            "/api/payments?patientId=1" })
     @DisplayName("PROVIDER recebe 403 nas rotas só do ADMIN")
     void providerIsForbiddenOnAdminRoutes(String path) throws Exception {
         String token = loginAs(Role.PROVIDER);
@@ -139,7 +166,7 @@ class AuthorizationIntegrationTest {
 
     @ParameterizedTest(name = "ADMIN acessa GET {0}")
     @ValueSource(strings = { "/api/users", "/api/contracts", "/api/providers", "/api/patients",
-            "/api/techniques/all" })
+            "/api/techniques/all", "/api/billing/accounts", "/api/payments?patientId=1" })
     @DisplayName("ADMIN acessa as rotas de administração")
     void adminAccessesAdminRoutes(String path) throws Exception {
         String token = loginAs(Role.ADMIN);

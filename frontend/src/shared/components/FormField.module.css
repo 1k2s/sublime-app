@@ -15,6 +15,13 @@
   color: var(--color-danger);
 }
 
+/* A dica embaixo do campo, no lugar do erro */
+.hint {
+  font-size: 12px;
+  line-height: 15px;
+  color: var(--color-muted);
+}
+
 /* Espaço de uma linha de erro, ocupado mesmo sem erro */
 .errorSlot {
   display: block;

@@ -12,6 +12,8 @@ export function toAmendmentFormValues(contract, planType) {
     installments: String(contract.installments),
     // Prorrogação: vazio = mantém o fim (ou o recalculado por um item novo)
     endDate: "",
+    // 1º vencimento: vazio = o sugerido pela prévia do aditivo
+    firstDueDate: "",
     items: contract.items.map(toItemValues),
   };
 }

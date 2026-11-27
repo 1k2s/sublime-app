@@ -10,59 +10,6 @@
   gap: 6px;
 }
 
-/* Abas Contrato | Histórico: as duas com a mesma largura, para a linha da ativa deslizar entre
-   elas só com o transform */
-.tabs {
-  --tab-width: 140px;
-
-  position: relative;
-  display: grid;
-  grid-template-columns: repeat(2, var(--tab-width));
-  border-bottom: 1px solid var(--color-border);
-}
-
-.tab {
-  padding: 8px 14px;
-  border: none;
-  background: none;
-  color: var(--color-muted);
-  font: inherit;
-  font-size: 14px;
-  font-weight: 500;
-  cursor: pointer;
-  transition: color 0.2s ease;
-}
-
-.tab:hover {
-  color: var(--color-text);
-}
-
-.tabActive {
-  color: var(--color-primary);
-  font-weight: 600;
-}
-
-.tabIndicator {
-  position: absolute;
-  bottom: -1px;
-  left: 0;
-  width: var(--tab-width);
-  height: 2px;
-  background: var(--color-primary);
-  transition: transform 0.25s ease;
-}
-
-.tabIndicatorSecond {
-  transform: translateX(100%);
-}
-
-@media (prefers-reduced-motion: reduce) {
-  .tab,
-  .tabIndicator {
-    transition: none;
-  }
-}
-
 /* Conteúdo da aba: altura fixa, igual nas duas; o que cresce (itens, versões) rola por dentro */
 .panel {
   display: flex;

@@ -1,0 +1,70 @@
+/* Ocupa o painel: os blocos dividem a altura, e cada tabela rola por dentro */
+.installments {
+  display: flex;
+  flex: 1;
+  flex-direction: column;
+  gap: 12px;
+  min-height: 0;
+}
+
+.summary {
+  flex-shrink: 0;
+  color: var(--color-title);
+  font-size: 14px;
+}
+
+/* Um bloco por versão, na moldura clara; as anteriores, tracejadas */
+.block {
+  display: flex;
+  flex: 1 1 0;
+  flex-direction: column;
+  gap: 10px;
+  min-height: 140px;
+  padding: 14px 20px;
+  border: 1px solid var(--color-frame-line);
+  border-radius: var(--radius);
+  background: var(--color-frame-bg);
+}
+
+.blockDashed {
+  border-style: dashed;
+}
+
+.blockHeader {
+  display: flex;
+  flex-shrink: 0;
+  flex-wrap: wrap;
+  align-items: baseline;
+  justify-content: space-between;
+  gap: 12px;
+}
+
+.blockTitle {
+  margin: 0;
+  color: var(--color-title);
+  font-size: 15px;
+  font-weight: 600;
+}
+
+.meta {
+  color: var(--color-muted);
+  font-size: 13px;
+}
+
+.split {
+  flex-shrink: 0;
+  color: var(--color-text);
+  font-size: 14px;
+}
+
+/* A tabela no bloco: sem a sombra do card (a moldura já separa) */
+.table {
+  flex: 1 1 auto;
+  box-shadow: none;
+}
+
+/* As parcelas substituídas pelo aditivo, apagadas */
+.replaced td {
+  color: var(--color-neutral-text);
+  opacity: 0.7;
+}
