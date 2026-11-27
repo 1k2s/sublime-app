@@ -301,8 +301,8 @@ abas**:
 
 **Frontend**
 
-- [ ] Instalar o `echarts` (com a permissão do usuário).
-- [ ] `Chart.jsx` em `shared/components/`.
+- [x] Instalar o `echarts` (6.1.0, 2026-11-26).
+- [x] `Chart.jsx` em `shared/components/` (registra só a pizza, a legenda e o tooltip).
 - [ ] Camada `api/` e hooks.
 - [ ] Tela, pizza, rota e menu (tirar o `disabled` do Dashboard).
 - [ ] "Repasse do dia" da tela de Lançamento com as faltas à parte (`DaySummary`).
