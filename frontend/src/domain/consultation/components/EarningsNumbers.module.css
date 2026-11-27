@@ -1,0 +1,79 @@
+.numbers {
+  display: grid;
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+  gap: 12px;
+}
+
+/* Dois em cima; o repasse total embaixo, na largura toda */
+.stacked {
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+}
+
+.stacked .wide {
+  grid-column: 1 / -1;
+}
+
+.tile {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+  min-width: 0;
+  padding: 16px 18px;
+  border-radius: var(--radius);
+  background: var(--color-surface);
+  box-shadow: var(--shadow-card);
+}
+
+.caption {
+  color: var(--color-muted);
+  font-size: 12px;
+  font-weight: 600;
+  letter-spacing: 0.04em;
+  text-transform: uppercase;
+}
+
+.value {
+  overflow: hidden;
+  color: var(--color-title);
+  font-size: 22px;
+  font-weight: 800;
+  font-variant-numeric: tabular-nums;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.highlighted {
+  color: var(--color-primary);
+}
+
+.detail {
+  color: var(--color-muted);
+  font-size: 13px;
+}
+
+/* Erro e carregando ocupam a linha inteira */
+.loading {
+  grid-column: 1 / -1;
+  min-height: 98px;
+}
+
+.error {
+  grid-column: 1 / -1;
+  margin: 0;
+  padding: 16px 18px;
+  border-radius: var(--radius);
+  background: var(--color-danger-bg);
+  color: var(--color-danger);
+  font-size: 14px;
+  font-weight: 600;
+}
+
+@media (max-width: 720px) {
+  .numbers {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+  }
+
+  .wide {
+    grid-column: 1 / -1;
+  }
+}

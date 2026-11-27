@@ -82,6 +82,13 @@ export const router = createBrowserRouter([
             element: <ProtectedRoute roles={[ADMIN, PROVIDER]} />,
             children: [
               {
+                path: 'dashboard',
+                lazy: async () => {
+                  const { DashboardPage } = await import('@/domain/consultation/pages/DashboardPage');
+                  return { Component: DashboardPage };
+                }
+              },
+              {
                 path: 'consultations',
                 lazy: async () => {
                   const { ConsultationPage } = await import('@/domain/consultation/pages/ConsultationPage');

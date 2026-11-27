@@ -1,6 +1,7 @@
 package br.com.senai.sublime_app.consultation.domain;
 
 import java.time.LocalDate;
+import java.time.LocalDateTime;
 
 import br.com.senai.sublime_app.contract.domain.ContractEntity;
 import br.com.senai.sublime_app.patient.domain.PatientEntity;
@@ -84,6 +85,11 @@ public class ConsultationEntity {
     @Column(name = "occurred_at", nullable = false)
     private LocalDate occurredAt;
 
+    // Data e hora do lançamento, no fuso da clínica: a referência do rendimento (ver
+    // "Rendimento" em Consultation, no domain-model). Vem do service, não do now() daqui
+    @Column(name = "launched_at", nullable = false)
+    private LocalDateTime launchedAt;
+
     // Enums gravados como varchar, não como enum nativo do MySQL (ADR 0021)
     @Enumerated(EnumType.STRING)
     @JdbcTypeCode(SqlTypes.VARCHAR)
@@ -122,11 +128,12 @@ public class ConsultationEntity {
     // Construtor público de negócio: a linha de preço já vem resolvida pelo service
     // (casos 1 a 3); o resto (caso do preço, valor, comissão e repasse) é calculado aqui.
     public ConsultationEntity(PatientEntity patient, ContractEntity contract, ProviderEntity provider,
-            UserEntity launchedBy, TechniqueEntity technique, int durationMinutes, LocalDate occurredAt,
-            ConsultationStatus status, SessionDurationPriceEntity durationPrice,
+            UserEntity launchedBy, LocalDateTime launchedAt, TechniqueEntity technique, int durationMinutes,
+            LocalDate occurredAt, ConsultationStatus status, SessionDurationPriceEntity durationPrice,
             SessionFrequencyPriceEntity frequencyPrice) {
         validateActiveParticipants(patient, provider, technique);
         validateLaunchedBy(launchedBy);
+        validateLaunchedAt(launchedAt);
         validateDurationAndStatus(durationMinutes, status);
         validateOccurredAt(occurredAt);
         validatePrice(technique, durationMinutes, durationPrice, frequencyPrice);
@@ -135,6 +142,7 @@ public class ConsultationEntity {
         this.contract = contract;
         this.provider = provider;
         this.launchedBy = launchedBy;
+        this.launchedAt = launchedAt;
         this.technique = technique;
         this.durationMinutes = durationMinutes;
         this.occurredAt = occurredAt;
@@ -219,6 +227,12 @@ public class ConsultationEntity {
     private static void validateLaunchedBy(UserEntity launchedBy) {
         if (launchedBy == null) {
             throw new BusinessRuleException("O usuário que lança o atendimento é obrigatório.");
+        }
+    }
+
+    private static void validateLaunchedAt(LocalDateTime launchedAt) {
+        if (launchedAt == null) {
+            throw new BusinessRuleException("A data do lançamento é obrigatória.");
         }
     }
 

@@ -1,0 +1,6 @@
+/* Altura padrão; o pai muda pelo className. O ECharts desenha no tamanho do contêiner */
+.chart {
+  width: 100%;
+  min-width: 0;
+  height: 280px;
+}

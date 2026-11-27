@@ -14,6 +14,13 @@
   /* Linhas da tabela: a divisória entre elas e o fundo com o mouse em cima (ou da linha aberta) */
   --color-row-line: #e8eef0;
   --color-row-hover: #f4f5f4;
+  /* Creme e areia da tela de Configurações (fundo do cartão da conta, hover do olho da senha, a força
+     "média" da senha, alterações não salvas e o destaque da senha atual) */
+  --color-row-stripe: #faf7f0;
+  --color-sand: #c8a87f;
+  --color-sand-soft: #f0e6d5;
+  /* Ponta escura do degradê de areia (a fatia das faltas cobradas no anel do dashboard) */
+  --color-sand-strong: #b08a5a;
   /* Aviso (ex: selo "Vencido", avisos de formulário): fundo, borda ou fundo mais forte, e texto */
   --color-warning-bg: #fffbeb;
   --color-warning-soft: #fef3c7;

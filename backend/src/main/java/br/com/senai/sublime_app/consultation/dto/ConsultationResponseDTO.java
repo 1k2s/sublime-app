@@ -2,6 +2,7 @@ package br.com.senai.sublime_app.consultation.dto;
 
 import java.math.BigDecimal;
 import java.time.LocalDate;
+import java.time.LocalDateTime;
 
 import br.com.senai.sublime_app.consultation.domain.ConsultationEntity;
 import br.com.senai.sublime_app.consultation.domain.ConsultationStatus;
@@ -25,6 +26,8 @@ public record ConsultationResponseDTO(
         String techniqueName,
         int durationMinutes,
         LocalDate occurredAt,
+        // data e hora do lançamento, no fuso da clínica (a referência do rendimento)
+        LocalDateTime launchedAt,
         ConsultationStatus status,
         // caso do preço: CONTRACT_ITEM (debita o item), EQUIVALENT_PLAN (de-para), SINGLE_SESSION (Avulso)
         PricingSource pricingSource,
@@ -61,6 +64,7 @@ public record ConsultationResponseDTO(
                 entity.getTechnique().getName(),
                 entity.getDurationMinutes(),
                 entity.getOccurredAt(),
+                entity.getLaunchedAt(),
                 entity.getStatus(),
                 entity.getPricingSource(),
                 durationPrice != null ? durationPrice.getId() : null,

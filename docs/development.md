@@ -153,6 +153,7 @@ logar: troque a senha pela API ou recrie o usuário.
 | `lucide-react` | ícones |
 | `@fontsource/cormorant-garamond` | fonte da marca (nome "Sublime" no menu), servida pelo próprio app |
 | `sweetalert2` | alertas de erro da API (`shared/utils/alert.js`) |
+| `echarts` | gráficos (import modular, pelo `shared/components/Chart.jsx`; ver "Gráficos" no [`architecture.md`](architecture.md)) |
 
 ## Banco e schema (Flyway)
 

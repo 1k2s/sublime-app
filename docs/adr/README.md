@@ -87,3 +87,5 @@ discussões que estavam no `domain-model.md` e no `architecture.md`.
 | [0039](0039-lista-pela-versao-atual.md) | Lista pela versão atual, com o número do aditivo e a data gravados | aceito |
 | [0040](0040-item-por-duracao-em-contrato-de-mensalidade.md) | Item por duração em contrato de mensalidade, pelo pacote equivalente | aceito |
 | [0041](0041-aulas-do-grupo-pela-vigencia.md) | Aulas do Pilates em Grupo pela vigência do contrato | aceito |
+| [0042](0042-rendimento-do-prestador.md) | Rendimento do prestador: só os realizados, pela data do lançamento | aceito |
+| [0043](0043-graficos-com-echarts.md) | Gráficos do frontend com o ECharts, import modular e invólucro próprio | aceito |
