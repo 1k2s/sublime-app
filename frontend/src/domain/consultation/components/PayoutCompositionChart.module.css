@@ -1,0 +1,201 @@
+.card {
+  min-height: 360px;
+}
+
+/* O anel e a legenda juntos, no centro do card */
+.body {
+  display: grid;
+  grid-template-columns: minmax(220px, 300px) minmax(0, 320px);
+  justify-content: center;
+  align-items: center;
+  gap: 40px;
+}
+
+/* O anel é quadrado; o centro (HTML) fica por cima dele */
+.chartBox {
+  position: relative;
+  width: 100%;
+  aspect-ratio: 1;
+}
+
+.chart {
+  position: absolute;
+  inset: 0;
+  height: 100%;
+}
+
+.center {
+  position: absolute;
+  inset: 0;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  gap: 2px;
+  text-align: center;
+  pointer-events: none;
+}
+
+.centerValue {
+  color: var(--color-title);
+  font-size: 24px;
+  font-weight: 800;
+  font-variant-numeric: tabular-nums;
+}
+
+.attendedText {
+  color: var(--color-primary-strong);
+}
+
+.chargedAbsenceText {
+  color: var(--color-sand-strong);
+}
+
+.centerLabel {
+  color: var(--color-muted);
+  font-size: 13px;
+}
+
+.centerDetail {
+  color: var(--color-muted);
+  font-size: 12px;
+}
+
+.legend {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+  margin: 0;
+  padding: 0;
+  list-style: none;
+}
+
+/* Cor, nome e valor na primeira linha; a quantidade e a barra embaixo do nome */
+.item {
+  display: grid;
+  grid-template-columns: 12px minmax(0, 1fr) auto;
+  column-gap: 10px;
+  row-gap: 2px;
+  align-items: center;
+  padding: 10px 12px;
+  border-radius: 10px;
+  transition: background-color 0.2s ease, opacity 0.2s ease;
+}
+
+.hot {
+  background: var(--color-row-stripe);
+}
+
+.dim {
+  opacity: 0.45;
+}
+
+.swatch {
+  width: 12px;
+  height: 12px;
+  border-radius: 50%;
+}
+
+.attended {
+  background: linear-gradient(135deg, var(--color-primary), var(--color-primary-strong));
+}
+
+.chargedAbsence {
+  background: linear-gradient(135deg, var(--color-sand), var(--color-sand-strong));
+}
+
+.name {
+  grid-column: 2;
+  color: var(--color-text);
+  font-size: 14px;
+  font-weight: 600;
+}
+
+.value {
+  grid-column: 3;
+  color: var(--color-title);
+  font-size: 15px;
+  font-weight: 700;
+  font-variant-numeric: tabular-nums;
+  text-align: right;
+}
+
+.count {
+  grid-column: 2 / -1;
+  color: var(--color-muted);
+  font-size: 13px;
+}
+
+.track {
+  grid-column: 2 / -1;
+  height: 6px;
+  margin-top: 4px;
+  overflow: hidden;
+  border-radius: 6px;
+  background: var(--color-row-line);
+}
+
+/* A barra cresce ao aparecer e ao trocar de período, junto com a fatia */
+.fill {
+  display: block;
+  height: 100%;
+  border-radius: 6px;
+  transition: width 0.7s cubic-bezier(0.22, 1, 0.36, 1);
+
+  @starting-style {
+    width: 0;
+  }
+}
+
+.total {
+  display: flex;
+  align-items: baseline;
+  justify-content: space-between;
+  margin-top: 4px;
+  padding: 12px 12px 0;
+  border-top: 1px solid var(--color-border);
+}
+
+.totalLabel {
+  color: var(--color-text);
+  font-size: 14px;
+  font-weight: 600;
+}
+
+.totalValue {
+  color: var(--color-primary);
+  font-size: 19px;
+  font-weight: 700;
+  font-variant-numeric: tabular-nums;
+}
+
+.empty,
+.error {
+  margin: 0;
+  padding: 48px 0;
+  font-size: 15px;
+  text-align: center;
+}
+
+.empty {
+  color: var(--color-muted);
+}
+
+.error {
+  color: var(--color-danger);
+  font-weight: 600;
+}
+
+@media (max-width: 860px) {
+  .body {
+    grid-template-columns: minmax(0, 300px);
+    gap: 20px;
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .item,
+  .fill {
+    transition: none;
+  }
+}

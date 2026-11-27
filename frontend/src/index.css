@@ -10,6 +10,8 @@
   /* Tons de areia dos losangos de enfeite */
   --color-sand: #c8a87f;
   --color-sand-soft: #f0e6d5;
+  /* Ponta escura do degradê de areia (ex: a fatia das faltas na pizza do dashboard) */
+  --color-sand-strong: #b08a5a;
   --color-accent: #3f6fb5;
   /* Valor sugerido pela tela (ex: o último atendimento do paciente recente), que o usuário confirma */
   --color-suggestion-bg: #eef3fb;

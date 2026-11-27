@@ -24,8 +24,32 @@ Iniciada em 2026-11-24.
   (`earnings-summary` e `earnings`), filtros novos da listagem e `day-summary` alinhado. O
   `EarningsIntegrationTest` confere a consulta nativa no MySQL e os casos da seção 7. Ele também
   revelou que, nos testes, as datas eram lidas um dia antes (fuso aplicado tarde; corrigido no
-  `TestcontainersConfiguration`, ver a seção 9). O front não começou. Falta o que está aberto
-  na seção 6.
+  `TestcontainersConfiguration`, ver a seção 9).
+- **Front da tela escrito** (2026-11-26): rota `/dashboard`, menu, período, botões dos
+  prestadores, números, lista, abas com o slide e a pizza; `npm run build` e `npm run lint`
+  passam. **Ainda não testado pela tela** (seção 7, "Pela interface"). Falta o que está aberto na
+  seção 6.
+- **Decidido em 2026-11-26:**
+  - **A lista do dashboard ordena pela data do lançamento**, do mais recente para o mais antigo,
+    no front (`utils/filterConsultations.js`): a mesma data do filtro e do rendimento. É só ordem
+    de exibição; a API continua ordenando pela data do atendimento.
+  - **Filtros refeitos pela prévia C** (seção 5, "Filtros refeitos em 2026-11-26").
+  - **Admin com um prestador escolhido: duas consultas `earnings`**, uma com o `providerId` (os
+    números, a pizza e a lista) e outra sem (a lista "Rendimento por prestador"). Em "Todos" as duas têm a
+    mesma `queryKey` e viram uma requisição só. Descartado: tirar os números do item do
+    `byProvider` (uma requisição a menos, mas dois caminhos no código).
+  - **Anel com trilho e barras** (prévia C de quatro, comparada com o anel simples, a meia-lua e a
+    pizza cheia): um trilho claro por trás, duas fatias em degradê com pontas arredondadas e um
+    respiro entre elas. **Efeitos:** o anel se desenha ao abrir e o total do centro sobe do zero
+    (`useAnimatedNumber`; o último quadro é o valor exato da API); o hover numa fatia ou numa
+    linha da legenda destaca a fatia, esmaece a outra e mostra o valor dela no centro; trocar de
+    período ou de prestador desliza as fatias e as barras até o tamanho novo.
+  - **Centro e legenda em HTML**, juntos do anel no meio do card, com os valores em texto (o
+    leitor de tela lê; o canvas não). A barra de cada linha da legenda é só a largura do desenho.
+    O `Chart.jsx` passou a receber os eventos do ECharts (`onEvents`) e a expor o `dispatchAction`
+    pelo `ref`, para a legenda destacar a fatia; registra só o `PieChart` e o canvas.
+  - **Personalizado abre com o período que estava escolhido**; a data inicial depois da final
+    mostra a mensagem do backend (400) no lugar dos números.
 - **Decidido em 2026-11-25:**
   - **Dashboard simples, com um gráfico de pizza** no lugar das barras: a **composição do
     repasse** do período (rendimento dos realizados × faltas cobradas), para os dois perfis. Usa
@@ -213,15 +237,29 @@ prestadores, que já existe).
 
 **Layout escolhido nas prévias** (2026-11-24). Foram comparadas três versões: A, cartões no
 topo; B, filtros numa coluna lateral; C, o gráfico no centro. A escolhida foi a **C, com
-abas**:
+abas**.
 
-- **No topo, valendo para as duas abas:** o seletor de período (Hoje, Esta semana, Este mês,
-  Personalizado), cada um com o rendimento no rótulo, e, para o admin, os botões dos
-  prestadores (Todos e cada um, com o total do período).
-- **Aba "Resumo"** (a primeira, **sem gráficos**): os números do período (rendimento,
-  atendimentos, faltas cobradas e repasse total) e a lista de atendimentos, com o filtro por
-  status. A lista é uma tabela num **componente próprio**, no `DataTable` das listagens
-  (decidido em 2026-11-24).
+**Filtros refeitos em 2026-11-26** (nova rodada de prévias, depois de ver a tela pronta: os
+botões de período tinham a mesma cara dos cartões de números, e não se via o que era clicável).
+Comparadas: A, uma barra com o período e um seletor de prestador; B, os dois filtros em menus no
+cabeçalho; C, a barra de período e a lista por prestador ao lado dos números. A escolhida foi a
+**C**, com as abas acima de tudo:
+
+- **Controle tem cara de controle; informação, de cartão.** Os filtros ficam em controles com
+  borda ou trilho (segmentado, seletor); os cartões brancos com sombra são só leitura. O valor
+  sai dos botões de período: ele já está no cartão "Rendimento".
+- **Ordem:** título, as abas, a barra de período (vale para as duas abas, fora do slide) e o
+  conteúdo da aba.
+- **Barra de período:** Hoje, Esta semana, Este mês e Personalizado num controle segmentado, com
+  o intervalo ao lado; no Personalizado, as duas datas entram no lugar do intervalo.
+- **Para o admin, a lista "Rendimento por prestador"** ao lado do conteúdo das duas abas: Todos
+  e cada prestador, com o rendimento e uma barra da parte de cada um no total (só a largura do
+  desenho; nenhum valor é calculado). A lista tem **a mesma altura do conteúdo** ao lado e rola
+  por dentro quando passa dela. Clicar numa linha filtra a tela. O `PROVIDER` não tem a lista.
+- **Aba "Resumo"** (a primeira, **sem gráficos**): três cartões (rendimento, com a quantidade de
+  atendimentos; faltas cobradas; repasse total) e a lista de atendimentos, com o filtro por
+  status num seletor. A lista é uma tabela num **componente próprio**, no `DataTable` das
+  listagens (decidido em 2026-11-24).
 - **Aba "Panorama executivo"** (com o gráfico; simplificada em 2026-11-25): só a **pizza da
   composição do repasse** (seção 3), com a legenda dos valores. Saíram as barras por dia, a
   linha de atendimentos e o gráfico e a tabela por prestador.
@@ -249,8 +287,9 @@ abas**:
   `echarts.use`), não o `import * as echarts`: o pacote inteiro passa de 1 MB, e o modular leva
   só o que a tela usa. A rota `/dashboard` já é `lazy`: o ECharts só baixa quando o usuário abre
   o dashboard.
-- **Registro só da pizza** (`PieChart`, tooltip, legenda e o renderizador canvas), num lugar
-  só, junto do `Chart.jsx`; um gráfico novo registra o tipo dele ali.
+- **Registro só da pizza** (`PieChart` e o renderizador canvas), num lugar só, junto do
+  `Chart.jsx`; um gráfico novo registra o tipo dele ali. O centro e a legenda são HTML, no
+  componente do gráfico.
 - **Componente próprio** `shared/components/Chart.jsx`: recebe o `option` do ECharts, cria o
   gráfico num `useEffect`, acompanha o tamanho do contêiner (`ResizeObserver`, por causa do menu
   que empurra o conteúdo) e chama o `dispose` ao desmontar. Descartado o `echarts-for-react`:
@@ -308,7 +347,11 @@ abas**:
   `useLaunchedConsultations`. O filtro por status da lista roda em memória, na page (lista
   pequena, ver "Camada `api/`" no `architecture.md`); os períodos Hoje, Semana e Mês usam o
   `from`/`to` do `earnings-summary`.
-- [ ] Tela, pizza, rota e menu (tirar o `disabled` do Dashboard).
+- [x] Tela, pizza, rota e menu (2026-11-26): `DashboardPage`, `useDashboardPeriod`,
+  `PeriodSelector`, `ProviderEarningsList`, `EarningsNumbers`, `LaunchedConsultationsTable`,
+  `DashboardTabs`, `DashboardTabIcons`, `PayoutCompositionChart` (`lazy`),
+  `payoutCompositionOption.js`, `earningsLabels.js` e `filterConsultations.js`; rota no
+  `router.jsx` e o `disabled` fora do menu.
 - [ ] "Repasse do dia" da tela de Lançamento com as faltas à parte (`DaySummary`).
 - [ ] `npm run build` e `npm run lint`.
 
@@ -369,8 +412,6 @@ redimensiona ao abrir e fechar o menu, valores em reais no tooltip, período sem
 ## 8. Pendências e pontos abertos
 
 - Paginação da listagem (seção 4).
-- Ordem da lista do dashboard: a listagem ordena pela data do atendimento; um retroativo lançado
-  hoje aparece no fim do mês. Ordenar pela data do lançamento quando o filtro for por ela?
 
 ## 9. Documentação ao concluir
 
@@ -379,7 +420,9 @@ redimensiona ao abrir e fechar o menu, valores em reais no tooltip, período sem
   e os filtros da listagem em "Leituras"; o `day-summary`, se mudar.
 - **`architecture.md`:** a data e hora do lançamento no fuso da clínica, na linha "Hoje"; na
   seção "Frontend", o ECharts na stack e o padrão dos gráficos (`Chart.jsx`, import modular, o
-  `option` em `display/`, números do backend).
+  `option` em `display/`, números do backend, cores lidas das variáveis CSS, legenda em HTML).
+  Em "Rotas e sessão": o `/dashboard` no grupo `ADMIN` + `PROVIDER`, o Dashboard no menu dos
+  dois perfis e a frase "Itens sem tela pronta (Dashboard) ficam desabilitados" fora.
 - **`roadmap.md`:** tirar o item 4 dos Próximos passos; marcar o "Histórico de atendimentos com
   filtro por período" do checklist do front; o módulo `consultation` no Estado atual do front;
   o que a seção 2 deixou para depois.
