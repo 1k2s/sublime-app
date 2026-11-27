@@ -363,7 +363,9 @@ cabeçalho; C, a barra de período e a lista por prestador ao lado dos números.
 
 **Testes**
 
-- [ ] Unidade: `ConsultationEntity` sem `launchedAt` → erro.
+- [x] Unidade: `ConsultationEntity` sem `launchedAt` → erro (`ConsultationEntityTest`,
+  2026-11-26: guarda a data e a hora recebidas, a do lançamento separada da do atendimento no
+  retroativo, e recusa a nula com a mensagem exata).
 - [x] Integração: os casos da seção 7 pela API (o rendimento, os períodos e o acesso por
   perfil), no `EarningsIntegrationTest` (15 casos; 2026-11-26). A suíte inteira passa (64).
 - [ ] Manual pela tela.
