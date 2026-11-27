@@ -5,10 +5,10 @@ Ela é o "contrato" da feature enquanto ela não está pronta.
 
 **Em andamento:**
 
-- [Layout das telas](layout-das-telas.md): cores do menu, fundo creme, tabela padrão e
-  cabeçalho das telas.
 - [Cadastro do catálogo](cadastro-do-catalogo.md): renomear, inativar e reativar técnicas,
   grupos e planos, as telas de cadastro e as técnicas na tabela de Preços.
+- [Tela de Configurações e senha forte](tela-de-configuracoes.md): cartão único com a conta no topo, uma
+  linha por ajuste, a barra de força e a senha forte (maiúscula, minúscula, número e especial).
 
 As próximas estão nos "Próximos passos" do [`roadmap.md`](../roadmap.md).
 

@@ -1,6 +1,5 @@
 import { Pencil } from "lucide-react";
 import { getRole } from "@/domain/auth/roles";
-import { AvatarName } from "@/shared/components/AvatarName";
 import { Badge } from "@/shared/components/Badge";
 import { DataTable } from "@/shared/components/DataTable";
 import { IconButton } from "@/shared/components/IconButton";
@@ -20,6 +19,7 @@ export function ProviderTable({
   isLoading = false,
   isError = false,
   hasRecords = false,
+  selectedProviderId = null,
   onViewDetails,
 }) {
   if (isLoading || isError || providers.length === 0) {
@@ -27,7 +27,7 @@ export function ProviderTable({
   }
 
   const columns = [
-    { key: "name", header: "Nome", cell: (provider) => <AvatarName name={provider.name} /> },
+    { key: "name", header: "Nome", cell: (provider) => provider.name },
     { key: "email", header: "E-mail", cell: (provider) => provider.email || "--" },
     { key: "role", header: "Perfil", cell: (provider) => getRole(provider.role)?.label ?? "--" },
     {
@@ -63,5 +63,13 @@ export function ProviderTable({
     },
   ];
 
-  return <DataTable columns={columns} rows={providers} />;
+  // A linha inteira abre o detalhe; a linha aberta fica marcada
+  return (
+    <DataTable
+      columns={columns}
+      rows={providers}
+      onRowClick={(provider) => onViewDetails?.(provider)}
+      selectedRowKey={selectedProviderId}
+    />
+  );
 }

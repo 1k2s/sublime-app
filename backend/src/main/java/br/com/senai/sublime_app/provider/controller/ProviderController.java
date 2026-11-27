@@ -42,13 +42,15 @@ public class ProviderController {
     }
 
     @Operation(summary = "Cadastrar prestador", description = """
-            Vincula a um usuário existente e ativo (`userId`). Percentuais de 0 a 100, com até
-            2 casas, opcionais: `commissionPercentage` (vazio = 40) e
-            `referralCommissionPercentage`, dos pacientes que ele trouxe (vazio = 45).
+            Cadastra o prestador vinculado a um usuário existente (`userId`) e responde com ele.
+            Os percentuais são opcionais: `commissionPercentage` e `referralCommissionPercentage`
+            (dos pacientes que ele trouxe).
+
+            Regras: "Provider" no `docs/domain-model.md`.
             """)
     @ApiResponses({
             @ApiResponse(responseCode = "201", description = "Prestador criado", content = @Content(schema = @Schema(implementation = ProviderResponseDTO.class))),
-            @ApiResponse(responseCode = "400", description = "Dados inválidos, percentual inválido ou usuário inativo (o `detail` diz qual)", content = @Content),
+            @ApiResponse(responseCode = "400", description = "Dados inválidos ou regra do prestador violada (o `detail` diz qual)", content = @Content),
             @ApiResponse(responseCode = "404", description = "Usuário não encontrado", content = @Content),
             @ApiResponse(responseCode = "409", description = "O usuário já está vinculado a um prestador", content = @Content)
     })
@@ -66,7 +68,7 @@ public class ProviderController {
         return ResponseEntity.ok(providerService.findAll());
     }
 
-    @Operation(summary = "Buscar prestador por ID", description = "Retorna o prestador mesmo que esteja inativo.")
+    @Operation(summary = "Buscar prestador por ID", description = "Retorna o prestador, ativo ou inativo.")
     @ApiResponses({
             @ApiResponse(responseCode = "200", description = "Prestador encontrado", content = @Content(schema = @Schema(implementation = ProviderResponseDTO.class))),
             @ApiResponse(responseCode = "404", description = "Prestador não encontrado", content = @Content)
@@ -78,8 +80,9 @@ public class ProviderController {
     }
 
     @Operation(summary = "Atualizar prestador", description = """
-            Nome e os dois percentuais, obrigatórios aqui. O usuário vinculado não muda. Vale
-            para os próximos atendimentos.
+            Atualiza o nome e os dois percentuais (obrigatórios aqui) e responde com o prestador.
+
+            Regras: "Provider" no `docs/domain-model.md`.
             """)
     @ApiResponses({
             @ApiResponse(responseCode = "200", description = "Prestador atualizado", content = @Content(schema = @Schema(implementation = ProviderResponseDTO.class))),
@@ -94,7 +97,9 @@ public class ProviderController {
     }
 
     @Operation(summary = "Inativar prestador", description = """
-            Soft delete: o prestador não recebe lançamentos novos.
+            Inativa o prestador (soft delete).
+
+            Regras: "Provider" no `docs/domain-model.md`.
             """)
     @ApiResponses({
             @ApiResponse(responseCode = "204", description = "Prestador inativado com sucesso"),
@@ -109,7 +114,9 @@ public class ProviderController {
     }
 
     @Operation(summary = "Reativar prestador", description = """
-            Desfaz a inativação. Exige o usuário vinculado ativo (reative-o antes, se preciso).
+            Reativa o prestador.
+
+            Regras: "Provider" no `docs/domain-model.md`.
             """)
     @ApiResponses({
             @ApiResponse(responseCode = "204", description = "Prestador reativado com sucesso"),

@@ -34,15 +34,15 @@ public class RetroactiveLaunchGrantController {
     }
 
     @Operation(summary = "Liberar lançamentos retroativos", description = """
-            O prestador só lança atendimentos com a data de hoje. A liberação permite
-            `allowedCount` lançamentos (1 a 50) em qualquer data passada, até 23:59 de hoje.
-            Liberar de novo substitui a anterior. Desfazer um lançamento não devolve a unidade.
+            Libera para o prestador `allowedCount` lançamentos retroativos (com data passada) e
+            responde com a liberação.
 
-            **Perfis:** ADMIN.
+            **Perfis:** ADMIN. Regras: "Liberação de lançamento retroativo" em Provider, no
+            `docs/domain-model.md`.
             """)
     @ApiResponses({
             @ApiResponse(responseCode = "201", description = "Liberação criada", content = @Content(schema = @Schema(implementation = RetroactiveGrantResponseDTO.class))),
-            @ApiResponse(responseCode = "400", description = "Quantidade inválida ou prestador inativo", content = @Content),
+            @ApiResponse(responseCode = "400", description = "Dados inválidos ou regra da liberação violada (o `detail` diz qual)", content = @Content),
             @ApiResponse(responseCode = "404", description = "Prestador não encontrado", content = @Content)
     })
     @PostMapping
@@ -53,7 +53,7 @@ public class RetroactiveLaunchGrantController {
     }
 
     @Operation(summary = "Liberação ativa", description = """
-            A liberação de hoje com lançamentos restantes; 204 quando não há.
+            Retorna a liberação de hoje com lançamentos restantes, ou 204 quando não há.
 
             **Perfis:** ADMIN.
             """)

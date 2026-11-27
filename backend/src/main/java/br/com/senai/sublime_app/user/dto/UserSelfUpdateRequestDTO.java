@@ -1,6 +1,6 @@
 package br.com.senai.sublime_app.user.dto;
 
-import jakarta.validation.constraints.AssertTrue;
+import br.com.senai.sublime_app.shared.validation.StrongPassword;
 import jakarta.validation.constraints.Email;
 import jakarta.validation.constraints.NotBlank;
 
@@ -12,19 +12,15 @@ public record UserSelfUpdateRequestDTO(
         @Email(message = "O e-mail informado é inválido.")
         String email,
 
-        // Vazia ou ausente = mantém a senha atual; preenchida = troca
+        // Vazia ou ausente = mantém a senha atual; preenchida = troca (o @StrongPassword aceita a vazia)
+        @StrongPassword(message = "A nova senha deve ter no mínimo 8 caracteres, com letra maiúscula, letra minúscula, "
+                + "número e caractere especial.")
         String newPassword,
 
         @NotBlank(message = "A senha atual é obrigatória.")
         String currentPassword
 
 ) {
-    // Um @Size puro recusaria a string vazia, que aqui significa "manter a senha"
-    @AssertTrue(message = "A nova senha deve ter no mínimo 8 caracteres.")
-    public boolean isNewPasswordValid() {
-        return !hasNewPassword() || newPassword.length() >= 8;
-    }
-
     // Se a requisição traz uma senha nova para trocar
     public boolean hasNewPassword() {
         return newPassword != null && !newPassword.isBlank();

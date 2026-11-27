@@ -386,7 +386,7 @@ frontend/src/
 │   └── layout/              # AppLayout, AppSidebar, navigationItems.js
 ├── shared/                  # genérico, sem regra de negócio
 │   ├── http/                # apiClient.js (axios: baseURL, token, 401) e apiFieldErrors.js
-│   ├── utils/               # money, date, masks, alert (SweetAlert2), viacep, text (normalizeText, getInitials)
+│   ├── utils/               # money, date, masks, alert (SweetAlert2), viacep, text (normalizeText)
 │   └── components/          # Button, Card, Input, Select, RichSelect, Combobox, FormField, Modal,
 │                            # FilterPills, ListMessage, Stepper, Badge, DataTable, IconButton, PageHeader, PageLoader,
 │                            # Chart (ECharts)...
@@ -456,6 +456,14 @@ pricing          user
 auth  ← transversal: qualquer módulo importa (sessão e papéis); auth não importa nenhum
 ```
 
+- **Exceção, só para ler:** a camada `api/` de um módulo pode **ler** um dado que um módulo
+  acima dele publica, chamando o endpoint dele, sem importar o código do módulo. Nunca
+  escreve nem repete a regra: o cálculo continua no dono. Ex: o `contractApi.js`
+  (`getSessionBalance`) lê o saldo de sessões de `GET /api/consultations/session-balance`
+  para o aditivo do contrato; o saldo é do `consultation`, que conta os atendimentos. No DDD,
+  é consumir o serviço que outro contexto publica. *Descartadas:* compor a tela no `app/`
+  (indireto só para um número por item) e mover o endpoint para o `contract` (que dependeria
+  do `consultation`).
 - `shared/` nunca importa de `domain/` nem de `app/`.
 - `domain/` nunca importa de `app/`.
 - `app/` pode importar de qualquer módulo (é quem monta as rotas).
@@ -571,6 +579,19 @@ Contratos), escolhido em 2026-11-11 a partir do que cada uma fazia melhor:
   invalidação traz a lista nova e o modal já mostra o estado novo, sem correção à mão.
 - **Permissão só no router** (`ProtectedRoute` com `roles`): a page não confere o papel nem
   redireciona.
+- **A tabela é a `DataTable`** (`shared/components`), igual em todas as listagens (inclusive os
+  lançamentos de hoje): cada tela passa só as colunas e as linhas.
+  - **A rolagem é da tabela, não da página:** a page ocupa a altura do conteúdo (`height:
+    100%`, em coluna), o título e os filtros ficam parados, e a tabela rola por dentro, com o
+    cabeçalho fixo.
+  - **Visual:** cabeçalho claro e em negrito (tokens `--color-table-head*`); linhas brancas,
+    todas no mesmo cinza e sem negrito (sem destaque por coluna); com o mouse em cima, um cinza
+    neutro e uma barra verde à esquerda.
+  - **A linha inteira abre o detalhe** (`onRowClick`), e a linha aberta fica marcada como no
+    hover enquanto o modal está aberto (`selectedRowKey`, o `id` que a page já guarda para o
+    modal). O botão de ação da linha continua, para o teclado.
+  - **`compact`:** tabela com muitas colunas (ex: Preços) cabe na largura, com os títulos
+    quebrando linha.
 - **Estados da tabela pelo `ListMessage`** (`shared/components`): carregando, erro da API, o
   filtro escondeu todos (`hasRecords`: a lista inteira não está vazia) ou nada cadastrado.
   Cada tabela passa só os textos com o nome do que lista.
@@ -628,27 +649,48 @@ Contratos), escolhido em 2026-11-11 a partir do que cada uma fazia melhor:
 ### Estilo
 
 - CSS Modules: um `.module.css` ao lado de cada componente.
-- Paleta e medidas globais em variáveis CSS no `index.css` (`--color-bg`, `--color-surface`,
-  `--color-primary`, `--color-primary-soft`, `--color-accent`, `--color-danger`,
-  `--color-border`, `--color-text`, `--color-title`, `--color-muted`, `--radius`,
-  `--shadow-card`, e `--color-suggestion-bg` e `--color-suggestion-border` para um valor
-  sugerido pela tela que o usuário confirma). Os componentes usam as variáveis
-  (`var(--color-primary)`), para a paleta mudar num lugar só.
-- **Casca do app com tokens próprios:** o menu e a área verde usam as `--shell-*` do
-  `index.css` (o degradê, o ícone ativo e o ritmo de abrir e recolher); o conteúdo usa só as
-  `--color-*`. A fonte da marca fica em `--font-brand` (só o peso 500 é carregado).
+- Paleta e medidas globais em variáveis CSS no `index.css`, e nenhuma cor escrita direto nos
+  componentes (`var(--color-primary)`), para a paleta mudar num lugar só:
+  - base: `--color-bg`, `--color-surface`, `--color-primary`, `--color-primary-soft`,
+    `--color-accent`, `--color-border`, `--color-text`, `--color-title`, `--color-muted`,
+    `--radius`, `--shadow-card`;
+  - estados: `--color-warning-*` (aviso, ex: "Vencido") e `--color-danger`,
+    `--color-danger-bg`, `--color-danger-soft` (erro e inativo);
+  - `--color-suggestion-bg` e `--color-suggestion-border`: um valor sugerido pela tela que o
+    usuário confirma;
+  - `--color-change-bg` e `--color-change-text`: o que é **novo ou alterado** (as
+    "Alterações" do aditivo, o histórico do contrato, o item novo);
+  - `--color-frame-*` (molduras claras), `--color-table-head*` (cabeçalho das tabelas) e
+    `--color-row-*` (linhas das tabelas).
+- **Casca do app com tokens próprios:** o menu claro usa as `--menu-*` do `index.css` (fundo,
+  texto, ícones, o preenchimento dos itens); o ritmo de abrir e recolher é a `--shell-motion`;
+  o conteúdo usa só as `--color-*`. A fonte da marca fica em `--font-brand` (só o peso 500 é
+  carregado).
 - **Os componentes de `shared/` leem as cores das variáveis** (`--color-primary`,
-  `--color-primary-soft`...), nunca o valor escrito direto: assim uma tela pode redefinir as
-  variáveis no próprio contêiner e tudo dentro dela acompanha. A tela de Preços faz isso com o
-  verde da sidebar (`--shell-active`); os modais herdam porque são renderizados dentro da tela.
+  `--color-primary-soft`...), nunca o valor escrito direto: assim a paleta muda num lugar só.
+  As telas não redefinem as variáveis no próprio contêiner: todas usam as mesmas cores.
+- **Etiquetas (`Badge`):** retângulo com cantos arredondados, igual em todo o app; "Ativo",
+  "Vigente" e "Atual" no mesmo verde suave (`active`).
 - `Modal variant="soft"` (ex: o plano na tela de Preços): `eyebrow` com as etiquetas acima do
-  título, título maior, cabeçalho sem borda e rodapé com fundo.
+  título, título maior, cabeçalho sem borda e rodapé com fundo. `Modal size="medium"`: detalhe
+  com mais conteúdo (ex: o contrato, com abas), com a largura acompanhando a tela entre um
+  mínimo e um máximo.
 - **A largura das telas é do layout:** o `AppLayout` limita e centraliza o conteúdo (`.page`);
   a page não define `max-width`. Formulário curto limita só os campos, centralizados no cartão,
   que tem a largura da tela (ex: Configurações).
-- **Menu lateral** (`app/layout/AppSidebar`): recolhido, mostra só os ícones; abre com o mouse
-  em cima ou com o foco do teclado num item e **empurra o conteúdo**. Os itens não mudam de
-  lugar entre os modos. A pílula clara marca a tela aberta pela URL.
+- **Menu lateral** (`app/layout/AppSidebar`): claro (tokens `--menu-*`); recolhido, mostra só
+  os ícones. **Abre e recolhe pelo clique**, no botão redondo sobre a borda com o painel (entre o
+  logo e o primeiro item) ou no logo, e **lembra a escolha** no navegador
+  (`sublime.sidebarExpanded`; sem o dado, abre recolhido). Aberto, **empurra o conteúdo**. Os
+  itens não mudam de lugar entre os modos.
+  - A pílula clara marca a tela aberta pela URL; recolhido, ela se liga ao painel pelas curvas
+    e desliza com um leve efeito de bolha (a forma pela propriedade `scale`, separada do
+    `translate` do deslocamento, para a escala não multiplicar o deslocamento).
+  - Recolhido, o nome do item aparece num balão ao lado do ícone, com o mouse em cima ou o
+    foco (no lugar do `title` nativo, que demora).
+  - Uma sombra suave demarca a borda com o painel e, recolhido, contorna a pílula: a borda e a
+    pílula ficam numa camada só, com um único `drop-shadow`, que segue o contorno sem emenda.
+  - *Descartado:* abrir com o mouse em cima (o comportamento anterior), trocado pelo clique.
 - **Mudança de estado por variáveis:** um estado (ex: o menu recolhido) só troca valores de
   variáveis CSS; as que animam são registradas com `@property` (ex: `AppSidebar.module.css`).
   `prefers-reduced-motion` desliga as animações.

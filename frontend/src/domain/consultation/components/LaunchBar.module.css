@@ -154,8 +154,8 @@
 }
 
 .notice-warning {
-  background: #fef3c7;
-  color: #92400e;
+  background: var(--color-warning-soft);
+  color: var(--color-warning-text);
 }
 
 .notice-danger {

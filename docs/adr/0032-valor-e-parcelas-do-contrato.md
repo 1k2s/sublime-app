@@ -1,6 +1,6 @@
 # 0032 — Valor e parcelas do contrato calculados pelas linhas travadas
 
-- **Status:** aceito
+- **Status:** aceito (em parte substituído por [0037](0037-parcelas-escolhidas-no-aditivo.md): as parcelas no aditivo, e por [0041](0041-aulas-do-grupo-pela-vigencia.md): as aulas do Grupo)
 - **Data:** 2026-11-12
 
 ## Contexto

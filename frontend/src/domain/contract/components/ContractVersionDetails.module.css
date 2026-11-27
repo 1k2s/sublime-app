@@ -1,0 +1,182 @@
+/* Ocupa a altura que o pai der (a aba do detalhe tem altura fixa): os dados ficam fixos e a lista
+   de itens rola */
+.details {
+  display: flex;
+  flex: 1;
+  flex-direction: column;
+  gap: 20px;
+  min-height: 0;
+}
+
+/* Moldura de fundo claro: uma para os dados, outra para os itens. Sólida na versão atual */
+.frame {
+  padding: 14px;
+  border: 1px solid var(--color-frame-line);
+  border-radius: var(--radius);
+  background: var(--color-frame-bg);
+}
+
+/* Versão anterior (substituída), no histórico: a borda tracejada */
+.frameDashed {
+  border-style: dashed;
+}
+
+/* Colunas pela largura do modal: 2 em telas menores, até 4 em monitores grandes */
+.grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(190px, 1fr));
+  gap: 16px;
+  margin: 0;
+}
+
+.field {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+  min-width: 0;
+}
+
+/* Histórico: o dado que mudou em relação à versão anterior, em azul, com o valor anterior */
+.changed {
+  margin: -6px;
+  padding: 6px;
+  border: 1px solid var(--color-suggestion-border);
+  border-radius: 8px;
+  background: var(--color-change-bg);
+}
+
+.changed .value {
+  color: var(--color-change-text);
+  font-weight: 600;
+}
+
+.before {
+  margin: 0;
+  color: var(--color-muted);
+  font-size: 12px;
+}
+
+/* Rótulo separado do valor por uma linha sutil (mais clara que a borda dos itens) */
+.label {
+  width: 80%;
+  padding-bottom: 4px;
+  border-bottom: 1px solid color-mix(in srgb, var(--color-border) 55%, transparent);
+  font-size: 12px;
+  color: var(--color-muted);
+}
+
+.value {
+  margin: 0;
+  font-size: 14px;
+  font-weight: 500;
+  color: var(--color-text);
+  overflow-wrap: anywhere;
+}
+
+.items {
+  display: flex;
+  flex: 1;
+  flex-direction: column;
+  gap: 10px;
+  min-height: 0;
+}
+
+/* "Itens (N)" separado da lista pela mesma linha sutil */
+.sectionTitle {
+  padding-bottom: 6px;
+  border-bottom: 1px solid color-mix(in srgb, var(--color-border) 55%, transparent);
+  margin: 0;
+  font-size: 13px;
+  font-weight: 600;
+  letter-spacing: 0.05em;
+  text-transform: uppercase;
+  color: var(--color-muted);
+}
+
+.itemList {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  min-height: 0;
+  margin: 0;
+  padding: 0 4px 0 0;
+  overflow-y: auto;
+  list-style: none;
+}
+
+.item {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 16px;
+  padding: 12px;
+  border: 1px solid var(--color-border);
+  border-radius: var(--radius);
+  /* branco também dentro da moldura (o item alterado troca pelo azul, abaixo) */
+  background: var(--color-surface);
+}
+
+/* Histórico: item incluído ou alterado em relação à versão anterior */
+.itemChanged {
+  border-color: var(--color-suggestion-border);
+  background: var(--color-change-bg);
+}
+
+/* Histórico: item da versão anterior que saiu nesta */
+.itemRemoved {
+  border-style: dashed;
+  opacity: 0.65;
+}
+
+.itemRemoved .itemTitle,
+.itemRemoved .itemDetail,
+.itemRemoved .itemValues {
+  text-decoration: line-through;
+}
+
+.itemText {
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+  min-width: 0;
+}
+
+.itemTitle {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 4px 6px;
+  font-size: 14px;
+  font-weight: 600;
+  color: var(--color-text);
+}
+
+.itemGroup {
+  font-weight: 400;
+  color: var(--color-muted);
+}
+
+.itemDetail {
+  font-size: 13px;
+  color: var(--color-muted);
+}
+
+.itemValues {
+  display: flex;
+  flex-shrink: 0;
+  flex-direction: column;
+  align-items: flex-end;
+  gap: 2px;
+}
+
+.itemTotal {
+  font-size: 12px;
+  color: var(--color-muted);
+}
+
+.itemValue {
+  flex-shrink: 0;
+  font-size: 14px;
+  font-weight: 600;
+  color: var(--color-primary);
+}

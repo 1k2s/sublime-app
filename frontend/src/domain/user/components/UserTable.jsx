@@ -13,13 +13,20 @@ const MESSAGES = {
   emptyHint: "Clique em Novo usuário para começar.",
 };
 
-export function UserTable({ users = [], isLoading = false, isError = false, hasRecords = false, onViewDetails }) {
+export function UserTable({
+  users = [],
+  isLoading = false,
+  isError = false,
+  hasRecords = false,
+  selectedUserId = null,
+  onViewDetails,
+}) {
   if (isLoading || isError || users.length === 0) {
     return <ListMessage isLoading={isLoading} isError={isError} hasRecords={hasRecords} messages={MESSAGES} />;
   }
 
   const columns = [
-    { key: "email", header: "E-mail", emphasized: true, cell: (user) => user.email },
+    { key: "email", header: "E-mail", cell: (user) => user.email },
     { key: "role", header: "Perfil", cell: (user) => getRole(user.role)?.label ?? user.role },
     {
       key: "status",
@@ -38,5 +45,13 @@ export function UserTable({ users = [], isLoading = false, isError = false, hasR
     },
   ];
 
-  return <DataTable columns={columns} rows={users} />;
+  // A linha inteira abre o detalhe; a linha aberta fica marcada
+  return (
+    <DataTable
+      columns={columns}
+      rows={users}
+      onRowClick={(user) => onViewDetails?.(user)}
+      selectedRowKey={selectedUserId}
+    />
+  );
 }

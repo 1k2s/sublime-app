@@ -23,7 +23,7 @@ feature em andamento fica na spec dela, em [`specs/`](specs/).
 
 - **Fase 1:** cadastros, contratos e lançamento de atendimentos (repasse ao
   prestador e saldo de sessões).
-- **Fase 2:** `Payment` e saldo financeiro do paciente (visão da clínica).
+- **Fase 2:** `billing`: pagamentos e saldo financeiro do paciente (visão da clínica).
 - **Fase 3:** app de consulta de saldo para o paciente.
 
 ## Estado atual (Fase 1)
@@ -36,10 +36,9 @@ feature em andamento fica na spec dela, em [`specs/`](specs/).
 | `user` | implementado: soft delete e reativação, e-mail único (409), senha com hash BCrypt (mínimo 8), senha opcional na alteração, senha provisória com troca obrigatória no primeiro acesso (coluna `password_change_required`; [ADR 0025](adr/0025-primeiro-acesso-com-senha-provisoria.md), [ADR 0029](adr/0029-senha-provisoria-por-coluna.md)), admin padrão protegido ([ADR 0027](adr/0027-admin-padrao-protegido.md)), Configurações do próprio usuário (`/api/users/me`) |
 | `auth` | implementado no backend e no front: login com JWT, rotas protegidas (exceto login, primeiro acesso e Swagger), corte imediato do acesso ao inativar, mudar o perfil ou redefinir a senha, Swagger com "Authorize" ([ADR 0023](adr/0023-autenticacao-jwt-resource-server.md), [ADR 0024](adr/0024-sessao-frontend-localstorage.md)); **autorização por perfil** (2026-11-07): tabela de acesso no `SecurityConfig` com o `ADMIN` como padrão e o `CurrentUser` para as regras de dados ([ADR 0026](adr/0026-acesso-por-perfil-centralizado.md)) |
 | `provider` | implementado: dois percentuais (padrão 40/45), usuário ativo obrigatório na criação e na reativação ([ADR 0031](adr/0031-prestador-com-usuario-revisto.md)) |
-
 | `pricing` | implementado: grupos, técnicas (com reativação), planos (`PlanType`, `termWeeks`, de-para), preços com reajuste historizado; **tabela e histórico por grupo** (2026-11-17: `GET /api/pricing-groups/{id}/prices` e `.../prices/history`; o `validTo` entra na resposta das linhas de preço); **status da linha de preço** (2026-11-18: `PriceStatus` Vigente, Vencido ou Encerrado, resolvido pelo backend em `status`; ver "Status da linha de preço" no [`domain-model.md`](domain-model.md)) |
-| `contract` | implementado: cabeçalho + `ContractItem`, vigência calculada (`SessionFrequency`), aditivos, opções do plano do Grupo, endpoints de apoio, beneficiário de no máximo um contrato vigente e diferente do titular, `current` na resposta (vigente hoje), **valor total e parcelas** (2026-11-12; coluna `installments`, prévia `POST /api/contracts/preview`; [ADR 0032](adr/0032-valor-e-parcelas-do-contrato.md)) |
-| `consultation` | implementado: lançamento com contratos vinculados e escolha livre, resolução de preço (casos 1 a 3), `pricingSource`, comissão pela origem, repasse `HALF_UP`, saldo pela cadeia de versões, soft delete sem `PUT`, endpoints de apoio (`launch-options` com as durações válidas, `session-balance`, `patients`, `recent-patients`, `day-summary`); prestador do login para o `PROVIDER`, que só vê e inativa os próprios lançamentos; `launchedByUserId`; **o `PROVIDER` só lança e desfaz com a data de hoje**, e o retroativo usa a liberação do admin (2026-11-13; tabela `retroactive_launch_grant`, no `provider`; [ADR 0033](adr/0033-lancamento-retroativo-com-liberacao.md)); "hoje" no fuso da clínica ([ADR 0034](adr/0034-hoje-no-fuso-da-clinica.md)); **rendimento do prestador** (2026-11-26): coluna `launched_at`, `earnings-summary` e `earnings` (só os realizados, pela data do lançamento, com as faltas cobradas à parte e o `byProvider` do admin), filtros `launchedFrom`, `launchedTo` e `status` na listagem e o `day-summary` na mesma regra ([ADR 0037](adr/0037-rendimento-do-prestador.md)) |
+| `contract` | implementado: cabeçalho + `ContractItem`, vigência calculada (`SessionFrequency`), aditivos, opções do plano do Grupo, endpoints de apoio, beneficiário de no máximo um contrato vigente e diferente do titular, `current` na resposta (vigente hoje), **valor total e parcelas** (2026-11-12; coluna `installments`, prévia `POST /api/contracts/preview`; [ADR 0032](adr/0032-valor-e-parcelas-do-contrato.md)); **aditivo completo** (2026-11-26): prévia do aditivo, parcelas escolhidas em todo aditivo, aditivo sem alteração recusado, lista só com a versão atual e o histórico em `/versions`, número do aditivo e data gravados, item por duração em contrato de mensalidade ([ADR 0037](adr/0037-parcelas-escolhidas-no-aditivo.md) a [ADR 0040](adr/0040-item-por-duracao-em-contrato-de-mensalidade.md)) |
+| `consultation` | implementado: lançamento com contratos vinculados e escolha livre, resolução de preço (casos 1 a 3), `pricingSource`, comissão pela origem, repasse `HALF_UP`, saldo pela cadeia de versões, soft delete sem `PUT`, endpoints de apoio (`launch-options` com as durações válidas, `session-balance`, `patients`, `recent-patients`, `day-summary`); prestador do login para o `PROVIDER`, que só vê e inativa os próprios lançamentos; `launchedByUserId`; **o `PROVIDER` só lança e desfaz com a data de hoje**, e o retroativo usa a liberação do admin (2026-11-13; tabela `retroactive_launch_grant`, no `provider`; [ADR 0033](adr/0033-lancamento-retroativo-com-liberacao.md)); "hoje" no fuso da clínica ([ADR 0034](adr/0034-hoje-no-fuso-da-clinica.md)); **rendimento do prestador** (2026-11-26): coluna `launched_at`, `earnings-summary` e `earnings` (só os realizados, pela data do lançamento, com as faltas cobradas à parte e o `byProvider` do admin), filtros `launchedFrom`, `launchedTo` e `status` na listagem e o `day-summary` na mesma regra ([ADR 0042](adr/0042-rendimento-do-prestador.md)) |
 | **frontend** | **em andamento**: ver a seção [Frontend](#frontend) |
 
 - **Monorepo** desde 2026-10-29 ([ADR 0022](adr/0022-monorepo.md)): o backend em
@@ -50,8 +49,9 @@ feature em andamento fica na spec dela, em [`specs/`](specs/).
   a V1 foi editada em 2026-11-07 (colunas `default_admin`, `password_change_required` e
   `launched_by_user_id`) e em 2026-11-12 (coluna `installments` do contrato), então quem puxar
   zera o banco local (`docker compose down -v`). Editada de novo em 2026-11-13 (tabela
-  `retroactive_launch_grant`) e em 2026-11-25 (coluna `launched_at` e o índice
-  `idx_consultation_provider_launched` do atendimento).
+  `retroactive_launch_grant`) e em 2026-11-25 (colunas `amendment_number` e `created_at` do
+  contrato; coluna `launched_at` e o índice `idx_consultation_provider_launched` do
+  atendimento).
 - **Teste manual do fluxo completo pela API** (2026-10-29, comandos manuais, sem script): o
   catálogo, os cadastros, o contrato (incluindo o aditivo), os três casos de
   lançamento, o saldo, a reativação e as constraints do banco funcionaram como
@@ -83,14 +83,10 @@ feature em andamento fica na spec dela, em [`specs/`](specs/).
 1. **Telas funcionais no front** (decidido em 2026-11-11, antes dos testes): o backend está
    pronto, mas o sistema ainda não funciona de ponta a ponta (contratos e lançamento usam
    mocks e o modelo antigo). **Uma branch e uma spec por tela**, cada uma com o próprio PR,
-   na ordem de dependência (as telas de Usuários, Prestadores, Contratos e Lançamento já estão
-   prontas; o Lançamento em 2026-11-13, com o retroativo por liberação do admin):
-   1. **Aditivo do contrato** (spec própria; decidido em 2026-11-11 deixá-lo fora da tela de
-      Contratos e, em 2026-11-13, fazê-lo depois do Lançamento): prorrogar, incluir e remover
-      itens, o `group-plan-options`, renegociar as parcelas na prorrogação e como a lista mostra
-      as versões (a substituída por aditivo aparece como Inativo). O detalhe do contrato ganha o
-      "Editar". Até lá, prorrogar só pelo Swagger.
-   2. **Cadastro do catálogo** (spec em [`specs/cadastro-do-catalogo.md`](specs/cadastro-do-catalogo.md),
+   na ordem de dependência (as telas de Usuários, Prestadores, Contratos, Lançamento e Dashboard
+   já estão prontas; o Lançamento em 2026-11-13, com o retroativo por liberação do admin; o
+   aditivo do contrato e o Dashboard em 2026-11-26):
+   1. **Cadastro do catálogo** (spec em [`specs/cadastro-do-catalogo.md`](specs/cadastro-do-catalogo.md),
       2026-11-24): renomear técnica, grupo e plano; inativar e reativar grupo e plano; telas de
       cadastro; as técnicas de cada grupo na tabela de Preços. Hoje a clínica só mexe em preço
       pela tela. **Aguardando** as decisões em aberto da spec e as prévias.
@@ -171,11 +167,27 @@ Frontend: ver a seção [Frontend](#frontend).
 
 ## Não modelado ainda
 
-- **`Payment`** (Fase 2): controle financeiro do paciente (pagamentos realizados ×
-  valor consumido nos atendimentos lançados), base da visão da clínica. Também é a
-  base do "em dia" do Pilates em Grupo (parcela do mês paga), que não usa saldo de
-  sessões.
-- **Saldo do paciente:** módulo que reúne, por paciente, os **contratos ativos**
+- **`billing`** (Fase 2; esboço decidido na análise de 2026-11-18): o que é cobrado e o que é
+  pago, base da visão da clínica. O nome cobre os dois lados; `Payment` é uma entidade dentro
+  dele (precedente de módulo com o nome do assunto: o `pricing`).
+  - **A dívida do paciente é o consumo** (atendimentos lançados × valor), comparado com os
+    pagamentos: o "controle de atendimento" que a clínica faz hoje à mão. Quem vai mais que o
+    contratado termina devendo; quem desmarca com antecedência termina com crédito. O sistema
+    já grava o consumo (`Consultation.baseValue`, saldo negativo aceito pelo
+    [ADR 0018](adr/0018-saldo-esgotado-aceita-lancamento.md)); falta o pago.
+  - **O contrato** trava o preço, define a expectativa de uso (sessões e frequência) e o plano
+    de pagamento (as parcelas). As parcelas **não** são a dívida
+    ([ADR 0037](adr/0037-parcelas-escolhidas-no-aditivo.md)). Sessão além do contratado vale o
+    valor do item do contrato (a linha travada), como o lançamento já faz.
+  - **Pilates em Grupo:** mensalidade, sem controle de sessões: a dívida é a parcela do mês
+    (o "em dia" é a parcela paga), não o consumo.
+  - **Avisos:** quando o consumo passa do contratado ou do que foi pago, para a clínica avisar
+    o paciente cedo (antes de o valor virar 2x ou 3x o acordado).
+  - **Módulos:** o `billing` fica **acima** do `consultation` no mapa e **lê** o `contract` e o
+    `consultation`, sem juntá-los (agregados com regras e ciclos de vida diferentes: versionado
+    e imutável). Precedente: o saldo de sessões é calculado no `consultation`, lendo o
+    `contract`.
+- **Saldo do paciente** (no `billing`): reúne, por paciente, os **contratos ativos**
   com o saldo de sessões de cada item (ex: "RPG: 22 sessões, 12 usadas;
   Quiropraxia: 12 sessões, 6 usadas") e um **valor em R$** na conta do paciente,
   separado do saldo de sessões:
@@ -199,8 +211,11 @@ Frontend: ver a seção [Frontend](#frontend).
   retroatividade para lançamentos. O quanto cada prestador rendeu no período já existe (o
   `earnings`, ver "Rendimento" em `Consultation`, no [`domain-model.md`](domain-model.md));
   falta o quanto já foi pago.
+- **Impressão do contrato para assinatura:** cada versão (a original e cada aditivo) é
+  impressa para o paciente assinar (ver "Versionamento (aditivos)" em `Contract`, no
+  [`domain-model.md`](domain-model.md)). Hoje não há impressão.
 - **App de consulta de saldo do paciente** (Fase 3): camada de consumo somente
-  leitura sobre `consultation` e `payment`, sem entidades novas.
+  leitura sobre `consultation` e `billing`, sem entidades novas.
 - **Agendamento** (sem fase definida): hoje a clínica usa outro software para a
   agenda, onde ficam também as desmarcações sem cobrança e a taxa de desmarcação.
   Se um dia for integrado ao sistema, os cancelamentos sem cobrança voltam a ter
@@ -222,11 +237,11 @@ chamadas batem com a API real ainda não foram conferidos.**
 | `auth` | **concluído e testado pela tela** (2026-11-07): login real, primeiro acesso (a tela troca sozinha para a definição da senha), sessão no `localStorage` que expira pela `expiresAt` e cai num 401, cache limpo ao sair, **abas sincronizadas** (2026-11-15: uma sessão por navegador, e as abas abertas acompanham quem entra ou sai; [ADR 0035](adr/0035-sessao-sincronizada-entre-abas.md); **testado pela tela** com duas abas: sair, entrar com outro perfil, trocar o e-mail e abrir aba nova), tela inicial por perfil (`HomeRedirect`), **rotas e menu por papel** (`ProtectedRoute` com `roles`), mensagem da API no `error.message` (interceptor do `apiClient`). Ver "Rotas e sessão" no [`architecture.md`](architecture.md) |
 | `patient` | listagem com filtros e busca, modal de detalhes, cadastro em wizard (dados pessoais com a origem do paciente, endereço com ViaCEP, confirmação), ligado à API real (PR #33) |
 | `pricing` | **Tabela de Preços** (`/pricing`, só `ADMIN`; 2026-11-17), no verde da sidebar: grupo escolhido no `RichSelect`, uma linha por versão do plano e uma duração (ou frequência) por coluna, a partir do histórico do grupo (`GET /api/pricing-groups/{id}/prices/history`); coluna **Status** com "Vigente", "Vencido" (linha aberta há mais de 12 meses sem reajuste, resolvido pelo backend em `status`) ou "Encerrado" (linha encerrada por reajuste; as encerradas no mesmo dia formam uma linha; o período fica no detalhe); filtro Todos / Vigentes / Vencidos / Encerrados (abre em Vigentes); tabela no `DataTable` das listagens, com o carregando da marca (`ListMessage`); detalhe pelo olho e **alteração dos valores** das versões abertas (vigente ou vencida; um `POST` por valor alterado); "Novo Preço / Reajustar" para qualquer combinação (ex: plano ou duração nova). Conferida por build e lint; **não testada pela tela** |
-| `consultation` | tela de Lançamento (`/consultations`, os dois perfis; 2026-11-13), ligada à API: **barra fixa usada toda pelo teclado** (`Combobox`: paciente, técnica, contrato só com dois, duração com as válidas do backend, status; o Enter pula de campo, e do status leva ao Lançar), **um atendimento por vez**, com aviso de sucesso; pacientes recentes como **sugestão** (técnica e duração em azul); só o aviso de saldo (≤ 2 ou esgotado); data **Hoje** ou **Retroativo** (com liberação do admin); lista de hoje com rolagem própria e "Desfazer" com confirmação; rendimento do dia do backend, com as faltas cobradas à parte (2026-11-26); o `ADMIN` escolhe o prestador. **Testada pela API e pela tela** (2026-11-13). **Tela de Dashboard** (`/dashboard`, os dois perfis; 2026-11-26): abas Resumo e Panorama executivo (slide entre elas), barra de período (Hoje, Esta semana, Este mês, Personalizado), para o `ADMIN` a lista "Rendimento por prestador" na altura dos números, três cartões (rendimento, faltas cobradas, repasse total), a lista de atendimentos pela data do lançamento (tabela sempre na tela, filtro de status) e o anel da composição do repasse com o ECharts ([ADR 0038](adr/0038-graficos-com-echarts.md)). Conferida por build e lint; **não testada pela tela** (ver "Pendências") |
-| `contract` | tela de Contratos (`/contracts`; 2026-11-13), ligada à API, no modelo real (um item por grupo de preço): listagem com o status Vigente, Vencido ou Inativo (`current` da API), detalhe com o valor total e as parcelas, inativar, e cadastro em **modal grande com rodapé fixo** (plano no `RichSelect` com o alternador Individual \| Familiar, itens em linhas, prévia `POST /api/contracts/preview` com o fim, os valores e as parcelas); erros por campo da API. Primeiro módulo com `display/`, `utils/` e `hooks/` (ver "Dentro de cada módulo" no [`architecture.md`](architecture.md)). **Testada pela API e pela tela** (2026-11-12 e 2026-11-13) |
+| `consultation` | tela de Lançamento (`/consultations`, os dois perfis; 2026-11-13), ligada à API: **barra fixa usada toda pelo teclado** (`Combobox`: paciente, técnica, contrato só com dois, duração com as válidas do backend, status; o Enter pula de campo, e do status leva ao Lançar), **um atendimento por vez**, com aviso de sucesso; pacientes recentes como **sugestão** (técnica e duração em azul); só o aviso de saldo (≤ 2 ou esgotado); data **Hoje** ou **Retroativo** (com liberação do admin); lista de hoje com rolagem própria e "Desfazer" com confirmação; rendimento do dia do backend, com as faltas cobradas à parte (2026-11-26); o `ADMIN` escolhe o prestador. **Testada pela API e pela tela** (2026-11-13). **Tela de Dashboard** (`/dashboard`, os dois perfis; 2026-11-26): abas Resumo e Panorama executivo (slide entre elas), barra de período (Hoje, Esta semana, Este mês, Personalizado), para o `ADMIN` a lista "Rendimento por prestador" na altura dos números, três cartões (rendimento, faltas cobradas, repasse total), a lista de atendimentos pela data do lançamento (tabela sempre na tela, filtro de status) e o anel da composição do repasse com o ECharts ([ADR 0043](adr/0043-graficos-com-echarts.md)). Conferida por build e lint; **não testada pela tela** (ver "Pendências") |
+| `contract` | tela de Contratos (`/contracts`; 2026-11-13), ligada à API, no modelo real (um item por grupo de preço): listagem com o status Vigente, Vencido ou Inativo (`current` da API), detalhe com o valor total e as parcelas, inativar, e cadastro em **modal grande com rodapé fixo** (plano no `RichSelect` com o alternador Individual \| Familiar, itens em linhas, prévia `POST /api/contracts/preview` com o fim, os valores e as parcelas); erros por campo da API. **Aditivo** (2026-11-26): "Editar" no detalhe, formulário com o antes → depois do fim, do total e das parcelas (prévia do aditivo), saldo de sessões e "Novo" nos itens, revisão com as alterações antes de salvar; a lista com um contrato por linha (coluna "Versão") e o detalhe com abas e o histórico das versões numa linha do tempo, com as mudanças marcadas. **Testado pela API e pela tela** (2026-11-25). Primeiro módulo com `display/`, `utils/` e `hooks/` (ver "Dentro de cada módulo" no [`architecture.md`](architecture.md)). **Testada pela API e pela tela** (2026-11-12 e 2026-11-13) |
 | `provider` | tela de Prestadores (`/providers`, só `ADMIN`; 2026-11-11): listagem, detalhes (com o status do usuário vinculado) e cadastro/edição em **modal**. O cadastro **vincula um usuário existente** (ativo e sem prestador); percentual vazio usa o padrão do backend; erros por campo da API. No detalhe, a **liberação de lançamento retroativo** (2026-11-13, testada pela tela). Ligada à API; os casos de teste do cadastro ainda não foram rodados |
 | `user` | tela de Configurações (`/settings`, os dois perfis): troca do e-mail e da senha com a senha atual; camada `api/` (usuários e `/me`). **Tela de Usuários** (`/users`, só `ADMIN`; 2026-11-10): listagem com busca e filtros, cadastro e alteração com senha provisória, inativar e reativar, admin padrão protegido. Ligada à API e **testada pela tela** (2026-11-11) |
-| `app/`, `shared/` | **casca do app** (2026-11-17): menu lateral próprio que abre no hover e empurra o conteúdo, painel claro do conteúdo com animação de entrada, largura única das telas e fonte da marca (ver "Estilo" no [`architecture.md`](architecture.md)); **testada pela tela** (2026-11-17). Router com rotas `lazy`, `apiClient`, utilitários (`money`, `date`, `masks`, `alert`, `viacep`) e componentes de `shared/components/` |
+| `app/`, `shared/` | **casca do app** (2026-11-17): menu lateral próprio que empurra o conteúdo, painel claro do conteúdo com animação de entrada, largura única das telas e fonte da marca (ver "Estilo" no [`architecture.md`](architecture.md)); **testada pela tela** (2026-11-17). Em 2026-11-26, o menu claro, que abre e recolhe pelo clique (botão na borda e logo), com o nome do item num balão no recolhido. **Tabela única das listagens** (`DataTable`, 2026-11-26): cabeçalho fixo e rolagem dentro da tabela, clique na linha e a linha aberta marcada, nas cinco listagens, no Lançamento e no Dashboard. Router com rotas `lazy`, `apiClient`, utilitários (`money`, `date`, `masks`, `alert`, `viacep`) e componentes de `shared/components/` |
 
 - **Telas de listagem padronizadas** (2026-11-11): Usuários, Pacientes, Prestadores e
   Contratos seguem o mesmo padrão (filtro na page, modal pelo `id`, permissão só no router,
@@ -251,18 +266,19 @@ chamadas batem com a API real ainda não foram conferidos.**
 ### Próximos passos
 
 1. **Telas funcionais**, uma branch e uma spec por tela ([`specs/`](specs/README.md)), na
-   ordem de cadastro (cada uma depende dos dados da anterior): o aditivo do contrato;
-   Prestadores, Contratos, Lançamento e Dashboard já estão prontas. O que cada uma fecha e as
-   decisões já tomadas: item 1 dos [Próximos passos](#próximos-passos) do projeto.
+   ordem de cadastro (cada uma depende dos dados da anterior): o cadastro do catálogo;
+   Prestadores, Contratos (com o aditivo), Lançamento e Dashboard já estão prontas. O que cada
+   uma fecha e as decisões já tomadas: item 1 dos [Próximos passos](#próximos-passos) do
+   projeto.
 2. **Inventário** das telas que não entram no item 1: o que cada uma faz e se as chamadas
    batem com o contrato real da API (Swagger). Atualizar esta seção com o resultado. Preços já
    foi refeita e conferida contra o backend (2026-11-17).
 3. **Nova identidade visual do portal** (levantado em 2026-11-14). **Feito:** a casca do app e o
-   menu lateral, com o logo da marca (2026-11-17). **Falta:** decidir a **cor do conteúdo** (o
-   conteúdo segue com a paleta atual, `#5f7a58`; só o menu usa o verde novo, `#0BA17C`),
-   comparando as duas com o menu novo; depois, a melhoria **"Cores em variáveis CSS em todos os
-   componentes"** e a conferência do **"Visual global em cada tela"**, com as prévias antes do
-   código. A `Topbar` entra só se a identidade tiver barra superior.
+   menu lateral, com o logo da marca (2026-11-17); o menu claro, o fundo claro do conteúdo, a
+   tabela única das listagens, as etiquetas e as cores dos estados em tokens (2026-11-26).
+   **Falta:** a melhoria **"Cores em variáveis CSS em todos os componentes"** e a conferência do
+   **"Visual global em cada tela"**, com as prévias antes do código. A `Topbar` entra só se a
+   identidade tiver barra superior.
 
 Checklist da Fase 1 no front (herdado do guia original):
 - [x] Login funcionando e rotas protegidas.
@@ -306,9 +322,9 @@ Checklist da Fase 1 no front (herdado do guia original):
   ainda na raiz: `roles.js` (auth), `filterPatients.js` e `filterUsers.js`. Onde um componente tiver muita conta além do layout, ela vai para um hook em
   `hooks/`.
 - **Visual global em cada tela** (fundo e bordas frias, cards com sombra, menu e título; feito
-  em 2026-11-12 e valendo para todas as telas): conferir, com a tela de Contratos como base,
-  Pacientes, Usuários, Prestadores e Configurações, quando cada uma for mexida (o Lançamento
-  e Preços já estão no visual novo).
+  em 2026-11-12 e valendo para todas as telas): as listagens ficaram iguais à de Contratos em
+  2026-11-26 (a mesma `DataTable`); falta conferir o resto de Pacientes, Usuários e Prestadores
+  (filtros, modais) e Configurações, quando cada uma for mexida.
 - **Tela de Preços: o que falta** (2026-11-17): o teste pela tela (tabela dos quatro grupos,
   filtro por status com uma linha vencida, detalhe, alteração de um e de dois valores, valor vazio na duração sem preço, erro da API no
   segundo valor); o `PriceFormModal` ("Novo Preço / Reajustar") ainda mostra o erro da API dentro
@@ -336,13 +352,14 @@ Checklist da Fase 1 no front (herdado do guia original):
   fora do prazo) e por técnica (o `techniqueId` existe para esse tipo de relatório). Cada um
   precisa de uma consulta no backend (o front não agrupa nem soma; ver "Gráficos" no
   [`architecture.md`](architecture.md)).
-
 - **Cores em variáveis CSS em todos os componentes.** Hoje o código está misturado: parte
   dos `.module.css` usa `var(--color-*)` e parte usa o hexadecimal direto (uma regra antiga
   do guia, já removida). Padronizar em variáveis, para a paleta mudar num lugar só. **Em
   parte feito** (2026-11-12): o fundo e as bordas (os dois tons bege) passaram para
-  `var(--color-bg)` e `var(--color-border)` em todos os `.module.css`; os outros tons ainda
-  estão escritos direto.
+  `var(--color-bg)` e `var(--color-border)` em todos os `.module.css`. Em 2026-11-26, as tabelas,
+  as etiquetas, as molduras, os avisos e os erros também. Ainda com tons escritos direto, entre
+  outros: `Button`, `Input`, `Select`, `RichSelect`, `Stepper`, `PatientSearchInput` e
+  `TechniqueSearchInput` (os losangos do `BackgroundShapes` têm cores próprias, decorativas).
 - **Estado inicial do cadastro de contrato sem itens** (ideia das prévias de 2026-11-12): uma
   área "Nenhum item ainda" com atalhos para as técnicas, no lugar da primeira linha vazia.
 - **Buscas no padrão do `Combobox`** (2026-11-13): o `PatientSearchInput` e o

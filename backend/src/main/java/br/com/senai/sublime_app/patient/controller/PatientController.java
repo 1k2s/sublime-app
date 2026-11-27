@@ -40,12 +40,14 @@ public class PatientController {
     }
 
     @Operation(summary = "Cadastrar paciente", description = """
-            CPF com 11 dígitos, sem pontuação; endereço opcional. `referringProviderId`
-            (opcional) é o prestador que trouxe o paciente; vazio = paciente da clínica.
+            Cadastra o paciente e responde com ele. CPF com 11 dígitos, sem pontuação; endereço
+            opcional; `referringProviderId` (opcional): o prestador que trouxe o paciente.
+
+            Regras: "Patient" no `docs/domain-model.md`.
             """)
     @ApiResponses({
             @ApiResponse(responseCode = "201", description = "Paciente criado", content = @Content(schema = @Schema(implementation = PatientResponseDTO.class))),
-            @ApiResponse(responseCode = "400", description = "Dados inválidos ou prestador de origem inativo", content = @Content),
+            @ApiResponse(responseCode = "400", description = "Dados inválidos ou regra do paciente violada (o `detail` diz qual)", content = @Content),
             @ApiResponse(responseCode = "404", description = "Prestador de origem não encontrado", content = @Content),
             @ApiResponse(responseCode = "409", description = "Já existe um paciente com esse CPF", content = @Content)
     })
@@ -63,7 +65,7 @@ public class PatientController {
         return ResponseEntity.ok(patientService.findAll());
     }
 
-    @Operation(summary = "Buscar paciente por ID", description = "Retorna o paciente mesmo que esteja inativo (o histórico continua consultável).")
+    @Operation(summary = "Buscar paciente por ID", description = "Retorna o paciente, ativo ou inativo.")
     @ApiResponses({
             @ApiResponse(responseCode = "200", description = "Paciente encontrado", content = @Content(schema = @Schema(implementation = PatientResponseDTO.class))),
             @ApiResponse(responseCode = "404", description = "Paciente não encontrado", content = @Content)
@@ -75,12 +77,14 @@ public class PatientController {
     }
 
     @Operation(summary = "Atualizar paciente", description = """
-            Envie o estado completo: `address` nulo mantém o atual; `referringProviderId` vazio
-            torna o paciente da clínica (reenvie a origem atual para mantê-la).
+            Atualiza o paciente e responde com ele. Envie o estado completo: `address` nulo
+            mantém o atual; para manter a origem, reenvie o `referringProviderId` atual.
+
+            Regras: "Patient" no `docs/domain-model.md`.
             """)
     @ApiResponses({
             @ApiResponse(responseCode = "200", description = "Paciente atualizado", content = @Content(schema = @Schema(implementation = PatientResponseDTO.class))),
-            @ApiResponse(responseCode = "400", description = "Dados inválidos ou prestador de origem inativo", content = @Content),
+            @ApiResponse(responseCode = "400", description = "Dados inválidos ou regra do paciente violada (o `detail` diz qual)", content = @Content),
             @ApiResponse(responseCode = "404", description = "Paciente ou prestador de origem não encontrado", content = @Content),
             @ApiResponse(responseCode = "409", description = "Já existe outro paciente com esse CPF", content = @Content)
     })
@@ -92,7 +96,9 @@ public class PatientController {
     }
 
     @Operation(summary = "Inativar paciente", description = """
-            Soft delete: o paciente não entra em contratos e atendimentos novos.
+            Inativa o paciente (soft delete).
+
+            Regras: "Patient" no `docs/domain-model.md`.
             """)
     @ApiResponses({
             @ApiResponse(responseCode = "204", description = "Paciente inativado com sucesso"),
@@ -107,7 +113,7 @@ public class PatientController {
     }
 
     @Operation(summary = "Reativar paciente", description = """
-            Desfaz a inativação; os dados do cadastro não mudam.
+            Reativa o paciente.
             """)
     @ApiResponses({
             @ApiResponse(responseCode = "204", description = "Paciente reativado com sucesso"),

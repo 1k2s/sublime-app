@@ -4,39 +4,30 @@
   pointer-events: none;
 }
 
-.dark {
-  fill: var(--shell-bg);
-}
-
+/* Cores das lâminas (decorativas, só daqui). Bem suaves: o fundo é quase branco */
 .green {
-  fill: var(--color-primary);
+  fill: #c4e1cc;
 }
 
-.sage {
-  fill: var(--color-primary-soft);
+/* As duas lâminas do canto de baixo à direita: o mesmo verde, a de fora mais transparente */
+.greenSoft {
+  fill: #c4e1cc;
+  fill-opacity: 0.7;
 }
 
-.sand {
-  fill: var(--color-sand);
+.greenSheer {
+  fill: #c4e1cc;
+  fill-opacity: 0.3;
 }
 
-.cream {
-  fill: var(--color-sand-soft);
+.greenPale {
+  fill: #dcebe2;
 }
 
-.outline {
-  fill: none;
-  stroke: var(--color-primary-strong);
-  stroke-width: 5;
+.blue {
+  fill: #b4cde0;
 }
 
-/* No menu: faixa um pouco mais clara que o fundo e contorno no verde médio */
-.band {
-  fill: var(--shell-band);
-}
-
-.outlineOnShell {
-  fill: none;
-  stroke: var(--color-primary);
-  stroke-width: 4;
+.bluePale {
+  fill: #e3edf1;
 }

@@ -124,27 +124,40 @@
 }
 
 /* Título do grupo: na cor do sistema, com uma linha que vai até a borda */
+/* Título do grupo: faixa no tom suave da cor principal, com um marcador, para separar bem um
+   grupo do outro; as opções ficam recuadas abaixo dele */
 .group {
   display: flex;
   align-items: center;
   gap: 8px;
-  padding: 12px 12px 6px;
+  margin-bottom: 4px;
+  padding: 8px 12px;
+  border-radius: 8px;
+  background: var(--color-primary-soft);
   color: var(--color-primary);
-  font-size: 12px;
-  font-weight: 700;
+  font-size: 11.5px;
+  font-weight: 800;
   letter-spacing: 0.08em;
   text-transform: uppercase;
 }
 
-.group::after {
-  flex: 1;
-  height: 1px;
-  background: var(--color-border);
+.group::before {
+  flex: none;
+  width: 6px;
+  height: 6px;
+  border-radius: 2px;
+  background: currentColor;
+  transform: rotate(45deg);
   content: "";
 }
 
 li:not(:first-child) > .group {
-  margin-top: 6px;
+  margin-top: 8px;
+}
+
+/* Opção dentro de um grupo: alinhada ao texto do título, depois do marcador */
+.option.option-grouped {
+  padding-left: 26px;
 }
 
 .empty {

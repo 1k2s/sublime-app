@@ -26,6 +26,8 @@ import lombok.EqualsAndHashCode;
 import lombok.Getter;
 import lombok.NoArgsConstructor;
 
+import java.util.Objects;
+
 // Entidade interna do agregado Contract: um item por grupo de preço contratado.
 // Não tem repositório nem service próprios — só o ContractEntity cria itens (o
 // construtor de negócio não é público). Ver domain-model.md, "ContractItem".
@@ -90,15 +92,28 @@ public class ContractItemEntity {
         return sessionDurationPrice != null;
     }
 
-    // Sessões e valor do item, pela linha travada (a mesma conta da prévia)
+    // Sessões e valor do item, pela linha travada e pela vigência da versão (a mesma conta da
+    // prévia). Usa o getter do contrato: a relação é LAZY e pode vir como proxy do Hibernate
     public ContractItemValue getValue() {
-        return ContractItemValue.of(sessionDurationPrice, sessionFrequencyPrice);
+        return ContractItemValue.of(sessionDurationPrice, sessionFrequencyPrice, getContract().getDurationInWeeks());
     }
 
-    // Semanas para completar as sessões do plano no ritmo do item. Só faz sentido
-    // em item por duração — usado no cálculo do fim do contrato.
-    public int weeksToComplete() {
-        return frequency.weeksToComplete(sessionDurationPrice.getPlan().getSessionCount());
+    // Mesma técnica, mesma linha de preço e mesma frequência: o item não mudou no aditivo
+    // (ver "Versionamento (aditivos)" no domain-model). Compara ids: relação LAZY pode vir
+    // como proxy do Hibernate.
+    boolean hasSameTermsAs(ContractItemEntity other) {
+        return technique.getId().equals(other.technique.getId())
+                && Objects.equals(durationPriceId(), other.durationPriceId())
+                && Objects.equals(frequencyPriceId(), other.frequencyPriceId())
+                && frequency == other.frequency;
+    }
+
+    private Long durationPriceId() {
+        return sessionDurationPrice != null ? sessionDurationPrice.getId() : null;
+    }
+
+    private Long frequencyPriceId() {
+        return sessionFrequencyPrice != null ? sessionFrequencyPrice.getId() : null;
     }
 
     // Linha vigente, ou a mesma já travada no item anterior (o contrato mantém o

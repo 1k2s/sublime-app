@@ -90,6 +90,7 @@ export function UserPage() {
         isLoading={isLoading}
         isError={isError}
         hasRecords={users.length > 0}
+        selectedUserId={selectedUserId}
         onViewDetails={(user) => setSelectedUserId(user.id)}
       />
 

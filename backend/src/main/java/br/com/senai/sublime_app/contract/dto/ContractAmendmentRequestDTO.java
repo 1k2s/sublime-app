@@ -3,8 +3,11 @@ package br.com.senai.sublime_app.contract.dto;
 import java.time.LocalDate;
 import java.util.List;
 
+import br.com.senai.sublime_app.contract.domain.Installments;
 import br.com.senai.sublime_app.contract.enums.PaymentMethod;
 import jakarta.validation.Valid;
+import jakarta.validation.constraints.Max;
+import jakarta.validation.constraints.Min;
 import jakarta.validation.constraints.NotEmpty;
 import jakarta.validation.constraints.NotNull;
 
@@ -20,6 +23,13 @@ public record ContractAmendmentRequestDTO(
 
         @NotNull(message = "O método de pagamento é obrigatório.")
         PaymentMethod paymentMethod,
+
+        // Escolhidas em todo aditivo (dividem o total da nova versão): de 1 até os meses da
+        // NOVA vigência (a entidade confere depois de calcular o fim); 12 no máximo
+        @NotNull(message = "O número de parcelas é obrigatório.")
+        @Min(value = 1, message = "O número de parcelas deve ser no mínimo 1.")
+        @Max(value = Installments.MAX_COUNT, message = "O número de parcelas deve ser no máximo 12.")
+        Integer installments,
 
         // Opcional: só para estender o fim (prorrogação). Vazio = mantém o fim atual
         // (ou o recalculado, se um item por duração for incluído).

@@ -1,12 +1,53 @@
-/* Card pela sombra, sem borda; a tabela rola de lado dentro dele se a tela for estreita e, com a
-   altura limitada pelo pai (className), rola para baixo com o cabeçalho fixo */
+/* Card pela sombra, sem borda. A rolagem é sempre da tabela, não da página: o card não cresce além
+   do conteúdo e encolhe até caber no resto da altura (quem usa põe a tabela num pai em coluna, com
+   altura); passando disso, rola por dentro, com o cabeçalho parado */
 .wrapper {
+  flex: 0 1 auto;
+  min-height: 0;
   overflow: auto;
   border-radius: var(--radius);
   background: var(--color-surface);
   box-shadow: var(--shadow-card);
+
+  /* Barra de rolagem fina, dentro do card: o trilho começa abaixo do cabeçalho e para antes do
+     canto de baixo, para não cortar as bordas arredondadas; o polegar é uma pílula cinza, mais
+     forte ao passar o mouse */
+  &::-webkit-scrollbar {
+    width: 12px;
+    height: 12px;
+  }
+
+  &::-webkit-scrollbar-track {
+    margin-top: 46px;
+    margin-bottom: var(--radius);
+    background: transparent;
+  }
+
+  &::-webkit-scrollbar-thumb {
+    border: 3px solid transparent;
+    border-radius: 9999px;
+    background-color: color-mix(in srgb, var(--color-muted) 30%, transparent);
+    background-clip: padding-box;
+  }
+
+  &::-webkit-scrollbar-thumb:hover {
+    background-color: color-mix(in srgb, var(--color-muted) 55%, transparent);
+  }
 }
 
+/* Firefox (sem ::-webkit-scrollbar): a barra fina, nas mesmas cores. Fica fora do bloco acima
+   porque, no Chrome, o scrollbar-color desliga os estilos ::-webkit-scrollbar */
+@supports not selector(::-webkit-scrollbar) {
+  .wrapper {
+    scrollbar-width: thin;
+    scrollbar-color: color-mix(in srgb, var(--color-muted) 40%, transparent) transparent;
+  }
+}
+
+/* Cabeçalho nos tokens --color-table-head* (hoje, o branco das linhas), em negrito, parado no topo
+   ao rolar, com uma borda mais marcada embaixo. Linhas brancas, sem listra e sem negrito, todas no
+   mesmo cinza; com o mouse em cima (ou a linha aberta), um cinza neutro e uma barra verde à esquerda
+   (o cinza, e não um verde, deixa as etiquetas verdes em destaque) */
 .table {
   width: 100%;
   border-collapse: collapse;
@@ -18,8 +59,11 @@
     top: 0;
     z-index: 1;
     padding: 13px 20px;
-    background: var(--shell-bg);
-    color: var(--shell-text);
+    /* A linha embaixo como sombra interna, e não borda: com border-collapse, a borda do th parado
+       ficaria para trás ao rolar */
+    box-shadow: inset 0 -2px 0 var(--color-table-head-line);
+    background: var(--color-table-head);
+    color: var(--color-table-head-text);
     font-size: 12px;
     font-weight: 700;
     letter-spacing: 0.06em;
@@ -31,6 +75,7 @@
     padding: 13px 20px;
     border-top: 1px solid var(--color-row-line);
     color: var(--color-muted);
+    font-weight: 400;
     vertical-align: middle;
   }
 
@@ -48,17 +93,40 @@
     transition: background-color 0.15s ease;
   }
 
-  & tbody tr:nth-child(even) {
-    background: var(--color-row-stripe);
-  }
-
   & tbody tr:first-child td {
     border-top: 0;
   }
 
-  & tbody tr:hover {
-    background: var(--color-primary-soft);
+  /* A linha aberta (selectedRowKey) fica como no hover enquanto o detalhe está aberto */
+  & tbody tr:hover,
+  & tbody tr.selected {
+    background: var(--color-row-hover);
   }
+
+  & tbody tr:hover td:first-child,
+  & tbody tr.selected td:first-child {
+    box-shadow: inset 3px 0 0 var(--color-primary);
+  }
+}
+
+/* compact: tabela com muitas colunas (ex: Preços) cabe na largura, sem rolagem lateral; os títulos
+   quebram linha e o espaço entre as colunas é menor */
+.compact {
+  overflow-x: hidden;
+
+  & th {
+    white-space: normal;
+  }
+
+  & th,
+  & td {
+    padding-inline: 14px;
+  }
+}
+
+/* onRowClick: a linha inteira é clicável */
+.clickable tbody tr {
+  cursor: pointer;
 }
 
 .left {
@@ -71,11 +139,6 @@
 
 .center {
   text-align: center;
-}
-
-.emphasized {
-  color: var(--color-title);
-  font-weight: 600;
 }
 
 @media (prefers-reduced-motion: reduce) {

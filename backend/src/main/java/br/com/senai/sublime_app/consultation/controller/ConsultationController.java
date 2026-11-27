@@ -50,18 +50,15 @@ public class ConsultationController {
     }
 
     @Operation(summary = "Lançar atendimento", description = """
-            Lança um atendimento cobrado (`ATTENDED`, `NO_SHOW` ou `CANCELED_LATE`). Preço,
-            comissão e débito de sessão são resolvidos pelo sistema; o `contractId` vem do
-            `GET /api/consultations/launch-options` (nulo = Avulso).
+            Lança um atendimento (`ATTENDED`, `NO_SHOW` ou `CANCELED_LATE`) e responde com ele. O
+            `contractId` vem do `GET /api/consultations/launch-options` (nulo = Avulso).
 
-            **Perfis:** ADMIN (informa o `providerId`; qualquer data não futura) e PROVIDER (só
-            em nome próprio e com a data de hoje; o retroativo (data passada) usa a liberação do admin, em
-            `/api/providers/{id}/retroactive-grant`). Regras: "Consultation" no
-            `docs/domain-model.md`.
+            **Perfis:** ADMIN (informa o `providerId`) e PROVIDER (em nome próprio). Regras:
+            "Consultation" no `docs/domain-model.md`.
             """)
     @ApiResponses({
             @ApiResponse(responseCode = "201", description = "Atendimento lançado", content = @Content(schema = @Schema(implementation = ConsultationResponseDTO.class))),
-            @ApiResponse(responseCode = "400", description = "Dados inválidos, regra do lançamento violada ou retroativo sem liberação (o `detail` diz qual)", content = @Content),
+            @ApiResponse(responseCode = "400", description = "Dados inválidos ou regra do lançamento violada (o `detail` diz qual)", content = @Content),
             @ApiResponse(responseCode = "403", description = "PROVIDER lançando para outro prestador, ou usuário sem prestador vinculado", content = @Content),
             @ApiResponse(responseCode = "404", description = "Paciente, prestador ou técnica não encontrado", content = @Content)
     })
@@ -73,11 +70,12 @@ public class ConsultationController {
     }
 
     @Operation(summary = "Listar atendimentos", description = """
-            Ativos e inativos, do mais recente para o mais antigo (pela data do atendimento);
-            filtros opcionais. Dois períodos: `from`/`to` pela data do atendimento e
-            `launchedFrom`/`launchedTo` pela do lançamento (a do rendimento, usada no dashboard).
+            Retorna os atendimentos, ativos e inativos, do mais recente para o mais antigo; os
+            filtros são opcionais. O período vai pela data do atendimento (`from`/`to`) ou pela
+            do lançamento (`launchedFrom`/`launchedTo`).
 
-            **Perfis:** ADMIN e PROVIDER (só os dele).
+            **Perfis:** ADMIN e PROVIDER (só os dele). Regras: "Leituras" em Consultation, no
+            `docs/domain-model.md`.
             """)
     @ApiResponses({
             @ApiResponse(responseCode = "200", description = "Lista retornada com sucesso", content = @Content(schema = @Schema(implementation = ConsultationResponseDTO.class))),
@@ -103,13 +101,11 @@ public class ConsultationController {
     }
 
     @Operation(summary = "Resumo do rendimento", description = """
-            O rendimento de hoje, da semana (segunda a domingo) e do mês do calendário, no fuso
-            da clínica, com os limites de cada período (`from`/`to`). Rendimento = repasse dos
-            atendimentos realizados (`ATTENDED`) ativos, pela data do lançamento; as faltas
-            cobradas (`NO_SHOW` e `CANCELED_LATE`) vêm à parte. Regras: "Rendimento" em
-            Consultation, no `docs/domain-model.md`.
+            Retorna o rendimento de hoje, da semana e do mês, cada um com o início e o fim do
+            período, e as faltas cobradas à parte.
 
-            **Perfis:** ADMIN (com o `providerId`, só aquele; sem, todos) e PROVIDER (sempre o dele).
+            **Perfis:** ADMIN (com o `providerId`, só aquele; sem, todos) e PROVIDER (sempre o
+            dele). Regras: "Rendimento" em Consultation, no `docs/domain-model.md`.
             """)
     @ApiResponses({
             @ApiResponse(responseCode = "200", description = "Resumo do rendimento", content = @Content(schema = @Schema(implementation = EarningsSummaryResponseDTO.class))),
@@ -124,13 +120,11 @@ public class ConsultationController {
     }
 
     @Operation(summary = "Rendimento do período", description = """
-            O rendimento de um período qualquer, pela data do lançamento, com as faltas cobradas
-            à parte e o repasse total (os dois somados). Para o ADMIN sem `providerId`, também o
-            rendimento de cada prestador (`byProvider`: os ativos, mesmo zerados, e os inativos
-            com lançamento no período). Regras: "Rendimento" em Consultation, no
-            `docs/domain-model.md`.
+            Retorna o rendimento do período, as faltas cobradas à parte e o repasse total; para o
+            ADMIN sem `providerId`, também o de cada prestador (`byProvider`).
 
-            **Perfis:** ADMIN (com o `providerId`, só aquele; sem, todos) e PROVIDER (sempre o dele).
+            **Perfis:** ADMIN (com o `providerId`, só aquele; sem, todos) e PROVIDER (sempre o
+            dele). Regras: "Rendimento" em Consultation, no `docs/domain-model.md`.
             """)
     @ApiResponses({
             @ApiResponse(responseCode = "200", description = "Rendimento do período", content = @Content(schema = @Schema(implementation = EarningsResponseDTO.class))),
@@ -150,7 +144,7 @@ public class ConsultationController {
     }
 
     @Operation(summary = "Pacientes do lançamento", description = """
-            Pacientes ativos, por nome, só com `id`, `name` e `birthDate`.
+            Retorna os pacientes ativos, por nome, só com `id`, `name` e `birthDate`.
 
             **Perfis:** ADMIN e PROVIDER.
             """)
@@ -163,14 +157,12 @@ public class ConsultationController {
     }
 
     @Operation(summary = "Opções do lançamento", description = """
-            Para o paciente, a técnica e a data (nada é gravado): cada contrato vinculado (no
-            máximo dois) ou, sem nenhum, o Avulso (`contractId` nulo). Cada opção traz o caso do
-            preço, o saldo do item (`remainingSessions`), as durações com preço
-            (`durationOptions`; vazia com `anyDurationAllowed` no Pilates em Grupo), a sugerida
-            e, quando não dá para lançar por ela, o motivo (`unavailableReason`). Uma opção =
-            usada direto; duas = o usuário escolhe.
+            Retorna, sem gravar, as opções de lançamento do paciente para a técnica e a data:
+            cada contrato vinculado ou, sem nenhum, o Avulso (`contractId` nulo), com as durações
+            com preço e a sugerida. O `contractId` da opção escolhida vai no lançamento.
 
-            **Perfis:** ADMIN e PROVIDER.
+            **Perfis:** ADMIN e PROVIDER. Regras: "Contrato do atendimento" em Consultation, no
+            `docs/domain-model.md`.
             """)
     @ApiResponses({
             @ApiResponse(responseCode = "200", description = "Opções do lançamento", content = @Content(schema = @Schema(implementation = LaunchOptionResponseDTO.class))),
@@ -186,10 +178,11 @@ public class ConsultationController {
     }
 
     @Operation(summary = "Pacientes recentes do prestador", description = """
-            Os 8 pacientes distintos mais recentes do prestador, cada um com a técnica e a
-            duração do último atendimento ativo (sugestão da tela de lançamento).
+            Retorna os pacientes atendidos mais recentemente pelo prestador, com a técnica e a
+            duração do último atendimento (sugestão da tela de lançamento).
 
-            **Perfis:** ADMIN (informa o `providerId`) e PROVIDER (sempre os dele).
+            **Perfis:** ADMIN (informa o `providerId`) e PROVIDER (sempre os dele). Regras:
+            "Leituras" em Consultation, no `docs/domain-model.md`.
             """)
     @ApiResponses({
             @ApiResponse(responseCode = "200", description = "Pacientes recentes", content = @Content(schema = @Schema(implementation = RecentPatientResponseDTO.class))),
@@ -205,11 +198,12 @@ public class ConsultationController {
     }
 
     @Operation(summary = "Resumo do dia do prestador", description = """
-            Hoje (no fuso da clínica), pela regra do rendimento: os atendimentos realizados
-            (`ATTENDED`) ativos lançados hoje e o repasse somado, as faltas cobradas à parte e
-            quantos lançamentos retroativos a liberação de hoje ainda permite.
+            Retorna o resumo de hoje do prestador: o rendimento (atendimentos realizados e o
+            repasse somado), as faltas cobradas à parte e quantos lançamentos retroativos a
+            liberação ainda permite.
 
-            **Perfis:** ADMIN (informa o `providerId`) e PROVIDER (sempre o dele).
+            **Perfis:** ADMIN (informa o `providerId`) e PROVIDER (sempre o dele). Regras:
+            "Leituras" em Consultation, no `docs/domain-model.md`.
             """)
     @ApiResponses({
             @ApiResponse(responseCode = "200", description = "Resumo do dia", content = @Content(schema = @Schema(implementation = DaySummaryResponseDTO.class))),
@@ -225,10 +219,11 @@ public class ConsultationController {
     }
 
     @Operation(summary = "Saldo de sessões do contrato", description = """
-            Saldo de cada item por duração (pode ser negativo), contando toda a cadeia de
-            versões. Informe a versão ativa.
+            Retorna o saldo de sessões de cada item por duração do contrato. Informe a versão
+            ativa.
 
-            **Perfis:** ADMIN e PROVIDER.
+            **Perfis:** ADMIN e PROVIDER. Regras: "Saldo de sessões" em Consultation, no
+            `docs/domain-model.md`.
             """)
     @ApiResponses({
             @ApiResponse(responseCode = "200", description = "Saldo calculado", content = @Content(schema = @Schema(implementation = ContractSessionBalanceResponseDTO.class))),
@@ -241,9 +236,10 @@ public class ConsultationController {
     }
 
     @Operation(summary = "Buscar atendimento por ID", description = """
-            Ativo ou inativo.
+            Retorna um atendimento, ativo ou inativo.
 
-            **Perfis:** ADMIN e PROVIDER (o de outro prestador responde 404).
+            **Perfis:** ADMIN e PROVIDER (só os dele). Regras: "Leituras" em Consultation, no
+            `docs/domain-model.md`.
             """)
     @ApiResponses({
             @ApiResponse(responseCode = "200", description = "Atendimento encontrado", content = @Content(schema = @Schema(implementation = ConsultationResponseDTO.class))),
@@ -258,15 +254,14 @@ public class ConsultationController {
     }
 
     @Operation(summary = "Inativar atendimento", description = """
-            Soft delete: deixa de contar no saldo e no repasse. Para corrigir um lançamento,
-            inative e lance de novo.
+            Inativa o atendimento (soft delete).
 
-            **Perfis:** ADMIN (qualquer data) e PROVIDER (só os de hoje; o de outro prestador
-            responde 404).
+            **Perfis:** ADMIN e PROVIDER (só os dele). Regras: "Ciclo de vida" em Consultation,
+            no `docs/domain-model.md`.
             """)
     @ApiResponses({
             @ApiResponse(responseCode = "204", description = "Atendimento inativado com sucesso"),
-            @ApiResponse(responseCode = "400", description = "PROVIDER desfazendo um atendimento de outro dia", content = @Content),
+            @ApiResponse(responseCode = "400", description = "Regra da inativação violada (o `detail` diz qual)", content = @Content),
             @ApiResponse(responseCode = "403", description = "Usuário PROVIDER sem prestador vinculado", content = @Content),
             @ApiResponse(responseCode = "404", description = "Atendimento não encontrado", content = @Content),
             @ApiResponse(responseCode = "409", description = "O atendimento já está inativo", content = @Content)

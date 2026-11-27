@@ -34,9 +34,8 @@ public class AuthController {
     }
 
     @Operation(summary = "Login", description = """
-            Devolve o token (8 horas), a expiração e o usuário. Com senha provisória, responde
-            **403** com `firstAccessRequired: true`, sem token: siga para
-            `POST /api/auth/first-access`.
+            Devolve o token, a expiração e o usuário. Com senha provisória, responde **403** com
+            `firstAccessRequired: true`, sem token: siga para `POST /api/auth/first-access`.
             """)
     @ApiResponses({
             @ApiResponse(responseCode = "200", description = "Login realizado", content = @Content(schema = @Schema(implementation = LoginResponseDTO.class))),
@@ -51,12 +50,12 @@ public class AuthController {
     }
 
     @Operation(summary = "Definir senha no primeiro acesso", description = """
-            Troca a senha provisória pela definitiva (8 caracteres ou mais, diferente da
-            provisória) e já devolve o token.
+            Troca a senha provisória pela definitiva (8 caracteres ou mais, com maiúscula,
+            minúscula, número e caractere especial, diferente da provisória) e já devolve o token.
             """)
     @ApiResponses({
             @ApiResponse(responseCode = "200", description = "Senha definida e login realizado", content = @Content(schema = @Schema(implementation = LoginResponseDTO.class))),
-            @ApiResponse(responseCode = "400", description = "Campos inválidos ou nova senha igual à provisória", content = @Content),
+            @ApiResponse(responseCode = "400", description = "Dados inválidos ou regra da senha violada (o `detail` diz qual)", content = @Content),
             @ApiResponse(responseCode = "401", description = "E-mail ou senha inválidos", content = @Content)
     })
     @SecurityRequirements // vazio: rota pública

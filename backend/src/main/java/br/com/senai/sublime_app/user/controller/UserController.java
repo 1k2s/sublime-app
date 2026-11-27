@@ -43,7 +43,8 @@ public class UserController {
     }
 
     @Operation(summary = "Cadastrar usuário", description = """
-            Senha com 8 caracteres ou mais, **provisória**: no primeiro login, o usuário define
+            Senha com 8 caracteres ou mais, com maiúscula, minúscula, número e caractere especial,
+            **provisória**: no primeiro login, o usuário define
             a própria (`POST /api/auth/first-access`).
             """)
     @ApiResponses({
@@ -94,7 +95,7 @@ public class UserController {
         return ResponseEntity.ok(userService.updateMe(currentUser, dto));
     }
 
-    @Operation(summary = "Buscar usuário por ID", description = "Retorna o usuário mesmo que esteja inativo.")
+    @Operation(summary = "Buscar usuário por ID", description = "Retorna o usuário, ativo ou inativo.")
     @ApiResponses({
             @ApiResponse(responseCode = "200", description = "Usuário encontrado", content = @Content(schema = @Schema(implementation = UserResponseDTO.class))),
             @ApiResponse(responseCode = "404", description = "Usuário não encontrado", content = @Content)
@@ -106,8 +107,10 @@ public class UserController {
     }
 
     @Operation(summary = "Atualizar usuário", description = """
-            E-mail e perfil obrigatórios. `password` opcional: preenchida, vira uma nova senha
-            **provisória** (a sessão do usuário cai).
+            Atualiza o e-mail e o perfil (obrigatórios) e, com `password`, define uma nova senha
+            provisória. Responde com o usuário.
+
+            Regras: "User" no `docs/domain-model.md`.
             """)
     @ApiResponses({
             @ApiResponse(responseCode = "200", description = "Usuário atualizado", content = @Content(schema = @Schema(implementation = UserResponseDTO.class))),
@@ -123,7 +126,9 @@ public class UserController {
     }
 
     @Operation(summary = "Inativar usuário", description = """
-            Soft delete: o usuário não faz mais login (a sessão cai na hora).
+            Inativa o usuário (soft delete).
+
+            Regras: "User" no `docs/domain-model.md`.
             """)
     @ApiResponses({
             @ApiResponse(responseCode = "204", description = "Usuário inativado com sucesso"),
@@ -138,7 +143,7 @@ public class UserController {
     }
 
     @Operation(summary = "Reativar usuário", description = """
-            Desfaz a inativação: o usuário volta a fazer login.
+            Reativa o usuário.
             """)
     @ApiResponses({
             @ApiResponse(responseCode = "204", description = "Usuário reativado com sucesso"),

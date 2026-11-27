@@ -3,6 +3,8 @@
 // título, ex: Badge), description (subtítulo) e footer (faixa de rodapé, com borda em cima).
 // variant="soft": título maior, cabeçalho sem borda e rodapé com fundo (ex: o plano na tela de
 // Preços).
+// size="medium": detalhe com mais conteúdo (ex: o contrato, com abas); a largura acompanha a tela,
+// entre um mínimo e um máximo.
 // size="large": formulário longo (ex: cadastro de contrato). O conteúdo ocupa a altura toda e
 // cuida da própria rolagem e do próprio rodapé fixo.
 // closeOnBackdrop={false}: o clique no fundo não fecha (num formulário longo, um clique sem querer
@@ -35,7 +37,12 @@ export function Modal({
   return (
     <div className={styles.backdrop} onMouseDown={closeOnBackdrop ? onClose : undefined}>
       <div
-        className={[styles.dialog, size === "large" && styles.large, variant === "soft" && styles.soft]
+        className={[
+          styles.dialog,
+          size === "medium" && styles.medium,
+          size === "large" && styles.large,
+          variant === "soft" && styles.soft,
+        ]
           .filter(Boolean)
           .join(" ")}
         role="dialog"

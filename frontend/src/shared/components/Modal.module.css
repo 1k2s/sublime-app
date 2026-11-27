@@ -109,6 +109,12 @@
   border-top: 1px solid var(--color-border);
 }
 
+/* Detalhe com mais conteúdo (ex: o contrato, com abas): acompanha a largura da tela, de 560px
+   (telas menores) até 920px (monitores grandes) */
+.medium {
+  max-width: clamp(560px, 60vw, 920px);
+}
+
 /* Formulário longo: largo e alto; o conteúdo rola e mantém o próprio rodapé fixo */
 .large {
   max-width: 1080px;

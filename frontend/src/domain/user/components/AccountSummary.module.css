@@ -1,0 +1,66 @@
+.summary {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 16px;
+  padding: 22px 28px;
+  border-bottom: 1px solid var(--color-row-line);
+  background: var(--color-row-stripe);
+}
+
+.avatar {
+  display: flex;
+  flex: none;
+  align-items: center;
+  justify-content: center;
+  width: 56px;
+  height: 56px;
+  border-radius: 50%;
+  background: var(--color-primary-soft);
+  color: var(--color-primary);
+  font-family: var(--font-brand);
+  font-size: 22px;
+  font-weight: 500;
+}
+
+.text {
+  display: flex;
+  flex: 1;
+  flex-direction: column;
+  gap: 2px;
+  min-width: 0;
+}
+
+.email {
+  overflow-wrap: anywhere;
+  color: var(--color-title);
+  font-size: 16px;
+}
+
+.caption {
+  color: var(--color-muted);
+  font-size: 13px;
+}
+
+.badges {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 6px;
+}
+
+/* O Badge capitaliza; aqui o texto já vem pronto */
+.role,
+.default-admin {
+  gap: 6px;
+  font-weight: 600;
+  text-transform: none;
+}
+
+.role {
+  color: var(--color-primary-strong);
+}
+
+.default-admin {
+  background: var(--color-sand-soft);
+  color: #7a5a32;
+}

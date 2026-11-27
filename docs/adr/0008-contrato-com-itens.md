@@ -1,6 +1,6 @@
 # 0008 — Contrato como agregado com um item por grupo
 
-- **Status:** aceito
+- **Status:** aceito (em parte substituído por [0040](0040-item-por-duracao-em-contrato-de-mensalidade.md): item por duração no contrato de mensalidade)
 - **Data:** 2026-10-20 (registro retroativo)
 
 ## Contexto
