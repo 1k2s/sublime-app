@@ -20,6 +20,7 @@ frontend). Para a arquitetura e as regras de negócio, ver
 - [Dados de teste](#dados-de-teste)
 - [Catálogo atual da clínica (dados para o cadastro inicial)](#catálogo-atual-da-clínica-dados-para-o-cadastro-inicial)
 - [Fluxo de git](#fluxo-de-git)
+- [Homologação (VPS)](#homologação-vps)
 - [Problemas conhecidos do ambiente](#problemas-conhecidos-do-ambiente)
 
 ## Stack
@@ -42,7 +43,8 @@ Monorepo ([ADR 0022](adr/0022-monorepo.md)):
 | `backend/` | API Spring Boot (Maven) | `backend/` (`./mvnw ...`) |
 | `frontend/` | interface React + Vite (npm) | `frontend/` (`npm ...`) |
 | `docs/` | documentação do produto (vale para os dois) | — |
-| raiz | `docker-compose.yml`, `CLAUDE.md`, `README.md` | `docker compose ...` |
+| `deploy/` | os ambientes no ar: `deploy/homologacao/` (o `docker-compose` e o modelo dos segredos da VPS; ver "Homologação") | `deploy/homologacao/` (`docker compose ...`) |
+| raiz | `docker-compose.yml` (o MySQL local), `CLAUDE.md`, `README.md` | `docker compose ...` |
 
 ## Rodando localmente
 
@@ -346,6 +348,81 @@ por aula é linha de preço.
 - Branch `feature/...` (ou `feat/...`) → PR para a `dev`.
 - **Conferir o diff antes de commitar** (ver "Arquivos que voltaram sozinhos").
 
+## Homologação (VPS)
+
+**`https://hom.sublimefisioterapia.com`**: um ambiente igual ao de produção, sem os dados da
+clínica, para o time testar pela tela e treinar o fluxo de deploy antes do MVP
+([ADR 0053](adr/0053-homologacao-com-caddy-e-imagens-no-ghcr.md)). Roda numa VPS da Hostinger
+(Ubuntu, 1 vCPU, 4 GB), em três containers:
+
+```
+internet ──https──▶ web (Caddy + o front buildado; as únicas portas abertas: 80 e 443)
+                      ├── /                                   → o front (arquivos estáticos)
+                      └── /api, /swagger-ui, /api-docs        → backend:8080 (rede interna)
+                                                                   └── mysql:3306 (rede interna)
+```
+
+| Arquivo | O que é |
+|---|---|
+| `backend/Dockerfile` | a imagem do backend: compila com o JDK, roda com o JRE e um usuário sem privilégios |
+| `frontend/Dockerfile` | a imagem `web`: builda o React (`VITE_API_URL=/api`) e o coloca no Caddy |
+| `frontend/Caddyfile` | o porteiro: o HTTPS (certificado do Let's Encrypt, renovado sozinho) e o roteamento |
+| `deploy/homologacao/docker-compose.yml` | os três serviços, com as imagens do registro (o que roda na VPS) |
+| `deploy/homologacao/docker-compose.build.yml` | acrescenta o `build`: monta as imagens a partir do código |
+| `deploy/homologacao/.env.example` | o modelo dos segredos (o `.env` de verdade só existe na VPS) |
+
+**Testar na máquina local** (em `deploy/homologacao/`, com um `.env` local com
+`SITE_ADDRESS=http://localhost` e senhas de teste; as portas 80 e 443 livres):
+```
+docker compose -f docker-compose.yml -f docker-compose.build.yml up -d --build
+docker compose -f docker-compose.yml -f docker-compose.build.yml down -v
+```
+O site abre em `http://localhost`, com o banco vazio (só o catálogo da V4); o `down -v` derruba
+tudo e apaga o banco de teste. O `mysql-dev` não é tocado.
+
+**Publicar as imagens** (à mão, até o CI/CD), no registro do GitHub (GHCR):
+1. Montar as imagens com o comando de teste acima (`--build`): elas já saem com o nome do registro
+   (`ghcr.io/1k2s/sublime-backend:dev` e `ghcr.io/1k2s/sublime-web:dev`).
+2. Um token **classic** do GitHub com só o `write:packages` (o fine-grained não funciona com o
+   GHCR), e `docker login ghcr.io -u SEU_USUARIO` (o token no lugar da senha).
+3. `docker push ghcr.io/1k2s/sublime-backend:dev` e `docker push ghcr.io/1k2s/sublime-web:dev`.
+
+As imagens são públicas (o repositório é público), e a VPS as baixa sem login. Por isso, **nunca
+há segredo dentro de uma imagem**: as senhas entram pelo `.env` da VPS, na hora de rodar.
+
+**Subir ou atualizar na VPS** (`ssh deploy@IP_DA_VPS`, o IP no painel da Hostinger), na pasta
+`~/sublime-homolog`, que tem só o `docker-compose.yml` e o `.env`:
+```
+docker compose pull      # baixa as imagens novas
+docker compose up -d     # recria só os containers que mudaram
+docker compose ps        # os três "Up", o mysql "(healthy)"
+docker compose logs --tail 40 backend
+```
+Quando o `docker-compose.yml` mudar no repositório, copie de novo, **do seu PC**:
+`scp deploy/homologacao/docker-compose.yml deploy@IP_DA_VPS:~/sublime-homolog/`. As migrations
+novas rodam sozinhas quando o backend sobe ([ADR 0052](adr/0052-versao-estavel-do-banco.md)).
+
+**O `.env` da VPS** foi criado uma vez, lá mesmo, com os segredos gerados pelo
+`openssl rand` (eles nunca passam por outra máquina), e só o `deploy` o lê (`chmod 600`). O admin
+padrão é criado **só na primeira subida** do banco: gerar o `.env` de novo não muda a senha do
+admin que já existe (troque pela tela de Configurações).
+
+**O acesso à VPS:**
+- Pelo SSH, só com chave (a senha está desligada) e com o usuário `deploy` (grupos `sudo` e
+  `docker`); o `root` não entra pelo SSH. **Uma chave por pessoa:** a pública vai numa linha do
+  `~/.ssh/authorized_keys` do `deploy`; para tirar alguém, apague só a linha dele. O time não
+  precisa de SSH: o deploy é pelo registro (e, depois, pelo CI/CD).
+- Firewall (`ufw`): só as portas 22, 80 e 443.
+- Emergência (a chave perdida): o terminal web da Hostinger, com a senha do `root`.
+
+**Regras:**
+- **Só o `web` publica portas.** O Docker abre as portas publicadas por fora do `ufw`: um
+  `ports` no `mysql` ou no `backend` os deixaria abertos para a internet.
+- **O backend lê o `X-Forwarded-Proto`** (`SERVER_FORWARD_HEADERS_STRATEGY: native` no compose). O
+  Caddy repassa as chamadas por `http`, e o cabeçalho diz que, do lado de fora, elas vieram por
+  `https`. Sem ele, o login pelo navegador dá 403: o Spring vê o site `https` chamando uma API
+  `http` e recusa como CORS.
+
 ## Problemas conhecidos do ambiente
 
 Não são do código:
@@ -372,6 +449,11 @@ Não são do código:
   - Git: `git config --global http.sslBackend schannel`.
 
   **Nunca desligar a verificação SSL** (nem a do antivírus).
+
+  O mesmo antivírus faz o certificado da homologação aparecer, nessa máquina, como emitido por
+  ele (e não pelo Let's Encrypt). O certificado do servidor está certo: para conferir, veja o
+  cadeado de outro aparelho ou o log do Caddy na VPS
+  (`docker compose logs web | grep -i "certificate obtained"`).
 - **Animações do app não aparecem** (menu, entrada das telas): o sistema pede movimento
   reduzido, e o app respeita (`prefers-reduced-motion`). No Windows, é a opção
   **Configurações → Acessibilidade → Efeitos visuais → Efeitos de animação**

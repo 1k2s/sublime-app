@@ -7,6 +7,12 @@
 # comandos de consulta liberados para o time, vai para o repositório
 .claude/settings.local.json
 
+### Segredos ###
+# Os .env de qualquer pasta (ex: deploy/homologacao/.env, com as senhas da VPS); os modelos
+# versionados são os .env.example
+.env
+!.env.example
+
 ### Build ###
 # Proteção: o build do Maven fica em backend/target/ (ignorado pelo backend/.gitignore),
 # mas a extensão Java do VS Code pode recriar um target/ na raiz depois da mudança para

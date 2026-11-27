@@ -1,0 +1,9 @@
+# O que não entra no build da imagem: o resultado de builds locais, os segredos e os arquivos
+# das IDEs. Sem isso, o .env local (com o JWT_SECRET) iria para dentro da imagem
+target/
+.env
+.env.*
+*.iml
+.idea/
+.vscode/
+HELP.md

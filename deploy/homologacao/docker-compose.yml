@@ -1,0 +1,84 @@
+# A homologação: o front com o porteiro (web), o backend e o MySQL. Na VPS, só este arquivo e o
+# .env ao lado (modelo no .env.example; o .env de verdade nunca vai para o git), com as imagens
+# prontas do registro (GHCR):
+#   docker compose pull && docker compose up -d
+# Para buildar as imagens a partir do código (o teste local, ou antes de publicar), junte o
+# docker-compose.build.yml:
+#   docker compose -f docker-compose.yml -f docker-compose.build.yml up -d --build
+#
+# SÓ O WEB PUBLICA PORTAS. O Docker abre as portas publicadas por fora do firewall (ufw): um
+# "ports" no mysql ou no backend os deixaria abertos para a internet. Os dois conversam com o
+# web pela rede interna do Docker, pelo nome do serviço (backend:8080, mysql:3306).
+name: sublime-homolog
+
+services:
+  web:
+    # A imagem do registro; a tag (a versão) pode ser trocada pelo .env (WEB_IMAGE)
+    image: ${WEB_IMAGE:-ghcr.io/1k2s/sublime-web:dev}
+    restart: unless-stopped
+    ports:
+      - "80:80"
+      - "443:443"
+    environment:
+      SITE_ADDRESS: ${SITE_ADDRESS}
+    volumes:
+      # O certificado do Let's Encrypt: sem o volume, o Caddy pediria outro a cada reinício e
+      # esbarraria no limite de pedidos
+      - caddy_data:/data
+      - caddy_config:/config
+    depends_on:
+      - backend
+
+  backend:
+    image: ${BACKEND_IMAGE:-ghcr.io/1k2s/sublime-backend:dev}
+    restart: unless-stopped
+    environment:
+      # Sobrescrevem o application.properties (o Spring lê as variáveis de ambiente)
+      SPRING_DATASOURCE_URL: jdbc:mysql://mysql:3306/sublime_db
+      SPRING_DATASOURCE_USERNAME: ${MYSQL_USER}
+      SPRING_DATASOURCE_PASSWORD: ${MYSQL_PASSWORD}
+      # Sem o SQL de cada consulta no log (encheria o disco)
+      SPRING_JPA_SHOW_SQL: "false"
+      # O Caddy repassa a chamada por http e avisa no X-Forwarded-Proto que, do lado de fora, ela
+      # veio por https. Sem ler esse cabeçalho, o Spring vê o site https chamando uma API http e
+      # recusa como CORS (403 no login pelo navegador). "native": confia no cabeçalho só quando
+      # vem da rede interna (o Caddy), nunca da internet
+      SERVER_FORWARD_HEADERS_STRATEGY: native
+      JWT_SECRET: ${JWT_SECRET}
+      ADMIN_EMAIL: ${ADMIN_EMAIL}
+      ADMIN_PASSWORD: ${ADMIN_PASSWORD}
+    depends_on:
+      mysql:
+        # O Flyway precisa do banco ao subir: espera o healthcheck do mysql passar
+        condition: service_healthy
+    # A JVM usa até 70% disso (o JAVA_TOOL_OPTIONS do Dockerfile)
+    mem_limit: 1g
+
+  mysql:
+    # A mesma versão do desenvolvimento e dos testes (ADR 0052)
+    image: mysql:8.4.11
+    restart: unless-stopped
+    environment:
+      MYSQL_ROOT_PASSWORD: ${MYSQL_ROOT_PASSWORD}
+      MYSQL_DATABASE: sublime_db
+      # O usuário da aplicação, só com acesso ao sublime_db (não o root)
+      MYSQL_USER: ${MYSQL_USER}
+      MYSQL_PASSWORD: ${MYSQL_PASSWORD}
+    # Menos memória para caber na VPS: sem as estatísticas internas (performance schema) e com o
+    # cache do InnoDB em 256 MB (o banco inteiro cabe nele com folga)
+    command: ["--performance-schema=OFF", "--innodb-buffer-pool-size=256M"]
+    volumes:
+      - mysql_data:/var/lib/mysql
+    healthcheck:
+      # Responde quando o servidor aceita conexões (o ping funciona sem senha)
+      test: ["CMD-SHELL", "mysqladmin ping -h 127.0.0.1 --silent"]
+      interval: 10s
+      timeout: 5s
+      retries: 12
+      start_period: 30s
+    mem_limit: 768m
+
+volumes:
+  mysql_data:
+  caddy_data:
+  caddy_config:

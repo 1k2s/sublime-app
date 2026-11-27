@@ -1,0 +1,9 @@
+# Complemento do docker-compose.yml para buildar as imagens a partir do código, com o mesmo nome
+# do registro (ghcr.io/...): o teste local na própria máquina e o build antes do docker push.
+#   docker compose -f docker-compose.yml -f docker-compose.build.yml up -d --build
+# Na VPS não entra: lá as imagens vêm prontas do registro.
+services:
+  web:
+    build: ../../frontend
+  backend:
+    build: ../../backend

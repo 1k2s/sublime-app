@@ -329,7 +329,10 @@ módulo `auth`.
   Todo o resto exige `Authorization: Bearer <token>`.
 - **Sem sessão no servidor** (`STATELESS`) e **sem CSRF** (o token vai no header, não em
   cookie). **CORS** liberado só para o front de desenvolvimento (`http://localhost:5173`,
-  em `/api/**`).
+  em `/api/**`). Nos ambientes no ar não há CORS: o front e a API saem do mesmo endereço, pelo
+  porteiro (o Caddy), e o backend lê o `X-Forwarded-Proto` para saber que a chamada veio por
+  `https` (ver "Homologação (VPS)" no [`development.md`](development.md) e o
+  [ADR 0053](adr/0053-homologacao-com-caddy-e-imagens-no-ghcr.md)).
 - **Segredos** (`JWT_SECRET`, `ADMIN_EMAIL`, `ADMIN_PASSWORD`) nunca no git: vêm do
   `backend/.env` local ou das variáveis de ambiente (ver
   [`development.md`](development.md)). Sem `JWT_SECRET` válido (32 bytes ou mais), a

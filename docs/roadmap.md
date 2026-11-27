@@ -166,13 +166,21 @@ feature em andamento fica na spec dela, em [`specs/`](specs/).
 5. **Homologação na VPS, e depois o MVP** (plano de 2026-11-27). Antes do MVP (a produção da
    clínica), um **ambiente de homologação** numa VPS da Hostinger (o domínio já existe), para o
    time treinar o fluxo de um projeto real. A versão estável do banco já está feita
-   ([ADR 0052](adr/0052-versao-estavel-do-banco.md)). Falta:
-   - **a homologação:** a imagem Docker do backend, o front buildado, um nginx com HTTPS (Let's
-     Encrypt) num subdomínio, o MySQL próprio e um seed de pacientes de teste (o catálogo já vem
-     pela V4; o seed roda só na homologação, nunca na produção). Uma VPS KVM 1 (1 vCPU, 4 GB)
-     basta para ela; o build e os testes rodam no CI, não na VPS;
-   - **o CI/CD:** a cada PR, os testes, o build, o lint e o `check-docs` (item 3); a cada merge na
-     `dev`, o deploy na homologação;
+   ([ADR 0052](adr/0052-versao-estavel-do-banco.md)).
+   - **A homologação está no ar** (2026-11-27) em `https://hom.sublimefisioterapia.com`, numa VPS
+     KVM 1 (1 vCPU, 4 GB): o Caddy com o front, o backend e o MySQL em containers, e as imagens
+     no registro do GitHub (GHCR), publicadas à mão por enquanto
+     ([ADR 0053](adr/0053-homologacao-com-caddy-e-imagens-no-ghcr.md); como subir e atualizar:
+     "Homologação (VPS)" no [`development.md`](development.md)). O banco está vazio, só com o
+     catálogo da V4.
+   - **Falta, a massa de teste:** os pacientes e os casos do Financeiro na homologação, para o
+     teste pela tela (item 1.1). Proposta: o script da massa em `scripts/` e o roteiro em `docs/`,
+     rodando só na homologação, nunca na produção; o `launched_at` dos atendimentos ajustado no
+     banco (a API grava a hora do lançamento), para o Dashboard ter períodos diferentes.
+   - **Falta, o CI/CD:** a cada PR, os testes, o build, o lint e o `check-docs` (item 3); a cada
+     merge na `dev`, o GitHub Actions monta as imagens, publica no GHCR e manda a VPS atualizar
+     (`docker compose pull` e `up -d`, pelo SSH, com uma chave só dele). O build e os testes
+     rodam no GitHub, não na VPS;
    - **o MVP:** a produção criada do zero, recebendo a `main`, só com os dados reais. Antes dela,
      o backup diário do MySQL guardado fora da VPS (o backup semanal da Hostinger não basta) e,
      com a produção junto da homologação, uma VPS maior (KVM 2).

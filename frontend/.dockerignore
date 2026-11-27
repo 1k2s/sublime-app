@@ -1,0 +1,7 @@
+# O que não entra no build da imagem: as dependências e o build locais (a imagem instala e
+# builda de novo) e o .env local (a VITE_API_URL da imagem vem do Dockerfile)
+node_modules/
+dist/
+.env
+.env.*
+!.env.example

@@ -1,0 +1,29 @@
+# O porteiro da aplicação: a única porta aberta para a internet. Serve o front, encaminha a API
+# ao backend (que não é exposto) e cuida do HTTPS.
+#
+# SITE_ADDRESS vem do ambiente do container (o .env do docker-compose):
+# - um domínio (ex: hom.sublimefisioterapia.com): o Caddy pede o certificado ao Let's Encrypt e o
+#   renova sozinho; o domínio precisa apontar para a VPS (o registro A no DNS);
+# - http://localhost: sem HTTPS, para testar o compose na máquina local.
+{$SITE_ADDRESS} {
+	# Compressão das respostas (o JavaScript do front cai a menos de um terço)
+	encode zstd gzip
+
+	# A API e o Swagger vão para o backend, pela rede interna do Docker
+	@backend path /api/* /swagger-ui* /api-docs*
+	handle @backend {
+		reverse_proxy backend:8080
+	}
+
+	# O resto é o front. As rotas do React (/billing, /dashboard...) não existem como arquivo:
+	# caem no index.html, e o React Router abre a tela certa
+	handle {
+		root * /srv/frontend
+		try_files {path} /index.html
+		file_server
+	}
+
+	# Os arquivos do build têm o hash no nome (index-67bNgHOc.js): podem ficar em cache por um
+	# ano, porque um build novo muda o nome. O index.html não entra aqui (sempre a versão nova)
+	header /assets/* Cache-Control "public, max-age=31536000, immutable"
+}

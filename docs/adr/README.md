@@ -98,3 +98,4 @@ discussões que estavam no `domain-model.md` e no `architecture.md`.
 | [0050](0050-paid-amount-provider.md) | O `contract` declara o `PaidAmountProvider`, o `billing` implementa | aceito |
 | [0051](0051-status-pelo-saldo-e-credito-transferido.md) | O status do contrato terminado pelo saldo, e o crédito transferido ao contrato novo | aceito |
 | [0052](0052-versao-estavel-do-banco.md) | A versão estável do banco: as migrations congeladas e o MySQL 8.4 LTS | aceito |
+| [0053](0053-homologacao-com-caddy-e-imagens-no-ghcr.md) | A homologação: o Caddy como porteiro, o front dentro dele e as imagens no GHCR | aceito |
