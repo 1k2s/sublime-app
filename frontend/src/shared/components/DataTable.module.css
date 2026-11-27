@@ -1,6 +1,7 @@
-/* Card pela sombra, sem borda; a tabela rola de lado dentro dele se a tela for estreita */
+/* Card pela sombra, sem borda; a tabela rola de lado dentro dele se a tela for estreita e, com a
+   altura limitada pelo pai (className), rola para baixo com o cabeçalho fixo */
 .wrapper {
-  overflow-x: auto;
+  overflow: auto;
   border-radius: var(--radius);
   background: var(--color-surface);
   box-shadow: var(--shadow-card);
@@ -13,6 +14,9 @@
   font-variant-numeric: tabular-nums;
 
   & th {
+    position: sticky;
+    top: 0;
+    z-index: 1;
     padding: 13px 20px;
     background: var(--shell-bg);
     color: var(--shell-text);

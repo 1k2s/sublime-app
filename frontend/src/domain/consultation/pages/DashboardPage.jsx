@@ -79,6 +79,7 @@ export function DashboardPage() {
             />
           )}
           <LaunchedConsultationsTable
+            className={styles.list}
             consultations={visibleConsultations}
             hasRecords={consultations.length > 0}
             isLoading={summaryQuery.isLoading || (hasPeriod && listQuery.isLoading)}
@@ -118,6 +119,7 @@ export function DashboardPage() {
       />
 
       <DashboardTabs
+        className={styles.tabs}
         tabs={tabs}
         activeTab={activeTab}
         onChange={setActiveTab}

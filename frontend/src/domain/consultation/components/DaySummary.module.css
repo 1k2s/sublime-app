@@ -22,6 +22,22 @@
   font-weight: 600;
 }
 
+.absence {
+  display: inline-flex;
+  align-items: baseline;
+  gap: 6px;
+  color: var(--color-text);
+  font-size: 15px;
+  font-weight: 600;
+  font-variant-numeric: tabular-nums;
+}
+
+.absenceCount {
+  color: var(--color-muted);
+  font-size: 12px;
+  font-weight: 400;
+}
+
 .total {
   color: var(--color-primary);
   font-size: 24px;

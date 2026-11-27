@@ -1,4 +1,5 @@
 // Atendimentos do período, pela data do lançamento (a do rendimento), com o filtro por status.
+// A altura é do pai: o título e o filtro ficam parados, e a tabela rola por dentro.
 // Mostra as duas datas: o retroativo aparece pela diferença entre elas. O desfeito (inativo)
 // continua na lista, marcado, e não entra no total (o total vem do backend)
 import { Badge } from "@/shared/components/Badge";
@@ -87,9 +88,15 @@ export function LaunchedConsultationsTable({
         </label>
       </div>
       {isEmpty ? (
-        <ListMessage isLoading={isLoading} isError={isError} hasRecords={hasRecords} messages={MESSAGES} />
+        <ListMessage
+          isLoading={isLoading}
+          isError={isError}
+          hasRecords={hasRecords}
+          messages={MESSAGES}
+          className={styles.body}
+        />
       ) : (
-        <DataTable columns={buildColumns(showProvider)} rows={consultations} />
+        <DataTable columns={buildColumns(showProvider)} rows={consultations} className={styles.body} />
       )}
     </section>
   );

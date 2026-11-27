@@ -272,8 +272,12 @@ cabeçalho; C, a barra de período e a lista por prestador ao lado dos números.
   como SVG num componente do módulo (licença Apache 2.0 do MDI, citada no arquivo).
 - **Animação de slide entre as abas:** as duas telas ficam lado a lado num trilho, e a troca
   desliza para o lado (para a esquerda ao ir ao Panorama, para a direita ao voltar). A linha
-  da aba ativa e a altura do painel acompanham, na mesma curva do menu lateral
-  (`--shell-motion`). Com `prefers-reduced-motion`, troca sem animação. A aba fora da tela
+  da aba ativa acompanha, na mesma curva do menu lateral (`--shell-motion`).
+- **A tabela sempre na tela** (2026-11-26): a página ocupa a altura da tela, como a de
+  Lançamento; o título, as abas e os filtros ficam parados, os painéis têm a altura que sobra, e
+  a tabela do Resumo rola por dentro, com o cabeçalho fixo (o `DataTable` ganhou o cabeçalho
+  `sticky` e a rolagem nos dois eixos quando o pai limita a altura). Numa tela baixa, a tabela
+  guarda uma altura mínima e o painel rola. Com `prefers-reduced-motion`, troca sem animação. A aba fora da tela
   fica `inert` (sem foco pelo teclado).
 - *Descartadas:* abas de período, que somariam duas linhas de filtro no topo, e abas por
   prestador, que rolariam para o lado com muitos prestadores.
@@ -352,7 +356,9 @@ cabeçalho; C, a barra de período e a lista por prestador ao lado dos números.
   `DashboardTabs`, `DashboardTabIcons`, `PayoutCompositionChart` (`lazy`),
   `payoutCompositionOption.js`, `earningsLabels.js` e `filterConsultations.js`; rota no
   `router.jsx` e o `disabled` fora do menu.
-- [ ] "Repasse do dia" da tela de Lançamento com as faltas à parte (`DaySummary`).
+- [x] "Repasse do dia" da tela de Lançamento com as faltas à parte (`DaySummary`, 2026-11-26):
+  passa a "Rendimento do dia" (só os realizados), com o bloco "Faltas cobradas" (valor e
+  quantidade) ao lado.
 - [ ] `npm run build` e `npm run lint`.
 
 **Testes**

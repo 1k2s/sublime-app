@@ -1,7 +1,9 @@
+/* A altura vem do pai; o que sobra depois das abas e dos filtros é dos painéis */
 .tabs {
   display: flex;
   flex-direction: column;
   gap: 16px;
+  min-height: 0;
 }
 
 /* Abas de largura igual: a linha da aba ativa anda uma largura por aba */
@@ -61,34 +63,36 @@
   transition: transform var(--shell-motion);
 }
 
-/* Mostra um painel por vez; a altura acompanha o painel ativo */
+/* Mostra um painel por vez, na altura que sobra. A margem negativa e o padding do painel dão
+   espaço para a sombra dos cards não ser cortada nas bordas */
 .viewport {
-  overflow: hidden;
-  /* Espaço para a sombra dos cards não ser cortada nas bordas */
+  flex: 1 1 auto;
+  min-height: 0;
   margin: -8px;
-  padding: 8px;
-  box-sizing: content-box;
-  transition: height var(--shell-motion);
+  overflow: hidden;
 }
 
 /* O vão entre os painéis é maior que o espaço da sombra: o vizinho não aparece na borda */
 .track {
   --panel-gap: 24px;
   display: flex;
-  align-items: flex-start;
   gap: var(--panel-gap);
+  height: 100%;
   transform: translateX(calc((100% + var(--panel-gap)) * var(--tab-index) * -1));
   transition: transform var(--shell-motion);
 }
 
+/* Conteúdo mais alto que a tela (ex: tela baixa) rola dentro do painel */
 .panel {
   flex: 0 0 100%;
   min-width: 0;
+  height: 100%;
+  padding: 8px;
+  overflow-y: auto;
 }
 
 @media (prefers-reduced-motion: reduce) {
   .indicator,
-  .viewport,
   .track {
     transition: none;
   }
