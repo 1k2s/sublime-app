@@ -1,4 +1,4 @@
-# 0048 — O `contract` declara o `PaidAmountProvider`, o `billing` implementa
+# 0050 — O `contract` declara o `PaidAmountProvider`, o `billing` implementa
 
 - **Status:** aceito
 - **Data:** 2026-11-27
@@ -6,7 +6,7 @@
 ## Contexto
 
 O aditivo precisa do que já foi pago para dividir o que falta
-([ADR 0047](0047-parcelas-do-aditivo-sobre-o-que-falta.md)). O aditivo é do `contract`; os
+([ADR 0049](0049-parcelas-do-aditivo-sobre-o-que-falta.md)). O aditivo é do `contract`; os
 pagamentos são do `billing`, que fica **acima** do `contract` no mapa de módulos (o `billing` lê o
 contrato). O `contract` chamar o `billing` faria a dependência apontar para cima e fecharia um
 ciclo entre os dois.

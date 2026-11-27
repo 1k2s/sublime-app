@@ -8,7 +8,7 @@ const PROVIDER = ROLES.PROVIDER.value;
 
 // Itens sem tela pronta ficam com disabled: true
 export const navigationItems = [
-  { label: "Dashboard", path: "/dashboard", icon: House, roles: [ADMIN, PROVIDER], disabled: true },
+  { label: "Dashboard", path: "/dashboard", icon: House, roles: [ADMIN, PROVIDER] },
   { label: "Pacientes", path: "/patients", icon: User, roles: [ADMIN] },
   { label: "Contratos", path: "/contracts", icon: FileText, roles: [ADMIN] },
   { label: "Financeiro", path: "/billing", icon: Wallet, roles: [ADMIN] },

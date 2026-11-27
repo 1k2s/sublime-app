@@ -203,6 +203,7 @@ CREATE TABLE consultation (
     base_value                    DECIMAL(10,2) NOT NULL,
     commission_percentage_applied DECIMAL(5,2)  NOT NULL,
     duration_minutes              INT           NOT NULL,
+    launched_at                   DATETIME      NOT NULL,
     occurred_at                   DATE          NOT NULL,
     payout_value                  DECIMAL(10,2) NOT NULL,
     pricing_source                VARCHAR(30)   NOT NULL,
@@ -221,7 +222,9 @@ CREATE TABLE consultation (
     CONSTRAINT fk_consultation_provider FOREIGN KEY (provider_id) REFERENCES provider (id),
     CONSTRAINT fk_consultation_duration_price FOREIGN KEY (session_duration_price_id) REFERENCES session_duration_price (id),
     CONSTRAINT fk_consultation_frequency_price FOREIGN KEY (session_frequency_price_id) REFERENCES session_frequency_price (id),
-    CONSTRAINT fk_consultation_technique FOREIGN KEY (technique_id) REFERENCES technique (id)
+    CONSTRAINT fk_consultation_technique FOREIGN KEY (technique_id) REFERENCES technique (id),
+    -- O rendimento do dashboard filtra sempre por prestador (ou todos) e período do lançamento
+    INDEX idx_consultation_provider_launched (provider_id, launched_at)
 ) ENGINE = InnoDB DEFAULT CHARSET = utf8mb4 COLLATE = utf8mb4_0900_ai_ci;
 
 -- ---------------------------------------------------------------------------

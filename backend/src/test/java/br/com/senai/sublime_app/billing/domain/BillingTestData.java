@@ -83,17 +83,18 @@ final class BillingTestData {
     }
 
     // Um atendimento realizado, lançado pelo admin, com o preço da técnica (RPG 60 min,
-    // Quiropraxia 30 min, Pilates em Grupo pela frequência). id = a ordem do lançamento
+    // Quiropraxia 30 min, Pilates em Grupo pela frequência). id = a ordem do lançamento. Lançado no
+    // dia do atendimento (o billing não lê a data do lançamento, só a do atendimento)
     ConsultationEntity consultation(ContractEntity contract, PatientEntity patient, TechniqueEntity technique,
             LocalDate occurredAt) {
         ConsultationEntity consultation;
         if (technique == groupPilates) {
-            consultation = new ConsultationEntity(patient, contract, provider, admin, technique, 60, occurredAt,
-                    ConsultationStatus.ATTENDED, null, groupPrice);
+            consultation = new ConsultationEntity(patient, contract, provider, admin, occurredAt.atStartOfDay(),
+                    technique, 60, occurredAt, ConsultationStatus.ATTENDED, null, groupPrice);
         } else {
             SessionDurationPriceEntity price = technique == rpg ? rpgPrice : chiropracticPrice;
-            consultation = new ConsultationEntity(patient, contract, provider, admin, technique,
-                    price.getDurationMinutes(), occurredAt, ConsultationStatus.ATTENDED, price, null);
+            consultation = new ConsultationEntity(patient, contract, provider, admin, occurredAt.atStartOfDay(),
+                    technique, price.getDurationMinutes(), occurredAt, ConsultationStatus.ATTENDED, price, null);
         }
         return withId(consultation, ids.incrementAndGet());
     }

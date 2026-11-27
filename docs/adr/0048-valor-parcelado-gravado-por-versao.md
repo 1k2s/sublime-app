@@ -1,4 +1,4 @@
-# 0046 — O valor parcelado gravado por versão
+# 0048 — O valor parcelado gravado por versão
 
 - **Status:** aceito
 - **Data:** 2026-11-27
@@ -8,7 +8,7 @@
 O contrato gravava só o número de parcelas; o valor delas saía do total, calculado a cada leitura
 pelas linhas travadas ([ADR 0032](0032-valor-e-parcelas-do-contrato.md)). Com os pagamentos, o
 aditivo passou a dividir o que falta pagar, e não o total
-([ADR 0047](0047-parcelas-do-aditivo-sobre-o-que-falta.md)). Se esse valor fosse recalculado na
+([ADR 0049](0049-parcelas-do-aditivo-sobre-o-que-falta.md)). Se esse valor fosse recalculado na
 leitura pelo pago, as parcelas assinadas mudariam sozinhas: um pagamento com data retroativa, ou um
 pagamento inativado depois do aditivo, alteraria o valor de parcelas já combinadas.
 

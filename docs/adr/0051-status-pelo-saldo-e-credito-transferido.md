@@ -1,11 +1,11 @@
-# 0049 — O status do contrato terminado pelo saldo, e o crédito transferido ao contrato novo
+# 0051 — O status do contrato terminado pelo saldo, e o crédito transferido ao contrato novo
 
 - **Status:** aceito
 - **Data:** 2026-11-27
 
 ## Contexto
 
-Com a conta do paciente pelo consumo ([ADR 0042](0042-conta-do-paciente-pelo-consumo.md)), um
+Com a conta do paciente pelo consumo ([ADR 0044](0044-conta-do-paciente-pelo-consumo.md)), um
 contrato que terminou pode ficar com saldo: devendo (usou mais do que pagou) ou com crédito (pagou
 mais do que usou). O status "Inativo" não dizia isso: o contrato que terminou quitado e o que
 terminou com pendência pareciam iguais, e o inativado à mão também era "Inativo". E o crédito
@@ -29,7 +29,7 @@ crédito disponível e registrar o uso dele, também do `billing`.
   dinheiro). O que não cabe continua no antigo. Imutável, como o lançamento.
 - **O `contract` declara o `ContractBalanceProvider`** (os saldos para o status, o crédito disponível
   e a transferência), e o **`billing` a implementa**: o segundo caso da inversão de dependência do
-  [ADR 0048](0048-paid-amount-provider.md).
+  [ADR 0050](0050-paid-amount-provider.md).
 - As parcelas em aberto de um contrato que terminou ficam **"não cobradas"**: a conta dele vale só
   pelo saldo (sem isso, quem terminou com crédito por ter usado pouco ficaria "Atrasado").
 

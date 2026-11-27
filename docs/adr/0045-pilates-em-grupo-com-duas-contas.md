@@ -1,4 +1,4 @@
-# 0043 — Pilates em Grupo com duas contas: o dinheiro e as aulas
+# 0045 — Pilates em Grupo com duas contas: o dinheiro e as aulas
 
 - **Status:** aceito
 - **Data:** 2026-11-27
@@ -6,7 +6,7 @@
 ## Contexto
 
 O Pilates em Grupo é mensalidade: o paciente paga o mês, vá a quantas aulas for. Pela regra da
-conta pelo consumo ([ADR 0042](0042-conta-do-paciente-pelo-consumo.md)), as aulas lançadas
+conta pelo consumo ([ADR 0044](0044-conta-do-paciente-pelo-consumo.md)), as aulas lançadas
 entrariam no consumido, e faltar a uma aula baixaria a dívida, o que a mensalidade não faz. Ao
 mesmo tempo, a clínica quer saber se o paciente está desmarcando muito ou indo além das aulas
 previstas. Até aqui, o item do Grupo não tinha saldo de aulas.

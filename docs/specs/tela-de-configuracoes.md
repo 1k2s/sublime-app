@@ -26,6 +26,10 @@ Iniciada em 2026-11-25.
   Conferido por `./mvnw -q compile`, pelo `StrongPasswordValidatorTest` (unidade), por
   `npm run build` e `npm run lint`. **Não feitos:** os testes de integração (precisam do Docker)
   e o teste pela tela (seção 7).
+- **Ajustes de 2026-11-26:** a senha atual passou para um modal aberto pelo "Salvar alterações"
+  (seção 3) e os tons creme e areia da tela viraram azul (cabeçalho da conta, selo "Admin padrão",
+  "Alterações não salvas", força "Média"). Conferidos por `npm run build` e `npm run lint`; não
+  testados pela tela.
 - **Falta:** os testes não feitos e a documentação de conclusão (seção 9).
 
 ## 2. Objetivo e escopo
@@ -68,16 +72,20 @@ primeiro acesso (seção 8).
   ajuste, com a explicação à esquerda e os campos à direita (empilham na tela estreita).
   *Comparadas:* **A**, cartão da conta ao lado e seções com ícone; **C**, faixa no verde do menu
   e barra de salvar presa ao pé. A B é a mais sóbria e cresce com uma linha nova por ajuste.
-- **A senha atual vai para o fim**, numa linha destacada em areia ("Confirme que é você"),
-  junto do salvar: ela confirma qualquer alteração. Antes ficava entre o e-mail e a nova senha.
+- **A senha atual é pedida num modal** ("Confirme que é você", decidido em 2026-11-26), aberto
+  pelo "Salvar alterações" só com o formulário válido (erros de e-mail ou de nova senha ficam nos
+  campos e o modal não abre). No sucesso, o modal fecha e as senhas são limpas; num erro (ex:
+  senha atual incorreta), continua aberto para tentar de novo; durante o salvamento, não fecha.
+  *Antes:* uma linha destacada no fim do formulário, que ficava sempre à vista mesmo sem
+  alteração a salvar.
 - **Rodapé com o estado:** "Nenhuma alteração" / "Alterações não salvas". "Salvar alterações" e
-  "Descartar" só se habilitam com o e-mail ou a nova senha alterados; digitar só a senha atual
-  não conta. "Descartar" volta aos valores salvos.
+  "Descartar" só se habilitam com o e-mail ou a nova senha alterados. "Descartar" volta aos
+  valores salvos.
 - **Mostrar e esconder a senha** em cada campo de senha (`PasswordInput`, compartilhado).
 - **Conferência da nova senha** enquanto se digita: os quatro critérios da senha forte e
   "Confirmação igual à nova senha".
 - **Barra de força** abaixo da nova senha, em três segmentos: **Fraca** (vermelho) abaixo de 8
-  caracteres ou com até um dos outros critérios; **Média** (areia) com dois; **Forte** (verde)
+  caracteres ou com até um dos outros critérios; **Média** (azul) com dois; **Forte** (verde)
   com os três. Só a forte é aceita; as outras mostram o quanto falta.
 
 ## 4. Desenho do backend
@@ -103,7 +111,8 @@ primeiro acesso (seção 8).
 | `domain/user/components/AccountSummary` (novo) | a faixa da conta no topo |
 | `domain/user/components/PasswordRequirements` (novo) | a conferência da nova senha |
 | `domain/user/components/PasswordStrength` (novo) + `display/passwordStrength.js` | a barra de força e o nível (`getPasswordStrength`) |
-| `domain/user/components/SettingsForm` | as linhas, a senha atual no fim e o rodapé com o estado |
+| `domain/user/components/SettingsForm` | as linhas e o rodapé com o estado; o "Salvar alterações" valida e abre o modal da senha atual |
+| `domain/user/components/CurrentPasswordModal` (novo) | o modal da senha atual, sobre o `Modal` |
 | `domain/user/pages/SettingsPage` | o cartão sem padding, com a conta e o formulário |
 
 ## 6. Tarefas
@@ -112,6 +121,7 @@ primeiro acesso (seção 8).
 - [x] `PasswordInput` e `endSlot` no `Input`.
 - [x] Tela no novo layout; barra de força.
 - [x] Senha forte no backend (`@StrongPassword`, teste de unidade) e no front (`passwordRule`).
+- [x] Senha atual num modal; azul no lugar do creme e do areia (2026-11-26).
 - [ ] Testes de integração (`./mvnw test`, com o Docker).
 - [ ] Teste pela tela (seção 7).
 - [ ] Conclusão: seção 9, `node scripts/check-docs.mjs`, spec removida.
@@ -125,14 +135,15 @@ Pela interface, com o backend no ar.
 | 1 | Abrir Configurações como o admin padrão e como um prestador | faixa com o e-mail e o perfil; o selo "Admin padrão" só no primeiro |
 | 2 | Abrir sem mexer | "Nenhuma alteração"; Salvar e Descartar desabilitados |
 | 3 | Mudar o e-mail e clicar em Descartar | o e-mail volta; "Nenhuma alteração" |
-| 4 | Nova senha com 5 caracteres e confirmação diferente | a conferência mostra os pendentes; ao salvar, os erros nos campos |
-| 4a | Digitar `abcdefgh`, depois `Abcdefg1`, depois `Abcdefg1!` | barra Fraca (1 segmento, vermelho), Média (2, areia), Forte (3, verde); critérios marcados um a um |
+| 4 | Nova senha com 5 caracteres e confirmação diferente | a conferência mostra os pendentes; ao salvar, os erros nos campos e o modal não abre |
+| 4a | Digitar `abcdefgh`, depois `Abcdefg1`, depois `Abcdefg1!` | barra Fraca (1 segmento, vermelho), Média (2, azul), Forte (3, verde); critérios marcados um a um |
 | 4b | Salvar com `Abcdefg1` (média) | erro no campo: a senha precisa dos quatro critérios |
 | 4c | Mesmo caso pelo Swagger (`PUT /api/users/me`, `newPassword: "Abcdefg1"`) | 400 com a mensagem no campo `newPassword` |
 | 5 | Olho de cada campo de senha | mostra e esconde o texto; o leitor de tela lê "Mostrar senha" / "Esconder senha" |
-| 6 | Salvar sem a senha atual | "Informe a senha atual" no campo |
-| 7 | Senha atual errada | alerta "Senha atual incorreta." |
-| 8 | Trocar e-mail e senha forte com a senha atual certa | "Dados atualizados."; a faixa mostra o e-mail novo; senhas limpas; "Nenhuma alteração" |
+| 6 | Alterar o e-mail, Salvar e confirmar o modal com a senha atual vazia | "Informe a senha atual" no campo do modal |
+| 6a | Abrir o modal e cancelar (botão, X ou Esc) | o modal fecha; as alterações continuam no formulário |
+| 7 | Senha atual errada no modal | alerta "Senha atual incorreta."; o modal continua aberto |
+| 8 | Trocar e-mail e senha forte e confirmar com a senha atual certa | "Dados atualizados."; o modal fecha; a faixa mostra o e-mail novo; senhas limpas; "Nenhuma alteração" |
 | 9 | Janela estreita | as linhas empilham (explicação em cima, campos embaixo) |
 | 10 | Cadastrar usuário com senha `senha1234` | erro no campo; com `Senha-1234`, cadastra |
 | 11 | Editar usuário sem senha (só o e-mail) | salva: a vazia mantém a atual |
@@ -142,10 +153,8 @@ Pela interface, com o backend no ar.
 ## 8. Pendências e pontos abertos
 
 - **`PasswordInput`, conferência e barra de força no cadastro de usuário e no primeiro acesso:**
-  hoje só o placeholder mostra os critérios. Levar quando as telas forem mexidas (e o
-  `PasswordInput` no login).
-- O tom marrom do texto em areia (`#7a5a32`, no selo e no "Alterações não salvas") está escrito
-  direto no CSS; segue a melhoria "Cores em variáveis CSS em todos os componentes" do roadmap.
+  hoje só o placeholder mostra os critérios. Levar quando as telas forem mexidas (o login já
+  usa o `PasswordInput` desde 2026-11-26).
 
 ## 9. Documentação ao concluir
 

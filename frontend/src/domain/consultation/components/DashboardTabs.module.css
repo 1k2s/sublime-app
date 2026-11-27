@@ -1,0 +1,99 @@
+/* A altura vem do pai; o que sobra depois das abas e dos filtros é dos painéis */
+.tabs {
+  display: flex;
+  flex-direction: column;
+  gap: 16px;
+  min-height: 0;
+}
+
+/* Abas de largura igual: a linha da aba ativa anda uma largura por aba */
+.tablist {
+  position: relative;
+  display: inline-grid;
+  grid-auto-columns: minmax(0, 1fr);
+  grid-auto-flow: column;
+  align-self: flex-start;
+  border-bottom: 1px solid var(--color-border);
+}
+
+.tab {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 8px;
+  padding: 10px 22px;
+  border: 0;
+  background: none;
+  color: var(--color-muted);
+  font: inherit;
+  font-size: 14px;
+  font-weight: 600;
+  white-space: nowrap;
+  cursor: pointer;
+  transition: color 0.2s ease;
+}
+
+.tab:hover:not(.active) {
+  color: var(--color-text);
+}
+
+.tab:focus-visible {
+  outline: 2px solid var(--color-primary);
+  outline-offset: -2px;
+  border-radius: 6px;
+}
+
+.active {
+  color: var(--color-primary-strong);
+}
+
+.icon {
+  flex: none;
+}
+
+.indicator {
+  position: absolute;
+  bottom: -1px;
+  left: 0;
+  width: calc(100% / var(--tab-count));
+  height: 3px;
+  border-radius: 3px 3px 0 0;
+  background: var(--color-primary);
+  transform: translateX(calc(100% * var(--tab-index)));
+  transition: transform var(--shell-motion);
+}
+
+/* Mostra um painel por vez, na altura que sobra. A margem negativa e o padding do painel dão
+   espaço para a sombra dos cards não ser cortada nas bordas */
+.viewport {
+  flex: 1 1 auto;
+  min-height: 0;
+  margin: -8px;
+  overflow: hidden;
+}
+
+/* O vão entre os painéis é maior que o espaço da sombra: o vizinho não aparece na borda */
+.track {
+  --panel-gap: 24px;
+  display: flex;
+  gap: var(--panel-gap);
+  height: 100%;
+  transform: translateX(calc((100% + var(--panel-gap)) * var(--tab-index) * -1));
+  transition: transform var(--shell-motion);
+}
+
+/* Conteúdo mais alto que a tela (ex: tela baixa) rola dentro do painel */
+.panel {
+  flex: 0 0 100%;
+  min-width: 0;
+  height: 100%;
+  padding: 8px;
+  overflow-y: auto;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .indicator,
+  .track {
+    transition: none;
+  }
+}

@@ -1,8 +1,13 @@
 package br.com.senai.sublime_app.consultation.service;
 
 import java.math.BigDecimal;
+import java.time.DayOfWeek;
 import java.time.LocalDate;
+import java.time.LocalDateTime;
+import java.time.temporal.TemporalAdjusters;
 import java.util.ArrayList;
+import java.util.Comparator;
+import java.util.HashMap;
 import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Map;
@@ -12,12 +17,16 @@ import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
 import br.com.senai.sublime_app.consultation.domain.ConsultationEntity;
+import br.com.senai.sublime_app.consultation.domain.ConsultationStatus;
 import br.com.senai.sublime_app.consultation.domain.PricingSource;
 import br.com.senai.sublime_app.consultation.dto.ConsultationPatientResponseDTO;
 import br.com.senai.sublime_app.consultation.dto.ConsultationRequestDTO;
 import br.com.senai.sublime_app.consultation.dto.ConsultationResponseDTO;
 import br.com.senai.sublime_app.consultation.dto.ContractSessionBalanceResponseDTO;
 import br.com.senai.sublime_app.consultation.dto.DaySummaryResponseDTO;
+import br.com.senai.sublime_app.consultation.dto.EarningsResponseDTO;
+import br.com.senai.sublime_app.consultation.dto.EarningsSummaryResponseDTO;
+import br.com.senai.sublime_app.consultation.dto.ProviderEarningsResponseDTO;
 import br.com.senai.sublime_app.consultation.dto.LaunchOptionResponseDTO;
 import br.com.senai.sublime_app.consultation.dto.RecentPatientResponseDTO;
 import br.com.senai.sublime_app.consultation.repository.ConsultationRepository;
@@ -106,18 +115,23 @@ public class ConsultationService {
         ContractEntity contract = resolveContract(dto.contractId(), patient, dto.occurredAt());
         PriceLine price = resolvePrice(contract, technique, dto.durationMinutes());
 
-        ConsultationEntity consultation = new ConsultationEntity(patient, contract, provider, launchedBy, technique,
-                dto.durationMinutes(), dto.occurredAt(), dto.status(), price.durationPrice(), price.frequencyPrice());
+        // Data e hora do lançamento no fuso da clínica (linha "Hoje" em "Padrão de construção")
+        ConsultationEntity consultation = new ConsultationEntity(patient, contract, provider, launchedBy,
+                LocalDateTime.now(), technique, dto.durationMinutes(), dto.occurredAt(), dto.status(),
+                price.durationPrice(), price.frequencyPrice());
         consultationRepository.save(consultation);
         return ConsultationResponseDTO.fromEntity(consultation, remainingSessionsAfter(consultation));
     }
 
-    // PROVIDER: o filtro de prestador é sempre o dele, qualquer que seja o da URL
+    // PROVIDER: o filtro de prestador é sempre o dele, qualquer que seja o da URL. from/to
+    // filtram pela data do atendimento; launchedFrom/launchedTo, pela do lançamento (o
+    // dashboard, para a lista bater com o rendimento)
     @Transactional(readOnly = true)
     public List<ConsultationResponseDTO> search(Long providerId, Long patientId, LocalDate from, LocalDate to,
-            CurrentUser currentUser) {
-        Long effectiveProviderId = currentUser.isAdmin() ? providerId : getOwnProviderOrThrow(currentUser).getId();
-        return consultationRepository.search(effectiveProviderId, patientId, from, to).stream()
+            LocalDate launchedFrom, LocalDate launchedTo, ConsultationStatus status, CurrentUser currentUser) {
+        Long effectiveProviderId = resolveProviderIdForListing(providerId, currentUser);
+        return consultationRepository.search(effectiveProviderId, patientId, from, to,
+                        startOfDay(launchedFrom), startOfNextDay(launchedTo), status).stream()
                 .map(ConsultationResponseDTO::fromEntity)
                 .toList();
     }
@@ -183,21 +197,115 @@ public class ConsultationService {
         return List.copyOf(byPatient.values());
     }
 
-    // O dia do prestador: os atendimentos ativos de hoje (nos três status, todos cobrados), o
-    // repasse somado aqui (o front não soma) e o que a liberação de hoje ainda permite
+    // O dia do prestador: o rendimento de hoje, pela mesma regra do dashboard (realizados,
+    // pela data do lançamento), as faltas cobradas à parte e o que a liberação de hoje ainda
+    // permite. Somado aqui: o front não soma
     @Transactional(readOnly = true)
     public DaySummaryResponseDTO findDaySummary(Long providerId, CurrentUser currentUser) {
         ProviderEntity provider = resolveProviderForReading(providerId, currentUser);
         LocalDate today = LocalDate.now();
-        List<ConsultationEntity> todayActive = consultationRepository.search(provider.getId(), null, today, today)
-                .stream()
-                .filter(ConsultationEntity::isActive)
-                .toList();
-        BigDecimal payoutTotal = todayActive.stream()
-                .map(consultation -> consultation.getPayoutValue().amount())
-                .reduce(BigDecimal.ZERO, BigDecimal::add);
-        return new DaySummaryResponseDTO(today, todayActive.size(), payoutTotal,
+        EarningsTally tally = EarningsTally.of(sumEarnings(provider.getId(), today, today));
+        return new DaySummaryResponseDTO(today, tally.consultationCount, tally.payoutTotal,
+                tally.chargedAbsenceCount, tally.chargedAbsencePayoutTotal,
                 retroactiveLaunchGrantService.remainingFor(provider));
+    }
+
+    // ---------------------------------------------------------------------------
+    // Rendimento (ver "Rendimento" em Consultation, no domain-model): soma do repasse dos
+    // realizados ativos, pela data do lançamento; as faltas cobradas à parte
+    // ---------------------------------------------------------------------------
+
+    // Hoje, a semana (segunda a domingo) e o mês do calendário de hoje, no fuso da clínica
+    @Transactional(readOnly = true)
+    public EarningsSummaryResponseDTO findEarningsSummary(Long providerId, CurrentUser currentUser) {
+        Long effectiveProviderId = resolveProviderIdForEarnings(providerId, currentUser);
+        LocalDate today = LocalDate.now();
+        LocalDate weekStart = today.with(TemporalAdjusters.previousOrSame(DayOfWeek.MONDAY));
+        return new EarningsSummaryResponseDTO(
+                earningsOf(effectiveProviderId, today, today, false),
+                earningsOf(effectiveProviderId, weekStart, weekStart.plusDays(6), false),
+                earningsOf(effectiveProviderId, today.withDayOfMonth(1),
+                        today.with(TemporalAdjusters.lastDayOfMonth()), false));
+    }
+
+    // Um período qualquer. O ADMIN sem prestador recebe também o rendimento de cada um
+    @Transactional(readOnly = true)
+    public EarningsResponseDTO findEarnings(Long providerId, LocalDate from, LocalDate to, CurrentUser currentUser) {
+        requireValidPeriod(from, to);
+        Long effectiveProviderId = resolveProviderIdForEarnings(providerId, currentUser);
+        return earningsOf(effectiveProviderId, from, to, effectiveProviderId == null);
+    }
+
+    private EarningsResponseDTO earningsOf(Long providerId, LocalDate from, LocalDate to, boolean withByProvider) {
+        List<ConsultationRepository.EarningsRow> rows = sumEarnings(providerId, from, to);
+        EarningsTally total = EarningsTally.of(rows);
+        return new EarningsResponseDTO(from, to, total.consultationCount, total.payoutTotal,
+                total.chargedAbsenceCount, total.chargedAbsencePayoutTotal, total.totalPayout(),
+                withByProvider ? earningsByProvider(rows) : List.of());
+    }
+
+    // Os prestadores ativos aparecem mesmo sem lançamento no período (zerados, para o admin
+    // ver quem não lançou); um inativo, só se tiver lançamento. Por nome
+    private List<ProviderEarningsResponseDTO> earningsByProvider(List<ConsultationRepository.EarningsRow> rows) {
+        Map<Long, List<ConsultationRepository.EarningsRow>> rowsByProvider = new HashMap<>();
+        rows.forEach(row -> rowsByProvider.computeIfAbsent(row.getProviderId(), id -> new ArrayList<>()).add(row));
+        return providerRepository.findAll().stream()
+                .filter(provider -> provider.isActive() || rowsByProvider.containsKey(provider.getId()))
+                .sorted(Comparator.comparing(ProviderEntity::getName, String.CASE_INSENSITIVE_ORDER))
+                .map(provider -> {
+                    EarningsTally tally = EarningsTally.of(rowsByProvider.getOrDefault(provider.getId(), List.of()));
+                    return new ProviderEarningsResponseDTO(provider.getId(), provider.getName(),
+                            tally.consultationCount, tally.payoutTotal, tally.chargedAbsenceCount,
+                            tally.chargedAbsencePayoutTotal, tally.totalPayout());
+                })
+                .toList();
+    }
+
+    private List<ConsultationRepository.EarningsRow> sumEarnings(Long providerId, LocalDate from, LocalDate to) {
+        return consultationRepository.sumEarnings(providerId, startOfDay(from), startOfNextDay(to));
+    }
+
+    // Soma as linhas do banco (por prestador e status) separando o rendimento das faltas
+    private static final class EarningsTally {
+        private long consultationCount;
+        private BigDecimal payoutTotal = BigDecimal.ZERO;
+        private long chargedAbsenceCount;
+        private BigDecimal chargedAbsencePayoutTotal = BigDecimal.ZERO;
+
+        static EarningsTally of(List<ConsultationRepository.EarningsRow> rows) {
+            EarningsTally tally = new EarningsTally();
+            rows.forEach(tally::add);
+            return tally;
+        }
+
+        private void add(ConsultationRepository.EarningsRow row) {
+            if (ConsultationStatus.valueOf(row.getStatus()).isChargedAbsence()) {
+                chargedAbsenceCount += row.getConsultationCount();
+                chargedAbsencePayoutTotal = chargedAbsencePayoutTotal.add(row.getPayoutTotal());
+            } else {
+                consultationCount += row.getConsultationCount();
+                payoutTotal = payoutTotal.add(row.getPayoutTotal());
+            }
+        }
+
+        BigDecimal totalPayout() {
+            return payoutTotal.add(chargedAbsencePayoutTotal);
+        }
+    }
+
+    private static void requireValidPeriod(LocalDate from, LocalDate to) {
+        if (from.isAfter(to)) {
+            throw new BusinessRuleException("A data inicial do período não pode ser depois da data final.");
+        }
+    }
+
+    // O dia inteiro pela data e hora do lançamento: [início do dia, início do dia seguinte)
+    private static LocalDateTime startOfDay(LocalDate date) {
+        return date != null ? date.atStartOfDay() : null;
+    }
+
+    private static LocalDateTime startOfNextDay(LocalDate date) {
+        return date != null ? date.plusDays(1).atStartOfDay() : null;
     }
 
     /**
@@ -236,6 +344,20 @@ public class ConsultationService {
         return currentUser.isAdmin()
                 ? getProviderOrThrow(requireProviderId(providerId))
                 : getOwnProviderOrThrow(currentUser);
+    }
+
+    // Listagem: o ADMIN filtra (ou não) por prestador; o PROVIDER vê sempre só os dele
+    private Long resolveProviderIdForListing(Long providerId, CurrentUser currentUser) {
+        return currentUser.isAdmin() ? providerId : getOwnProviderOrThrow(currentUser).getId();
+    }
+
+    // Rendimento: como a listagem, mas o prestador informado pelo ADMIN precisa existir (404);
+    // vazio = todos os prestadores
+    private Long resolveProviderIdForEarnings(Long providerId, CurrentUser currentUser) {
+        if (currentUser.isAdmin()) {
+            return providerId != null ? getProviderOrThrow(providerId).getId() : null;
+        }
+        return getOwnProviderOrThrow(currentUser).getId();
     }
 
     // Sem o @NotNull no DTO (o PROVIDER não precisa enviar): a obrigatoriedade do ADMIN

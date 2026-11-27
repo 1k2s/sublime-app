@@ -40,6 +40,7 @@
   - [Repasse](#repasse)
   - [Ciclo de vida](#ciclo-de-vida)
   - [Quem lança](#quem-lança)
+  - [Rendimento](#rendimento)
   - [Leituras](#leituras)
 - [`Payment`](#payment)
   - [Registro e inativação](#registro-e-inativação)
@@ -218,6 +219,7 @@ erDiagram
     Money baseValue
     Money payoutValue
     bigint launchedByUserId FK
+    datetime launchedAt
     boolean active
   }
 
@@ -748,7 +750,7 @@ a própria linha de preço garante isso na criação dela.
 `sessionCount` do plano da linha travada — contrato Evolução com RPG + Quiropraxia = 12
 sessões do Individual Padrão **e** 12 do Individual Especializado. O item do Grupo tem um
 saldo de **aulas**, só de controle: as aulas da vigência (ver "Valor e parcelas"), sem
-mudar o que o paciente deve ([ADR 0043](adr/0043-pilates-em-grupo-com-duas-contas.md)). O
+mudar o que o paciente deve ([ADR 0045](adr/0045-pilates-em-grupo-com-duas-contas.md)). O
 cálculo do saldo consome os atendimentos e por isso fica no módulo `consultation` (ver
 "Saldo de sessões" em `Consultation`).
 
@@ -894,7 +896,7 @@ na regra do 409 acima.
 **Prorrogação:** o admin informa o novo fim **livremente**, desde que depois do
 fim atual.
 
-**Cancelamento com data** ([ADR 0045](adr/0045-vencimento-das-parcelas.md)): cancelar é inativar
+**Cancelamento com data** ([ADR 0047](adr/0047-vencimento-das-parcelas.md)): cancelar é inativar
 o contrato à mão (`DELETE /api/contracts/{id}`; de novo → 409). Grava o `deactivatedOn` (hoje, no
 fuso da clínica); o aditivo grava na versão substituída o `createdAt` da sucessora. Depois dessa
 data nada vence: as parcelas não ficam atrasadas e o Grupo para de somar mensalidades (ver
@@ -909,7 +911,7 @@ versão anterior é aceito mesmo inativo (titular e plano são sempre copiados).
 
 Calculado pelo backend na leitura (`ContractEntity.statusOn`), nunca gravado: depois do fim
 depende do saldo da conta, que é do `billing` e chega pelo `ContractBalanceProvider`
-([ADR 0049](adr/0049-status-pelo-saldo-e-credito-transferido.md)). Vem na resposta do contrato
+([ADR 0051](adr/0051-status-pelo-saldo-e-credito-transferido.md)). Vem na resposta do contrato
 (`status`), na lista do Financeiro e na conta do paciente (`contractStatus`).
 - **Vigente** (`CURRENT`): ativo e na vigência (`endDate` hoje ou depois).
 - **Encerrado** (`CLOSED`): ativo, passou do fim e o saldo é zero (nada a cobrar nem a devolver).
@@ -942,7 +944,7 @@ Calculados pelo backend (`ContractItemValue`, `Installments`); a tela só mostra
   próximo: 4 semanas = 1, 12 e 13 = 3, 24 e 26 = 6, 52 = 12. Pelas semanas, e não pelo
   calendário: o mesmo prazo dá sempre o mesmo máximo, qualquer que seja o início.
 - **Valor parcelado (`installmentBase`), gravado por versão**
-  ([ADR 0046](adr/0046-valor-parcelado-gravado-por-versao.md)): o total, no cadastro (menos o
+  ([ADR 0048](adr/0048-valor-parcelado-gravado-por-versao.md)): o total, no cadastro (menos o
   crédito aplicado, ver "Crédito de contratos anteriores" em `Payment`); no aditivo, o total da
   nova versão − o pago da cadeia até então, no mínimo 0. Depois, não muda: um
   pagamento retroativo ou inativado muda só o saldo da conta, nunca o valor das parcelas
@@ -955,9 +957,9 @@ Calculados pelo backend (`ContractItemValue`, `Installments`); a tela só mostra
   valem o máximo, e a resposta diz as aplicadas (a tela não perde o resultado quando o plano muda
   para um mais curto).
 - **As parcelas são o plano de pagamento, não a dívida:** a dívida é o consumo, comparado com os
-  pagamentos (ver `Payment`; [ADR 0042](adr/0042-conta-do-paciente-pelo-consumo.md)).
+  pagamentos (ver `Payment`; [ADR 0044](adr/0044-conta-do-paciente-pelo-consumo.md)).
 
-**Vencimento** ([ADR 0045](adr/0045-vencimento-das-parcelas.md)):
+**Vencimento** ([ADR 0047](adr/0047-vencimento-das-parcelas.md)):
 - **O 1º vencimento (`firstDueDate`) é opcional no pedido.** Sem ele, o início do contrato (no
   cadastro) ou o sugerido (no aditivo, abaixo).
 - **No cadastro:** do início do contrato até 1 mês depois (400 "O 1º vencimento deve ser entre o
@@ -966,11 +968,11 @@ Calculados pelo backend (`ContractItemValue`, `Installments`); a tela só mostra
   mês. Nos dias 29 a 31, no mês mais curto a parcela vence no último dia: 31/01 → 28/02 (29/02 no
   ano bissexto) → 31/03.
 
-**Parcelas no aditivo** ([ADR 0047](adr/0047-parcelas-do-aditivo-sobre-o-que-falta.md); as
+**Parcelas no aditivo** ([ADR 0049](adr/0049-parcelas-do-aditivo-sobre-o-que-falta.md); as
 parcelas continuam escolhidas em todo aditivo, [ADR 0037](adr/0037-parcelas-escolhidas-no-aditivo.md)):
 - **Dividem o que falta pagar:** o `installmentBase` do aditivo (o total da nova versão − o
   pago). O pago vem do `billing` pelo `PaidAmountProvider`
-  ([ADR 0048](adr/0048-paid-amount-provider.md)).
+  ([ADR 0050](adr/0050-paid-amount-provider.md)).
 - **O pago que cobre o total:** o valor parcelado fica 0, e a versão grava 1 parcela de R$ 0,00 (já
   paga), qualquer que seja o número pedido; o que passar do total fica como saldo credor.
 - **O máximo são os meses que faltam:** do novo 1º vencimento até o fim do contrato, no mínimo 1
@@ -1014,7 +1016,7 @@ fica preservado ([ADR 0011](adr/0011-contrato-versionado-por-aditivos.md)). Regr
   preço ou frequência; outro beneficiário; outra forma de pagamento; `endDate` informado
   (prorrogação); e, nas parcelas, **outro dia de vencimento** ou **um número de parcelas
   diferente das que ainda faltam vencer** na versão anterior (contadas pela data, sem depender
-  dos pagamentos; [ADR 0047](adr/0047-parcelas-do-aditivo-sobre-o-que-falta.md)). Ex: 3 parcelas
+  dos pagamentos; [ADR 0049](adr/0049-parcelas-do-aditivo-sobre-o-que-falta.md)). Ex: 3 parcelas
   no dia 10; um aditivo depois da 1ª, mantendo o dia 10 e as 2 que faltam, não é alteração. Uma
   versão idêntica só criaria um aditivo vazio no histórico.
 - **O que for igual à versão anterior é aceito como está; o que for novo precisa
@@ -1258,6 +1260,7 @@ prestador, sem fluxo de aprovação.
 | `baseValue` | `Money` (VO), `DECIMAL(10,2)` | snapshot do valor da sessão (cópia do `sessionValue` da linha usada) |
 | `payoutValue` | `Money` (VO), `DECIMAL(10,2)` | snapshot do **repasse** ao prestador (ver "Repasse"). *Payout* = valor pago a quem prestou o serviço (`commissionValue` se confundiria com o percentual) |
 | `launchedByUserId` | FK → User | **quem lançou**: o usuário logado (pode ser diferente de quem atendeu, quando o admin lança por um prestador) |
+| `launchedAt` | datetime | **data e hora do lançamento**, no fuso da clínica: o service passa o `now()` ao construtor (a entidade não o chama). É a referência do rendimento (ver "Rendimento"); num retroativo, difere da `occurredAt`. `DATETIME`, não `DATE`: guarda a ordem dos lançamentos do mesmo dia |
 | `active` | boolean | soft delete: inativo não conta no saldo nem no repasse |
 
 **Snapshots:** `baseValue`, `commissionPercentageApplied` e `payoutValue` são sempre
@@ -1277,8 +1280,8 @@ lançamento; gravado, o saldo vira um `count` simples e os relatórios filtram p
 campo ([ADR 0017](adr/0017-contrato-e-origem-do-preco-gravados.md)). Só
 `CONTRACT_ITEM` debita o saldo (`PricingSource.debitsContractItem()`).
 
-**Validações da entidade** (400): paciente, prestador e técnica ativos;
-`durationMinutes ≥ 1` e `status` obrigatório; `occurredAt` não futuro; exatamente
+**Validações da entidade** (400): paciente, prestador e técnica ativos; `launchedAt`
+obrigatório; `durationMinutes ≥ 1` e `status` obrigatório; `occurredAt` não futuro; exatamente
 uma linha de preço, do grupo da técnica e, se for por duração, na duração do
 atendimento; contrato informado ativo, cobrindo `occurredAt` e com o paciente como
 titular ou beneficiário. Se o contrato cobre ou não o grupo da técnica define o
@@ -1360,7 +1363,7 @@ preço aproximado.
   `pricingSource = CONTRACT_ITEM`, `contractId` em **qualquer versão da cadeia**
   (`ContractEntity.getVersionChainIds()`) e linha do **grupo do item**. Todos os status contam.
 - **Item do Pilates em Grupo: o saldo de aulas**, só de controle
-  ([ADR 0043](adr/0043-pilates-em-grupo-com-duas-contas.md)): as aulas da vigência (semanas do
+  ([ADR 0045](adr/0045-pilates-em-grupo-com-duas-contas.md)): as aulas da vigência (semanas do
   contrato × vezes por semana; ver "Valor e parcelas" em `Contract`) − as aulas lançadas pelo item,
   na cadeia toda. Não muda o que o paciente deve (a mensalidade é que cobra; ver `Payment`) e
   **não tem o aviso do lançamento**: daria a entender que a aula será cobrada à parte.
@@ -1419,11 +1422,46 @@ qualquer um.
   "Lançamento retroativo precisa de liberação do administrador.". O `ADMIN` lança qualquer data
   não futura, sem liberação.
 
+### Rendimento
+
+O quanto o prestador rendeu num período, a base do dashboard e do resumo do dia
+([ADR 0042](adr/0042-rendimento-do-prestador.md)).
+
+- **Rendimento = soma do `payoutValue`** dos atendimentos **ativos** com status `ATTENDED`,
+  cuja **`launchedAt`** cai no período. Um retroativo lançado hoje, com o atendimento da semana
+  passada, conta hoje: nada muda depois de lançado, e um período já visto não muda (só quando o
+  admin desfaz um lançamento dele).
+- **Faltas cobradas à parte:** o `NO_SHOW` e o `CANCELED_LATE` (`ConsultationStatus.isChargedAbsence()`)
+  geram repasse com o mesmo cálculo ([ADR 0014](adr/0014-tres-status-cobrados.md)), mas ficam
+  fora do rendimento; cada período traz a quantidade e o repasse delas, e o **repasse total**
+  (rendimento + faltas cobradas). O backend soma; o front só mostra.
+- **Períodos**, no fuso da clínica: **hoje**; a **semana** de segunda a domingo (ISO); o **mês**
+  do calendário. Cada um volta com o `from` e o `to`, inclusivos, para a tela não calcular datas.
+  O filtro por dia usa o intervalo `[início do dia, início do dia seguinte)`.
+- **Quem vê:** o `PROVIDER`, só os próprios, qualquer que seja o `providerId` da URL (sem
+  prestador vinculado → 403); o `ADMIN`, todos ou, com o `providerId`, só aquele (404 se não
+  existir). Diferente do `day-summary`, aqui o `providerId` do admin é opcional.
+- **Por prestador** (`byProvider`, só no `earnings` do admin sem `providerId`): todos os
+  prestadores **ativos**, zerados quando não lançaram, mais os **inativos com lançamento** no
+  período, por nome; a soma das linhas bate com o total.
+- **A soma é no banco** (`ConsultationRepository.sumEarnings`, SQL nativo sobre a coluna
+  `payout_value`, agrupado por prestador e status): uma consulta por período, e o service separa
+  o rendimento das faltas (ver "Soma de dinheiro" em "Padrão de construção", no
+  [`architecture.md`](architecture.md#padrão-de-construção-todos-os-módulos-implementados-seguem)).
+
 ### Leituras
 
-- `GET /api/consultations?providerId&patientId&from&to`: filtros opcionais (período
-  pela `occurredAt`, inclusivo), ativos e inativos, do mais recente para o mais
-  antigo. **Para o `PROVIDER`, o `providerId` é sempre o dele**, qualquer que seja o da URL.
+- `GET /api/consultations?providerId&patientId&from&to&launchedFrom&launchedTo&status`:
+  filtros opcionais, ativos e inativos, do mais recente para o mais antigo pela `occurredAt`.
+  Dois períodos, inclusivos: `from`/`to` pela `occurredAt` (a tela de Lançamento) e
+  `launchedFrom`/`launchedTo` pela `launchedAt` (a do rendimento, usada no dashboard).
+  **Para o `PROVIDER`, o `providerId` é sempre o dele**, qualquer que seja o da URL.
+- `GET /api/consultations/earnings-summary?providerId`: o rendimento de hoje, da semana e do
+  mês (`today`, `week` e `month`, cada um com o `from`/`to`, a quantidade e o repasse dos
+  realizados, as faltas cobradas e o repasse total). Ver "Rendimento".
+- `GET /api/consultations/earnings?providerId&from&to`: o rendimento de um período qualquer
+  (`from` depois do `to` → 400 "A data inicial do período não pode ser depois da data final."),
+  com o `byProvider` para o admin sem prestador. Ver "Rendimento".
 - `GET /api/consultations/{id}`. O lançamento de outro prestador responde **404**, com a
   mesma mensagem de um id inexistente (não revela que existe); o mesmo vale para a
   inativação (`DELETE`).
@@ -1433,12 +1471,13 @@ qualquer um.
 - `GET /api/consultations/recent-patients?providerId` (apoio do lançamento): os **8**
   pacientes distintos mais recentes do prestador, cada um com a técnica e a duração do último
   atendimento **ativo** (paciente ou técnica inativos ficam de fora).
-- `GET /api/consultations/day-summary?providerId` (apoio do lançamento): hoje, a quantidade
-  de atendimentos **ativos** do prestador com a data de hoje, o **repasse somado** (nos três
-  status: todos são cobrados) e quantos lançamentos retroativos a liberação de hoje ainda
-  permite.
-- Nos dois, como na listagem: o `ADMIN` informa o `providerId` (sem ele, 400 "O prestador é
-  obrigatório."); para o `PROVIDER`, é sempre o dele.
+- `GET /api/consultations/day-summary?providerId` (apoio do lançamento): hoje, **pela regra do
+  rendimento** (a mesma consulta do rendimento de hoje): a quantidade de atendimentos realizados
+  ativos lançados hoje e o repasse deles, as faltas cobradas à parte e quantos lançamentos
+  retroativos a liberação de hoje ainda permite. Assim, "hoje" tem um número só no Lançamento
+  e no dashboard.
+- No `recent-patients` e no `day-summary`, o `ADMIN` informa o `providerId` (sem ele, 400 "O
+  prestador é obrigatório."); para o `PROVIDER`, é sempre o dele.
 
 ---
 
@@ -1447,7 +1486,7 @@ qualquer um.
 O pagamento do paciente e a **conta**: o que ele usou comparado com o que pagou. Módulo
 `billing`, acima do `consultation` no mapa de módulos: lê o contrato e os atendimentos, e nenhum
 dos dois o conhece. **A dívida é o consumo; as parcelas do contrato são a referência** do que se
-espera receber ([ADR 0042](adr/0042-conta-do-paciente-pelo-consumo.md)). A conta é calculada na
+espera receber ([ADR 0044](adr/0044-conta-do-paciente-pelo-consumo.md)). A conta é calculada na
 leitura, nunca gravada. Só o `ADMIN` acessa (registra, inativa e lê); o prestador não recebe pelo
 sistema.
 
@@ -1466,7 +1505,7 @@ sistema.
 
 ### Registro e inativação
 
-**O pagamento é de valor livre** ([ADR 0044](adr/0044-pagamento-bruto-liquido-e-cartao-parcelado.md)):
+**O pagamento é de valor livre** ([ADR 0046](adr/0046-pagamento-bruto-liquido-e-cartao-parcelado.md)):
 não paga uma parcela, entra na conta. A tela sugere o valor (ver "Conta do contrato"), e o admin
 pode mudar.
 - **Bruto e líquido:** a conta do paciente usa o **bruto** (a taxa da maquininha é custo da
@@ -1528,7 +1567,7 @@ de versões** (cada aditivo é uma versão nova):
 ### Mensalidades do Grupo
 
 O Pilates em Grupo tem duas contas, que não se afetam
-([ADR 0043](adr/0043-pilates-em-grupo-com-duas-contas.md)): **o dinheiro**, as mensalidades
+([ADR 0045](adr/0045-pilates-em-grupo-com-duas-contas.md)): **o dinheiro**, as mensalidades
 vencidas, e **as aulas**, só de controle (ver "Saldo de sessões" em `Consultation`).
 - **A mensalidade:** o valor do item do Grupo ÷ os meses da versão (`Installments.maxFor`), com os
   centavos na primeira. Cada uma vence num vencimento do contrato (o 1º vencimento + N meses),
@@ -1544,7 +1583,7 @@ vencidas, e **as aulas**, só de controle (ver "Saldo de sessões" em `Consultat
 
 As parcelas de cada versão (o cronograma do contrato, ver "Valor e parcelas" em `Contract`) com o
 pago que vale para elas, **distribuído pela ordem de vencimento**
-([ADR 0046](adr/0046-valor-parcelado-gravado-por-versao.md)):
+([ADR 0048](adr/0048-valor-parcelado-gravado-por-versao.md)):
 - **O pago das parcelas da versão atual:** o pago da cadeia − o pago antes do aditivo (o total da
   versão − o `installmentBase`), **limitado entre 0 e o `installmentBase`**. Aqui o pago são os
   pagamentos + o crédito recebido, **sem tirar o crédito enviado**: transferir o crédito de um
@@ -1583,7 +1622,7 @@ pago que vale para elas, **distribuído pela ordem de vencimento**
 
 O saldo credor de um contrato que não está mais vigente pode ir para o contrato novo do mesmo
 titular, como uma **transferência gravada** (`BalanceTransfer`,
-[ADR 0049](adr/0049-status-pelo-saldo-e-credito-transferido.md)).
+[ADR 0051](adr/0051-status-pelo-saldo-e-credito-transferido.md)).
 - **O crédito disponível:** a soma dos saldos credores dos contratos em que o paciente é
   **titular** e que não estão vigentes (vencidos ou cancelados). O avulso fica de fora: a clínica
   resolve com um pagamento de "Outro valor".

@@ -7,11 +7,6 @@
   border-bottom: 1px solid var(--color-row-line);
 }
 
-/* A senha atual confirma o salvamento: a linha dela se destaca em areia */
-.row-highlighted {
-  background: linear-gradient(90deg, var(--color-sand-soft), transparent 70%);
-}
-
 .row-title {
   margin: 0;
   color: var(--color-title);
@@ -59,11 +54,11 @@
 }
 
 .status-dirty {
-  color: #7a5a32;
+  color: var(--color-change-text);
 }
 
 .status-dirty .status-dot {
-  background: var(--color-sand);
+  background: var(--color-accent);
 }
 
 .actions {

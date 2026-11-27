@@ -1,4 +1,5 @@
-// Validação do formulário de Configurações (só formato: a senha atual é conferida pela API)
+// Validação do formulário de Configurações (só formato). A senha atual fica fora: é pedida no
+// modal do salvamento (CurrentPasswordModal) e conferida pela API
 import { z } from "zod";
 import { strongPassword } from "@/domain/auth/schemas/passwordRule";
 
@@ -8,7 +9,6 @@ export const settingsSchema = z
     // Vazia = mantém a senha atual
     newPassword: z.union([z.literal(""), strongPassword("A nova senha")]),
     confirmNewPassword: z.string(),
-    currentPassword: z.string().min(1, "Informe a senha atual"),
   })
   .refine((values) => values.newPassword === values.confirmNewPassword, {
     message: "A confirmação não confere com a nova senha",

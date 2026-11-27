@@ -1,0 +1,83 @@
+/* Controle, não informação: borda em vez da sombra dos cards */
+.bar {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 10px 16px;
+  padding: 10px 12px;
+  border: 1px solid var(--color-border);
+  border-radius: var(--radius);
+  background: var(--color-surface);
+}
+
+/* Um trilho branco com as opções; a escolhida fica no verde claro */
+.segmented {
+  display: inline-flex;
+  flex-wrap: wrap;
+  gap: 2px;
+  padding: 4px;
+  border: 1px solid var(--color-border);
+  border-radius: 10px;
+  background: var(--color-surface);
+}
+
+.option {
+  padding: 8px 14px;
+  border: 0;
+  border-radius: 7px;
+  background: transparent;
+  color: var(--color-text);
+  font: inherit;
+  font-size: 14px;
+  font-weight: 600;
+  cursor: pointer;
+  transition: background-color 0.2s ease, color 0.2s ease;
+}
+
+.option:hover:not(.active) {
+  background: var(--color-row-hover);
+}
+
+.option:focus-visible {
+  outline: 2px solid var(--color-primary);
+  outline-offset: 2px;
+}
+
+.active {
+  background: var(--color-primary-soft);
+  color: var(--color-primary-strong);
+}
+
+.range {
+  color: var(--color-muted);
+  font-size: 13px;
+}
+
+.dates {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 10px;
+}
+
+.dateField {
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+}
+
+.dateLabel {
+  color: var(--color-muted);
+  font-size: 13px;
+}
+
+.dateInput {
+  width: 160px;
+  height: 38px;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .option {
+    transition: none;
+  }
+}

@@ -9,7 +9,7 @@ import br.com.senai.sublime_app.pricing.domain.Money;
 
 // O saldo da conta dos contratos e o crédito do paciente, que o status do contrato e o cadastro
 // precisam. A conta é do billing, acima do contract no mapa de módulos: o contract declara esta
-// interface e o billing a implementa (inversão de dependência, ADR 0048 e ADR 0049), como o
+// interface e o billing a implementa (inversão de dependência, ADR 0050 e ADR 0051), como o
 // PaidAmountProvider. Ver "Status do contrato" em Contract e "Crédito de contratos anteriores" em
 // Payment, no domain-model
 public interface ContractBalanceProvider {

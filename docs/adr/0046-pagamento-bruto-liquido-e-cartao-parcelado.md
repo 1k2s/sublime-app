@@ -1,4 +1,4 @@
-# 0044 — O pagamento: bruto e líquido, e o cartão parcelado como um pagamento só
+# 0046 — O pagamento: bruto e líquido, e o cartão parcelado como um pagamento só
 
 - **Status:** aceito
 - **Data:** 2026-11-27

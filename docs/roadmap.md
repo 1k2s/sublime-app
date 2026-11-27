@@ -38,11 +38,10 @@ feature em andamento fica na spec dela, em [`specs/`](specs/).
 | `user` | implementado: soft delete e reativação, e-mail único (409), senha com hash BCrypt (mínimo 8), senha opcional na alteração, senha provisória com troca obrigatória no primeiro acesso (coluna `password_change_required`; [ADR 0025](adr/0025-primeiro-acesso-com-senha-provisoria.md), [ADR 0029](adr/0029-senha-provisoria-por-coluna.md)), admin padrão protegido ([ADR 0027](adr/0027-admin-padrao-protegido.md)), Configurações do próprio usuário (`/api/users/me`) |
 | `auth` | implementado no backend e no front: login com JWT, rotas protegidas (exceto login, primeiro acesso e Swagger), corte imediato do acesso ao inativar, mudar o perfil ou redefinir a senha, Swagger com "Authorize" ([ADR 0023](adr/0023-autenticacao-jwt-resource-server.md), [ADR 0024](adr/0024-sessao-frontend-localstorage.md)); **autorização por perfil** (2026-11-07): tabela de acesso no `SecurityConfig` com o `ADMIN` como padrão e o `CurrentUser` para as regras de dados ([ADR 0026](adr/0026-acesso-por-perfil-centralizado.md)) |
 | `provider` | implementado: dois percentuais (padrão 40/45), usuário ativo obrigatório na criação e na reativação ([ADR 0031](adr/0031-prestador-com-usuario-revisto.md)) |
-
 | `pricing` | implementado: grupos, técnicas (com reativação), planos (`PlanType`, `termWeeks`, de-para), preços com reajuste historizado; **tabela e histórico por grupo** (2026-11-17: `GET /api/pricing-groups/{id}/prices` e `.../prices/history`; o `validTo` entra na resposta das linhas de preço); **status da linha de preço** (2026-11-18: `PriceStatus` Vigente, Vencido ou Encerrado, resolvido pelo backend em `status`; ver "Status da linha de preço" no [`domain-model.md`](domain-model.md)) |
-| `contract` | implementado: cabeçalho + `ContractItem`, vigência calculada (`SessionFrequency`), aditivos, opções do plano do Grupo, endpoints de apoio, beneficiário de no máximo um contrato vigente e diferente do titular, `current` na resposta (vigente hoje), **valor total e parcelas** (2026-11-12; coluna `installments`, prévia `POST /api/contracts/preview`; [ADR 0032](adr/0032-valor-e-parcelas-do-contrato.md)); **aditivo completo** (2026-11-26): prévia do aditivo, parcelas escolhidas em todo aditivo, aditivo sem alteração recusado, lista só com a versão atual e o histórico em `/versions`, número do aditivo e data gravados, item por duração em contrato de mensalidade ([ADR 0037](adr/0037-parcelas-escolhidas-no-aditivo.md) a [ADR 0040](adr/0040-item-por-duracao-em-contrato-de-mensalidade.md)); aulas do Grupo pela vigência ([ADR 0041](adr/0041-aulas-do-grupo-pela-vigencia.md)); **vencimento e valor parcelado** (2026-11-27): 1º vencimento, cronograma das parcelas, valor parcelado gravado por versão, inativação com data, parcelas do aditivo sobre o que falta pagar e até os meses que faltam ([ADR 0045](adr/0045-vencimento-das-parcelas.md) a [ADR 0047](adr/0047-parcelas-do-aditivo-sobre-o-que-falta.md)); **status e crédito** (2026-11-27): o status Vigente, Vencido, Encerrado, Cancelado ou Substituída, pelo saldo da conta depois do fim, e o crédito de contratos anteriores aplicado no cadastro ([ADR 0049](adr/0049-status-pelo-saldo-e-credito-transferido.md)) |
-| `consultation` | implementado: lançamento com contratos vinculados e escolha livre, resolução de preço (casos 1 a 3), `pricingSource`, comissão pela origem, repasse `HALF_UP`, saldo pela cadeia de versões, soft delete sem `PUT`, endpoints de apoio (`launch-options` com as durações válidas, `session-balance`, `patients`, `recent-patients`, `day-summary`); prestador do login para o `PROVIDER`, que só vê e inativa os próprios lançamentos; `launchedByUserId`; **o `PROVIDER` só lança e desfaz com a data de hoje**, e o retroativo usa a liberação do admin (2026-11-13; tabela `retroactive_launch_grant`, no `provider`; [ADR 0033](adr/0033-lancamento-retroativo-com-liberacao.md)); "hoje" no fuso da clínica ([ADR 0034](adr/0034-hoje-no-fuso-da-clinica.md)); **saldo de aulas do Grupo** (2026-11-27; [ADR 0043](adr/0043-pilates-em-grupo-com-duas-contas.md)) e a projeção do consumo que o `billing` lê |
-| `billing` | **implementado** (2026-11-27): pagamentos de valor livre com bruto e líquido, cartão parcelado como um pagamento e a previsão de recebimento ([ADR 0044](adr/0044-pagamento-bruto-liquido-e-cartao-parcelado.md)); a conta do paciente pelo consumo, calculada na leitura ([ADR 0042](adr/0042-conta-do-paciente-pelo-consumo.md)): o consumido, as mensalidades do Grupo, o saldo, a situação das parcelas, os avisos e as sugestões do pagamento; a lista do Financeiro sem N+1; as abas Parcelas e Sessões; o pago no aditivo pelo `PaidAmountProvider` ([ADR 0048](adr/0048-paid-amount-provider.md)); a transferência do crédito entre contratos, as parcelas "não cobradas" depois do fim e o saldo para o status do contrato, pelo `ContractBalanceProvider` ([ADR 0049](adr/0049-status-pelo-saldo-e-credito-transferido.md)). Ver `Payment` no [`domain-model.md`](domain-model.md) |
+| `contract` | implementado: cabeçalho + `ContractItem`, vigência calculada (`SessionFrequency`), aditivos, opções do plano do Grupo, endpoints de apoio, beneficiário de no máximo um contrato vigente e diferente do titular, `current` na resposta (vigente hoje), **valor total e parcelas** (2026-11-12; coluna `installments`, prévia `POST /api/contracts/preview`; [ADR 0032](adr/0032-valor-e-parcelas-do-contrato.md)); **aditivo completo** (2026-11-26): prévia do aditivo, parcelas escolhidas em todo aditivo, aditivo sem alteração recusado, lista só com a versão atual e o histórico em `/versions`, número do aditivo e data gravados, item por duração em contrato de mensalidade ([ADR 0037](adr/0037-parcelas-escolhidas-no-aditivo.md) a [ADR 0040](adr/0040-item-por-duracao-em-contrato-de-mensalidade.md)); aulas do Grupo pela vigência ([ADR 0041](adr/0041-aulas-do-grupo-pela-vigencia.md)); **vencimento e valor parcelado** (2026-11-27): 1º vencimento, cronograma das parcelas, valor parcelado gravado por versão, inativação com data, parcelas do aditivo sobre o que falta pagar e até os meses que faltam ([ADR 0047](adr/0047-vencimento-das-parcelas.md) a [ADR 0049](adr/0049-parcelas-do-aditivo-sobre-o-que-falta.md)); **status e crédito** (2026-11-27): o status Vigente, Vencido, Encerrado, Cancelado ou Substituída, pelo saldo da conta depois do fim, e o crédito de contratos anteriores aplicado no cadastro ([ADR 0051](adr/0051-status-pelo-saldo-e-credito-transferido.md)) |
+| `consultation` | implementado: lançamento com contratos vinculados e escolha livre, resolução de preço (casos 1 a 3), `pricingSource`, comissão pela origem, repasse `HALF_UP`, saldo pela cadeia de versões, soft delete sem `PUT`, endpoints de apoio (`launch-options` com as durações válidas, `session-balance`, `patients`, `recent-patients`, `day-summary`); prestador do login para o `PROVIDER`, que só vê e inativa os próprios lançamentos; `launchedByUserId`; **o `PROVIDER` só lança e desfaz com a data de hoje**, e o retroativo usa a liberação do admin (2026-11-13; tabela `retroactive_launch_grant`, no `provider`; [ADR 0033](adr/0033-lancamento-retroativo-com-liberacao.md)); "hoje" no fuso da clínica ([ADR 0034](adr/0034-hoje-no-fuso-da-clinica.md)); **rendimento do prestador** (2026-11-26): coluna `launched_at`, `earnings-summary` e `earnings` (só os realizados, pela data do lançamento, com as faltas cobradas à parte e o `byProvider` do admin), filtros `launchedFrom`, `launchedTo` e `status` na listagem e o `day-summary` na mesma regra ([ADR 0042](adr/0042-rendimento-do-prestador.md)); **saldo de aulas do Grupo** (2026-11-27; [ADR 0045](adr/0045-pilates-em-grupo-com-duas-contas.md)) e a projeção do consumo que o `billing` lê |
+| `billing` | **implementado** (2026-11-27): pagamentos de valor livre com bruto e líquido, cartão parcelado como um pagamento e a previsão de recebimento ([ADR 0046](adr/0046-pagamento-bruto-liquido-e-cartao-parcelado.md)); a conta do paciente pelo consumo, calculada na leitura ([ADR 0044](adr/0044-conta-do-paciente-pelo-consumo.md)): o consumido, as mensalidades do Grupo, o saldo, a situação das parcelas, os avisos e as sugestões do pagamento; a lista do Financeiro sem N+1; as abas Parcelas e Sessões; o pago no aditivo pelo `PaidAmountProvider` ([ADR 0050](adr/0050-paid-amount-provider.md)); a transferência do crédito entre contratos, as parcelas "não cobradas" depois do fim e o saldo para o status do contrato, pelo `ContractBalanceProvider` ([ADR 0051](adr/0051-status-pelo-saldo-e-credito-transferido.md)). Ver `Payment` no [`domain-model.md`](domain-model.md) |
 | **frontend** | **em andamento**: ver a seção [Frontend](#frontend) |
 
 - **Monorepo** desde 2026-10-29 ([ADR 0022](adr/0022-monorepo.md)): o backend em
@@ -54,7 +53,8 @@ feature em andamento fica na spec dela, em [`specs/`](specs/).
   `launched_by_user_id`) e em 2026-11-12 (coluna `installments` do contrato), então quem puxar
   zera o banco local (`docker compose down -v`). Editada de novo em 2026-11-13 (tabela
   `retroactive_launch_grant`), em 2026-11-25 (colunas `amendment_number` e `created_at` do
-  contrato) e em 2026-11-27 (tabelas `payment` e `balance_transfer`; colunas `first_due_date`,
+  contrato; coluna `launched_at` e o índice `idx_consultation_provider_launched` do
+  atendimento) e em 2026-11-27 (tabelas `payment` e `balance_transfer`; colunas `first_due_date`,
   `installment_base` e `deactivated_on` do contrato).
 - **Teste manual do fluxo completo pela API** (2026-10-29, comandos manuais, sem script): o
   catálogo, os cadastros, o contrato (incluindo o aditivo), os três casos de
@@ -93,9 +93,9 @@ feature em andamento fica na spec dela, em [`specs/`](specs/).
 1. **Telas funcionais no front** (decidido em 2026-11-11, antes dos testes): o backend está
    pronto, mas o sistema ainda não funciona de ponta a ponta (contratos e lançamento usam
    mocks e o modelo antigo). **Uma branch e uma spec por tela**, cada uma com o próprio PR,
-   na ordem de dependência (as telas de Usuários, Prestadores, Contratos e Lançamento já estão
-   prontas; o Lançamento em 2026-11-13, com o retroativo por liberação do admin; o aditivo do
-   contrato em 2026-11-26; o Financeiro em 2026-11-27):
+   na ordem de dependência (as telas de Usuários, Prestadores, Contratos, Lançamento, Dashboard e
+   Financeiro já estão prontas; o Lançamento em 2026-11-13, com o retroativo por liberação do
+   admin; o aditivo do contrato e o Dashboard em 2026-11-26; o Financeiro em 2026-11-27):
    1. **Teste do Financeiro pela tela** (com os outros devs; o backend já foi testado pela API).
       O roteiro: o menu "Financeiro" só para o `ADMIN`; a lista (as colunas, os filtros com a
       contagem, a ordem: atrasados, devendo e os outros por nome; o clique na linha abre a conta
@@ -127,7 +127,9 @@ feature em andamento fica na spec dela, em [`specs/`](specs/).
      infraestrutura de integração (`@IntegrationTest`, [ADR 0036](adr/0036-testes-de-integracao-com-testcontainers.md));
      e uma amostra da autorização por perfil (`AuthorizationIntegrationTest`). Em 2026-11-18,
      unidade do `PriceStatus` (Vigente, Vencido e Encerrado, com o limite dos 12 meses). Em
-     2026-11-27, com o billing: unidade do contrato (vencimento, valor parcelado, aditivo, status),
+     2026-11-26, o rendimento: integração (`EarningsIntegrationTest`, 15 casos: a soma nativa no
+     MySQL, os períodos, as faltas à parte, o `byProvider` e o acesso por perfil) e unidade da
+     data do lançamento (`ConsultationEntityTest`). Em 2026-11-27, com o billing: unidade do contrato (vencimento, valor parcelado, aditivo, status),
      do pagamento, da conta e do crédito; os primeiros **testes pela API por endpoint** (contrato,
      pagamento, conta e crédito, com o `ApiScenario` e o `ApiTestClient`; ver "Testes do backend"
      no [`architecture.md`](architecture.md)); o número de consultas das listagens. A partir daqui,
@@ -150,28 +152,21 @@ feature em andamento fica na spec dela, em [`specs/`](specs/).
      unidade, sem Docker) e `-Dgroups=integration` (só os de integração), no `development.md`; no
      CI, um passo para cada. *Descartado:* o failsafe com o sufixo `IT` (renomear as classes e
      mudar o `pom.xml`, para dois testes). Numa branch `chore/`, ou junto com o CI.
-4. **Dashboards**, com spec própria. **Do prestador:** os rendimentos dele (soma dos repasses)
-   no dia, na semana e no mês, e os **atendimentos dele com filtros, inclusive por data**: é
-   onde ele vê os retroativos, que a tela de Lançamento não mostra (ela é só de hoje). **Do
-   admin:** os mesmos dados de todos os prestadores, com o filtro por prestador (decidido em
-   2026-11-13). Decidido em 2026-11-06 que o `PROVIDER` vê só os próprios. Em aberto para a
-   spec: o que conta como rendimento (quais status, por qual data). O total do dia da tela de
-   Lançamento já é do backend (`day-summary`: os ativos de hoje, nos três status). Cobre o item
-   "Histórico de atendimentos com filtro por período" do checklist do front.
-   - **Do admin, o financeiro** (decidido com o billing, 2026-11-26; numa branch própria, com
-     endpoints no `billing`): **Produção** (o que a clínica atendeu, recebido ou não: o consumo
-     dos itens por duração, o de-para e o avulso, pela data do atendimento, mais as mensalidades
-     do Grupo, pelo vencimento; as aulas do Grupo não somam) e **Faturamento** (os pagamentos
-     ativos, pela data do pagamento: bruto, taxas e líquido, no total e por forma). Opcional:
-     **a receber do cartão**, a previsão de recebimento mês a mês. **A Produção segue a conta:**
-     o dashboard e a conta do paciente nunca dão números diferentes para o mesmo período (usar o
-     mesmo cálculo do `ContractAccount`). Já pronta: a consulta do consumo por período
-     (`ConsultationRepository.findConsumptionBetween`). Combinar o formato com o dev dos
-     dashboards. Casos de teste: a Produção do mês igual à soma do devido das contas no mesmo
-     período; o Faturamento só com os ativos, pela data do pagamento, no total e por forma; o
-     "a receber" de um crédito 3x de líquido R$ 1.603,20 = R$ 534,40 em cada um dos 3 meses
-     seguintes.
-5. **MVP no servidor** (plano de 2026-11-27): depois do dashboard, a primeira versão com os
+4. **Dashboard financeiro do admin** (decidido com o billing, 2026-11-26; numa branch e numa spec
+   próprias, com endpoints no `billing`; o dashboard do rendimento do prestador já existe, desde
+   2026-11-26): **Produção** (o que a clínica atendeu, recebido ou não: o consumo
+   dos itens por duração, o de-para e o avulso, pela data do atendimento, mais as mensalidades
+   do Grupo, pelo vencimento; as aulas do Grupo não somam) e **Faturamento** (os pagamentos
+   ativos, pela data do pagamento: bruto, taxas e líquido, no total e por forma). Opcional:
+   **a receber do cartão**, a previsão de recebimento mês a mês. **A Produção segue a conta:**
+   o dashboard e a conta do paciente nunca dão números diferentes para o mesmo período (usar o
+   mesmo cálculo do `ContractAccount`). Já pronta: a consulta do consumo por período
+   (`ConsultationRepository.findConsumptionBetween`). Na tela do Dashboard, com os gráficos do
+   ECharts ([ADR 0043](adr/0043-graficos-com-echarts.md)). Casos de teste: a Produção do mês
+   igual à soma do devido das contas no mesmo período; o Faturamento só com os ativos, pela data
+   do pagamento, no total e por forma; o "a receber" de um crédito 3x de líquido R$ 1.603,20 =
+   R$ 534,40 em cada um dos 3 meses seguintes.
+5. **MVP no servidor** (plano de 2026-11-27): depois do dashboard financeiro, a primeira versão com os
    dados da clínica num servidor, e o CI/CD estruturado com ele no ar (o CD depende do
    servidor; o CI, do item 3, não). **Antes de subir os dados reais:** a "versão estável" do
    [ADR 0028](adr/0028-migrations-editaveis-ate-versao-estavel.md) (ver as "Pendências
@@ -247,17 +242,19 @@ Frontend: ver a seção [Frontend](#frontend).
 
 - **Estorno do crédito** (no `billing`): a clínica devolver ao paciente o saldo credor de um
   contrato terminado. O encerramento já existe (o status pelo saldo e o crédito aplicado num
-  contrato novo, [ADR 0049](adr/0049-status-pelo-saldo-e-credito-transferido.md)); o saldo
+  contrato novo, [ADR 0051](adr/0051-status-pelo-saldo-e-credito-transferido.md)); o saldo
   devedor se quita com um pagamento, e o avulso, com um pagamento de "Outro valor". O estorno é
   outro movimento, não a inativação do pagamento, que é só a correção de um registro errado
-  ([ADR 0044](adr/0044-pagamento-bruto-liquido-e-cartao-parcelado.md)), e sai do faturamento.
+  ([ADR 0046](adr/0046-pagamento-bruto-liquido-e-cartao-parcelado.md)), e sai do faturamento.
   *Em aberto:* um registro próprio (com a FK do contrato de origem, como a `BalanceTransfer`) ou
   um pagamento de ajuste.
 - **Pagamento do repasse ao prestador:** **fora do sistema** (decidido em 2026-11-27). Os
   atendimentos e o repasse ficam no sistema só para registro e consulta: a clínica os usa para
   controlar e pagar os prestadores, e o prestador, para acompanhar o que recebe; o comprovante do
-  pagamento, feito por fora, é o registro. Se um dia entrar o fechamento do período, o atendimento
-  de período já pago não poderá ser inativado, e pode entrar um limite de retroatividade.
+  pagamento, feito por fora, é o registro. O quanto cada prestador rendeu no período já está no
+  sistema (o `earnings`, ver "Rendimento" em `Consultation`, no [`domain-model.md`](domain-model.md)).
+  Se um dia entrar o fechamento do período, o atendimento de período já pago não poderá ser
+  inativado, e pode entrar um limite de retroatividade.
 - **Impressão do contrato para assinatura** (depois do MVP): cada versão (a original e cada
   aditivo) é impressa para o paciente assinar (ver "Versionamento (aditivos)" em `Contract`, no
   [`domain-model.md`](domain-model.md)).
@@ -321,9 +318,10 @@ chamadas batem com a API real ainda não foram conferidos.**
 ### Próximos passos
 
 1. **Telas funcionais**, uma branch e uma spec por tela ([`specs/`](specs/README.md)), na
-   ordem de cadastro (cada uma depende dos dados da anterior): os dashboards; Prestadores,
-   Contratos (com o aditivo), Lançamento e Financeiro já estão prontas. O que cada uma fecha e as
-   decisões já tomadas: itens 1 e 4 dos [Próximos passos](#próximos-passos) do projeto.
+   ordem de cadastro (cada uma depende dos dados da anterior): o dashboard financeiro e o cadastro
+   do catálogo; Prestadores, Contratos (com o aditivo), Lançamento, Dashboard e Financeiro já
+   estão prontas. O que cada uma fecha e as decisões já tomadas: itens 1 e 4 dos
+   [Próximos passos](#próximos-passos) do projeto.
 2. **Inventário** das telas que não entram no item 1: o que cada uma faz e se as chamadas
    batem com o contrato real da API (Swagger). Atualizar esta seção com o resultado. Preços já
    foi refeita e conferida contra o backend (2026-11-17).
@@ -340,12 +338,26 @@ Checklist da Fase 1 no front (herdado do guia original):
 - [ ] Catálogo de `pricing` consultável.
 - [x] Cadastro de `provider` e `contract`.
 - [x] Fluxo completo de lançamento.
-- [ ] Histórico de atendimentos com filtro por período.
+- [x] Histórico de atendimentos com filtro por período (o Dashboard, 2026-11-26).
 - [ ] Valores monetários enviados como texto, formatados só na exibição, sem cálculo no front.
 - [x] `npm run lint` sem erros e `npm run build` gerando o bundle.
 
 ### Pendências
 
+- **Dashboard: teste manual pela tela** (2026-11-26; a feature foi concluída por build, lint e
+  testes do backend). Com os dois perfis e um banco com vários prestadores, retroativos e um
+  lançamento desfeito: os números e a lista do `PROVIDER` (só os dele) e do `ADMIN` (todos e
+  cada prestador pela lista ao lado, que rola com muitos prestadores e tem um ativo zerado); os
+  quatro períodos e o Personalizado com a data inicial depois da final (a mensagem do backend);
+  o retroativo (as duas datas diferentes) e o desfeito ("Desfeito", repasse riscado, fora do
+  total) na lista; o filtro de status; a tabela rolando por dentro com o cabeçalho fixo; o slide
+  entre as abas e pelo teclado; o anel (entrada, hover na fatia e na legenda, troca de período,
+  redimensionar ao abrir e fechar o menu, período sem repasse); o rendimento do dia no
+  Lançamento batendo com o Hoje do Dashboard; e, no `npm run build`, o ECharts só no chunk do
+  Panorama.
+- **Paginação da listagem de atendimentos** (levantado no dashboard, 2026-11-26): o
+  `GET /api/consultations` devolve o período inteiro; conferir se o mês de todos os prestadores
+  precisa de paginação quando a base crescer.
 - **9 vulnerabilidades nas dependências** (3 moderadas, 6 altas; `npm audit` de 2026-11-17).
   Primeiro as que rodam no app: `zod` < 4.6.6 e `follow-redirects` (do `axios`); as outras são
   das ferramentas de build (`vite`, `picomatch`, `minimatch`). Numa branch `chore/` própria,
@@ -387,6 +399,11 @@ Checklist da Fase 1 no front (herdado do guia original):
 
 ### Melhorias (sem prioridade)
 
+- **Outros gráficos no dashboard, se a clínica pedir depois de usar a tela** (2026-11-26): o
+  rendimento por dia (barras), os atendimentos por status (as faltas separadas das desmarcações
+  fora do prazo) e por técnica (o `techniqueId` existe para esse tipo de relatório). Cada um
+  precisa de uma consulta no backend (o front não agrupa nem soma; ver "Gráficos" no
+  [`architecture.md`](architecture.md)).
 - **Cores em variáveis CSS em todos os componentes.** Hoje o código está misturado: parte
   dos `.module.css` usa `var(--color-*)` e parte usa o hexadecimal direto (uma regra antiga
   do guia, já removida). Padronizar em variáveis, para a paleta mudar num lugar só. **Em

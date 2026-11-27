@@ -1,4 +1,4 @@
-# 0045 — O vencimento das parcelas e a data da inativação
+# 0047 — O vencimento das parcelas e a data da inativação
 
 - **Status:** aceito
 - **Data:** 2026-11-27
@@ -6,7 +6,7 @@
 ## Contexto
 
 As parcelas do contrato não tinham vencimento ([ADR 0032](0032-valor-e-parcelas-do-contrato.md)):
-sem ele, a conta do paciente ([ADR 0042](0042-conta-do-paciente-pelo-consumo.md)) não tem como
+sem ele, a conta do paciente ([ADR 0044](0044-conta-do-paciente-pelo-consumo.md)) não tem como
 dizer o que está atrasado. A clínica combina com o paciente a melhor data de pagamento. E um
 contrato inativado no meio (o paciente desistiu) continuaria com parcelas vencendo e ficando
 atrasadas.

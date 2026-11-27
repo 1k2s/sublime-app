@@ -1,0 +1,67 @@
+/* A página ocupa a altura do conteúdo: o título, as abas e os filtros ficam parados, e só a
+   tabela do Resumo rola (como na tela de Lançamento) */
+.page {
+  display: flex;
+  flex-direction: column;
+  gap: 20px;
+  height: 100%;
+  min-height: 0;
+}
+
+.tabs {
+  flex: 1 1 auto;
+  min-height: 0;
+}
+
+.filters {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+}
+
+/* O Resumo enche o painel: os números em cima e a tabela no que sobra */
+.panel {
+  display: flex;
+  flex-direction: column;
+  gap: 20px;
+  height: 100%;
+  min-height: 0;
+}
+
+/* Altura mínima: numa tela baixa, a tabela não some; o painel rola */
+.list {
+  flex: 1 1 auto;
+  min-height: 240px;
+}
+
+/* Conteúdo à esquerda e a lista dos prestadores à direita, na mesma altura: a lista não
+   estica a linha (contain: size) e rola por dentro quando passa da altura do conteúdo */
+.split {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) 300px;
+  gap: 16px;
+}
+
+/* min-height: com o conteúdo baixo (ex: só a mensagem de erro), a lista não fica espremida */
+.providers {
+  contain: size;
+  min-height: 200px;
+}
+
+.hint {
+  margin: 0;
+  color: var(--color-muted);
+  font-size: 14px;
+}
+
+/* Tela estreita: a lista vai para baixo, com altura máxima própria */
+@media (max-width: 980px) {
+  .split {
+    grid-template-columns: 1fr;
+  }
+
+  .providers {
+    contain: none;
+    max-height: 320px;
+  }
+}

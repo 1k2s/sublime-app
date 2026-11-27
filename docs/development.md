@@ -93,7 +93,7 @@ O backend lê três valores que **não ficam no git**:
 |---|---|---|
 | `JWT_SECRET` | segredo da assinatura do token de login, com **pelo menos 32 caracteres** | **sim**: sem ela, a aplicação não sobe |
 | `ADMIN_EMAIL` | e-mail do admin padrão (e-mail válido) | só na **primeira subida** (banco ainda sem admin padrão) |
-| `ADMIN_PASSWORD` | senha do admin padrão (8 caracteres ou mais) | idem |
+| `ADMIN_PASSWORD` | senha do admin padrão: no mínimo 8 caracteres, com letra maiúscula, letra minúscula, número e caractere especial (fora disso, a aplicação não sobe) | idem |
 
 **Onde ficam:** no arquivo **`backend/.env`**, um por pessoa, ignorado pelo
 `backend/.gitignore`. Para criar, copie o modelo versionado `backend/.env.example` e troque
@@ -153,6 +153,7 @@ logar: troque a senha pela API ou recrie o usuário.
 | `lucide-react` | ícones |
 | `@fontsource/cormorant-garamond` | fonte da marca (nome "Sublime" no menu), servida pelo próprio app |
 | `sweetalert2` | alertas de erro da API (`shared/utils/alert.js`) |
+| `echarts` | gráficos (import modular, pelo `shared/components/Chart.jsx`; ver "Gráficos" no [`architecture.md`](architecture.md)) |
 
 ## Banco e schema (Flyway)
 

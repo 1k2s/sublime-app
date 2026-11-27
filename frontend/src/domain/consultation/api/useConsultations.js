@@ -5,6 +5,8 @@ import {
   createConsultation,
   deactivateConsultation,
   getDaySummary,
+  getEarnings,
+  getEarningsSummary,
   getLaunchOptions,
   getRecentPatients,
   listConsultations,
@@ -47,6 +49,32 @@ export function useDayConsultations(providerId, date, enabled = true) {
     queryKey: ["consultations", "list", { providerId, date }],
     queryFn: () => listConsultations({ providerId, from: date, to: date }),
     enabled: enabled && Boolean(date),
+  });
+}
+
+// providerId: só o ADMIN informa (vazio = todos)
+export function useEarningsSummary(providerId) {
+  return useQuery({
+    queryKey: ["consultations", "earnings-summary", providerId],
+    queryFn: () => getEarningsSummary({ providerId }),
+  });
+}
+
+// Ligado só com o período inteiro (o "Personalizado" pode estar pela metade)
+export function useEarnings({ providerId, from, to }) {
+  return useQuery({
+    queryKey: ["consultations", "earnings", { providerId, from, to }],
+    queryFn: () => getEarnings({ providerId, from, to }),
+    enabled: Boolean(from && to),
+  });
+}
+
+// Os lançamentos de um período, pela data do lançamento (a do rendimento)
+export function useLaunchedConsultations({ providerId, from, to }) {
+  return useQuery({
+    queryKey: ["consultations", "list", { providerId, launchedFrom: from, launchedTo: to }],
+    queryFn: () => listConsultations({ providerId, launchedFrom: from, launchedTo: to }),
+    enabled: Boolean(from && to),
   });
 }
 

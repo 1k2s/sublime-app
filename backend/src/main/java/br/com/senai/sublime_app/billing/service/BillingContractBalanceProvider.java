@@ -19,7 +19,7 @@ import br.com.senai.sublime_app.pricing.domain.Money;
 
 // O saldo da conta dos contratos e o crédito do titular, para o contract (o status e o cadastro):
 // o contract declara a interface e o billing a implementa, para a dependência continuar apontando
-// para cima (ADR 0048). As contas são as do BillingAccountService
+// para cima (ADR 0050 e ADR 0051). As contas são as do BillingAccountService
 @Component
 public class BillingContractBalanceProvider implements ContractBalanceProvider {
 
