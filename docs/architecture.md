@@ -85,6 +85,8 @@ pricing          user          ← módulos de base, sem dependência
     contract                   ← referencia patient + pricing
         \
      consultation              ← depende de todos os anteriores
+         |
+      billing                  ← pagamentos e a conta: lê contract e consultation
 ```
 
 - `pricing`: técnicas, planos e catálogo de preços (`Technique`, `Plan`,
@@ -104,8 +106,25 @@ pricing          user          ← módulos de base, sem dependência
 - `contract`: contrato do paciente (`Contract` + itens `ContractItem`, um por grupo
   de preço contratado), referencia `patient` + `pricing`.
 - `consultation`: lançamento de atendimento (`Consultation`), referencia todos os
-  anteriores. É o módulo mais "no topo" da cadeia de dependência; por isso o saldo
-  de sessões do contrato é calculado aqui, não no `contract`.
+  anteriores. Fica acima do `contract`; por isso o saldo de sessões do contrato é
+  calculado aqui, não no `contract`.
+- `billing`: pagamentos (`Payment`) e a conta do paciente, calculada na leitura (o consumo
+  comparado com os pagamentos, [ADR 0042](adr/0042-conta-do-paciente-pelo-consumo.md)). É o
+  módulo mais "no topo": lê o `contract` e o `consultation`, e nenhum dos dois o conhece.
+
+**Um módulo de baixo que precisa de um dado de um de cima** (inversão de dependência,
+[ADR 0048](adr/0048-paid-amount-provider.md)): o de baixo **declara uma interface** com o que
+precisa, e o de cima **a implementa**; o Spring injeta. A dependência continua apontando para
+cima. Ex: o aditivo do `contract` precisa do que já foi pago, que é do `billing`: o `contract`
+declara o `PaidAmountProvider` (`paidOn(contractChainIds)`), e o `billing` o implementa
+(`BillingPaidAmountProvider`). O fluxo continua no dono (o aditivo no `contract`). O segundo
+caso ([ADR 0049](adr/0049-status-pelo-saldo-e-credito-transferido.md)): o status do contrato
+terminado e o crédito no cadastro precisam do saldo da conta, e o `contract` declara o
+`ContractBalanceProvider` (os saldos de uma lista de contratos de uma vez, sem N+1; o crédito
+disponível; a transferência, na mesma transação do cadastro), implementado pelo
+`BillingContractBalanceProvider`. Use só quando o dado não pode vir de outro jeito: se o módulo
+de cima pode chamar o de baixo, é ele que chama. Prefira a interface a um evento do Spring
+quando quem chama precisa de um valor de volta ou da mesma transação.
 
 Entidades, atributos e regras de negócio: [`domain-model.md`](domain-model.md) —
 consulte esse arquivo sempre que for mexer em qualquer entidade de domínio, antes
@@ -218,9 +237,13 @@ de propor mudanças de schema.
 | Enum com regra | regra fixa por valor vira método do enum (princípio 6), com nome de pergunta (`is...`, `has...`) | `PlanType`, `SessionFrequency` |
 | VO de um valor | `record` + `AttributeConverter` com `autoApply`; DTO continua `BigDecimal`, service faz `X.of(...)`; rejeita mais de 2 casas, nunca arredonda | `Money` (pricing), `Percentage` (provider) |
 | Unicidade | `unique = true` na coluna (garantia real) + `existsBy...` no service (409 com mensagem clara). Collation do MySQL ignora maiúsculas/acentos | `PatientRepository.existsByCpf` |
-| Consulta com relação | `@EntityGraph` quando a resposta usa a relação (evita N+1) | `TechniqueRepository.findByActiveTrue`, `PlanRepository.findAll`, `ConsultationRepository.search` |
+| Consulta com relação | `@EntityGraph` quando a resposta usa a relação (evita N+1), com os caminhos que a resposta lê, inclusive os aninhados (`items.sessionDurationPrice.plan`); uma coleção (lista) só por consulta. Teste de integração pelo número de consultas, que não cresce com os registros (`QueryCounter`) | `TechniqueRepository.findByActiveTrue`, `PlanRepository.findAll`, `PatientRepository.findAll`, `ContractRepository.findAllCurrentVersions`, `ConsultationRepository.search` |
 | Consulta que o nome do método não expressa | `@Query` (JPQL) com `@Param`, só quando o método derivado não dá conta (ex: "ou" com `left join`, filtros opcionais `(:x is null or ...)`); senão, método derivado | `ContractRepository.findActiveCoveringDateByHolderOrBeneficiary`, `ConsultationRepository.search` |
 | Endpoint de apoio à tela | leitura que expõe uma regra do backend para o frontend não repetir | `GET /api/techniques/{id}/prices`, `POST /api/contracts/preview` |
+| Soma de `Money` | em Java, sobre as linhas da consulta (`reduce` de `BigDecimal`): no JPQL, a soma de um campo com `AttributeConverter` não tem um tipo de retorno garantido, e o projeto não usa SQL nativo | `PaymentEntity.sumOfAmounts`, `ConsultationConsumption.sumConsumed` |
+| Projeção de leitura | `select new ...Record(...)` no JPQL com só as colunas que a conta usa (sem carregar as entidades e as relações), `left join` nas relações opcionais e `case when ... then true else false end` para um booleano | `ConsultationRepository.findConsumptionByContractIdIn` (`ConsultationConsumption`) |
+| Cálculo de leitura | classe de domínio sem persistência, que recebe as entidades e as projeções prontas e devolve o resultado (o service só busca e agrupa); testada sem banco | `ContractAccount`, `ContractInstallmentHistory`, `PatientAccountSummary` (billing) |
+| Lista sem N+1 com cadeia de versões | uma consulta com todas as versões e as relações (`@EntityGraph`) e as cadeias montadas em memória (a versão anterior já está no contexto do Hibernate, sem consulta a mais); as outras leituras agrupadas pela versão atual. O número de consultas não cresce com o número de registros (teste de integração pelas estatísticas do Hibernate) | `ContractRepository.findAllWithItems`, `BillingAccountService.findAccounts` |
 | Tabela de preços: por técnica ou por grupo | a técnica responde "quanto custa esta técnica" (contrato: `GET /api/techniques/{id}/prices`, o front não precisa saber que o preço mora no grupo); o grupo responde "qual é a tabela deste grupo" (tela de preços: `GET /api/pricing-groups/{id}/prices`, as vigentes, e `GET /api/pricing-groups/{id}/prices/history`, também as encerradas, com `validTo`). Os do grupo respondem mesmo sem técnica ativa: o preço pertence ao grupo ([ADR 0004](adr/0004-grupo-de-preco-e-duas-tabelas.md)) | `PricingService.findCurrentPrices`, `findPriceHistoryByGroup` |
 | "Hoje" | `LocalDate.now()`, sem fuso explícito: o fuso padrão da aplicação é o da clínica (`America/Sao_Paulo`), fixado no bloco `static` do `SublimeAppApplication`, antes do Spring subir, que roda também nos testes de integração (eles carregam a classe sem chamar o `main`). Vale para todo `now()` e para o `@PastOrPresent`; num servidor em UTC, depois das 21h o "hoje" já seria o dia seguinte ([ADR 0034](adr/0034-hoje-no-fuso-da-clinica.md), [ADR 0036](adr/0036-testes-de-integracao-com-testcontainers.md)) | `SublimeAppApplication`, `ContractResponseDTO` (`current`) |
 
@@ -316,14 +339,24 @@ módulo `auth`.
 Em `backend/src/test`, no mesmo pacote da classe testada. Como rodar: "Rodando os testes", no
 [`development.md`](development.md).
 
+A pirâmide: **muitos testes de unidade** (rápidos, um por variação da regra), **um teste pela API
+por endpoint** (o contrato do endpoint: o JSON, o código, a mensagem e a autorização) e poucos
+testes de outro tipo, só para o que nenhum dos dois confere (o número de consultas, uma consulta
+com projeção). As variações de uma regra ficam na unidade e não se repetem pela API: lá, um caso
+de cada regra basta para provar que a regra chega à resposta.
+
 | Tipo | Quando | Padrão | Precedente |
 |---|---|---|---|
-| Unidade | regra de entidade, VO ou enum | JUnit + AssertJ, **sem Spring e sem banco**; um método por regra, com `@DisplayName` em português e as três partes (prepara, executa, confere); erro conferido pela classe e pela **mensagem exata**; `@Nested` para agrupar por operação; o `id` (gerado pelo banco) preenchido pelo `ReflectionTestUtils` só quando a regra depende dele; **data recebida pronta**, nunca o `now()`: sem o Spring, o fuso da clínica não é aplicado | `PercentageTest`, `ProviderEntityTest` |
-| Integração | o que só aparece com a aplicação inteira: autorização, fluxo de um endpoint, constraint do banco | **`@IntegrationTest`**: MySQL do Testcontainers, perfil `test` e MockMvc, **sem rollback**: cada requisição tem a própria transação, como em produção ([ADR 0036](adr/0036-testes-de-integracao-com-testcontainers.md)). Cada teste cria os próprios dados, únicos (e-mails com `UUID`), e nunca supõe tabela vazia; o token sai do `POST /api/auth/login` real; a mudança de estado que o teste confere passa pela API, não pelo repositório; casos de uma tabela (ex: rotas por perfil) com `@ParameterizedTest`; **toda rota testada com 403 para um perfil tem o caso positivo** do perfil que acessa (um 403 sozinho não distingue "restrita" de "quebrada para todos"). A configuração da classe é só a `@IntegrationTest`: um `@MockitoBean`, um `@TestPropertySource` ou outro `@Import` criam um segundo contexto do Spring e, com ele, um segundo MySQL | `AuthorizationIntegrationTest` |
+| Unidade | regra de entidade, VO ou enum | JUnit + AssertJ, **sem Spring e sem banco**; um método por regra, com `@DisplayName` em português e as três partes (prepara, executa, confere); erro conferido pela classe e pela **mensagem exata**; `@Nested` para agrupar por operação; o `id` (gerado pelo banco) preenchido pelo `ReflectionTestUtils` só quando a regra depende dele; **data recebida pronta**, nunca o `now()`: sem o Spring, o fuso da clínica não é aplicado; o cenário que vários testes do módulo usam (planos, preços, pacientes) numa classe de dados do próprio pacote de teste, uma instância por teste | `PercentageTest`, `ProviderEntityTest`, `BillingTestData` |
+| Integração pela API | todo endpoint novo ou alterado: o caminho feliz com o JSON, os erros principais com a mensagem, a autorização e os fluxos entre módulos (ex: o pagamento que muda a conta) | **`@IntegrationTest`**: MySQL do Testcontainers, perfil `test` e MockMvc, **sem rollback**: cada requisição tem a própria transação, como em produção ([ADR 0036](adr/0036-testes-de-integracao-com-testcontainers.md)). Os dados são criados **pela API, como o front faria**, com o cenário do `ApiScenario` (um admin pelo login real, um prestador e os auxiliares de paciente, contrato, aditivo, lançamento e pagamento; uma instância por teste, no `@BeforeEach`) e as chamadas pelo `ApiTestClient` (o token, o JSON, o `expectError` com o código e a mensagem); o catálogo do seed é lido pelos repositórios, porque é o preparo, não o que se confere. Cada teste cria os próprios dados, únicos, e nunca supõe tabela vazia (a lista traz os dados dos outros testes: confira a linha do próprio registro, ou uma regra que valha para a lista inteira, como a ordem); casos de uma tabela (ex: rotas por perfil, validações) com `@ParameterizedTest`; **toda rota testada com 403 para um perfil tem o caso positivo** do perfil que acessa (um 403 sozinho não distingue "restrita" de "quebrada para todos"). A configuração da classe é só a `@IntegrationTest`: um `@MockitoBean`, um `@TestPropertySource` ou outro `@Import` criam um segundo contexto do Spring e, com ele, um segundo MySQL; **o "hoje" do teste é lido no `@BeforeEach`**, depois de o contexto subir: um campo estático é lido antes do fuso da clínica valer, no fuso da JVM (UTC, abaixo) | `ContractApiIntegrationTest`, `PaymentApiIntegrationTest`, `BillingAccountApiIntegrationTest`, `AuthorizationIntegrationTest` |
+| Número de consultas | toda listagem (ver "Consulta com relação", acima) | `@IntegrationTest` chamando o **service**, não a API (a contagem é só a da listagem, sem as do login e do filtro de segurança): conta as consultas, cria mais registros de relações diferentes e confere que o número não cresce (`QueryCounter`, que liga as estatísticas do Hibernate em tempo de execução, sem um segundo contexto) | `ListingQueryCountIntegrationTest` |
+| Consulta ao banco | uma consulta que só o MySQL confere (ex: uma projeção agregada em JPQL) e que nenhum teste pela API cobre com as variações | `@IntegrationTest` chamando o repositório ou o service | `ConsultationConsumptionIntegrationTest` |
 
 O Maven roda os testes numa **JVM em UTC** (`argLine` do surefire no `pom.xml`), como um
 servidor ou o CI: o `SublimeAppApplicationTests` confere que a aplicação aplica o fuso da clínica
-mesmo assim.
+mesmo assim. Nos testes de integração não há `main`, e o Spring podia abrir as conexões com o
+banco ainda em UTC (as datas lidas voltavam um dia): a `@IntegrationTest` declara a
+`ClinicTimeZoneExtension`, que aplica o fuso da clínica antes de o Spring subir.
 
 ## Frontend
 
@@ -350,7 +383,8 @@ não as decide. Como rodar: [`development.md`](development.md). Estado e pendên
    usuário logado abre qualquer rota pela URL, e o papel guardado no navegador pode ser
    editado. Cada endpoint confere o papel pelo token.
 4. **Dinheiro e percentual não são calculados no front.** O valor digitado vai para a API como
-   texto com ponto (ex: `"95.50"`, `"30.5"`, lidos como `BigDecimal` exato) e volta como número
+   texto com ponto (ex: `"95.50"`, `"30.5"`, lidos como `BigDecimal` exato; `toApiDecimal`, em
+   `shared/utils/money.js`) e volta como número
    JSON (`95.5` no JavaScript, sem os zeros à direita); o front só o formata na exibição
    (`formatCurrency` e `formatPercentage`, em `shared/utils/money.js`, com `decimal.js`).
    Cálculo oficial é do backend.
@@ -384,7 +418,7 @@ frontend/src/
 │   ├── http/                # apiClient.js (axios: baseURL, token, 401) e apiFieldErrors.js
 │   ├── utils/               # money, date, masks, alert (SweetAlert2), viacep, text (normalizeText)
 │   └── components/          # Button, Card, Input, Select, RichSelect, Combobox, FormField, Modal,
-│                            # FilterPills, ListMessage, Stepper, Badge, DataTable, IconButton, PageHeader, PageLoader...
+│                            # FilterPills, ListMessage, Stepper, Badge, DataTable, Tabs, IconButton, PageHeader, PageLoader...
 └── domain/                  # um módulo por módulo do backend
     ├── auth/                # sessão, login, ProtectedRoute, roles.js (transversal)
     ├── user/
@@ -392,7 +426,8 @@ frontend/src/
     ├── provider/
     ├── patient/
     ├── contract/
-    └── consultation/
+    ├── consultation/
+    └── billing/             # o Financeiro: a lista das contas, a conta do paciente e os pagamentos
 ```
 
 Dentro de cada módulo, só as pastas que ele usa:
@@ -403,7 +438,7 @@ Dentro de cada módulo, só as pastas que ele usa:
 | `components/` | peças do módulo; recebem dados por props |
 | `pages/` | telas inteiras, uma por rota; buscam dados pelos hooks e montam os componentes |
 | `schemas/` | schemas Zod dos formulários |
-| `hooks/` | estado e comportamento de uma tela ou fluxo, sem JSX (ex: `useLaunchDraft`, o lançamento em montagem; `useContractDraft`, o contrato em montagem) |
+| `hooks/` | estado e comportamento de uma tela ou fluxo, sem JSX (ex: `useLaunchDraft`, o lançamento em montagem; `useContractDraft`, o contrato em montagem; `usePaymentDraft`, o pagamento em montagem) |
 | `context/` | só no `auth` (sessão) |
 | `display/` | funções puras e constantes para **mostrar** um valor da API: rótulos, opções dos selects, textos e formatação (ex: `paymentMethods.js`, `contractStatus.js`, `formatInstallments.js`) |
 | `utils/` | funções puras para **decidir ou montar** os dados da tela: filtros, cruzamento de listas, a escolha que vira o `id` da API (ex: `filterContracts.js`, `contractPatients.js`, `resolveItemLine.js`) |
@@ -447,6 +482,8 @@ pricing          user
      contract                 ← paciente + preços
          \
        consultation           ← todos os anteriores
+           |
+        billing               ← contrato e atendimentos (rótulos, status), pagamentos e a conta
 
 auth  ← transversal: qualquer módulo importa (sessão e papéis); auth não importa nenhum
 ```
@@ -459,6 +496,9 @@ auth  ← transversal: qualquer módulo importa (sessão e papéis); auth não i
   é consumir o serviço que outro contexto publica. *Descartadas:* compor a tela no `app/`
   (indireto só para um número por item) e mover o endpoint para o `contract` (que dependeria
   do `consultation`).
+- **Levar a uma tela de um módulo de cima:** só pela URL, sem importar o código dele. Ex: o "Ver
+  conta" do detalhe do contrato navega para `/billing?patientId=X`, e a page do `billing` abre a
+  conta pelo parâmetro (o paciente aberto fica na URL).
 - `shared/` nunca importa de `domain/` nem de `app/`.
 - `domain/` nunca importa de `app/`.
 - `app/` pode importar de qualquer módulo (é quem monta as rotas).
@@ -587,6 +627,12 @@ Contratos), escolhido em 2026-11-11 a partir do que cada uma fazia melhor:
     modal). O botão de ação da linha continua, para o teclado.
   - **`compact`:** tabela com muitas colunas (ex: Preços) cabe na largura, com os títulos
     quebrando linha.
+  - **`getRowClassName`:** uma classe a mais na linha, para destacar ou apagar uma (ex: a sessão
+    além do contratado; o pagamento inativado).
+  - **Dentro de um modal** (ex: as abas da conta no Financeiro): a mesma `DataTable`, num painel
+    de altura fixa, rolando por dentro com o cabeçalho parado.
+- **Filtros com a contagem:** `FilterPills` com o `count` de cada opção (ex: "Atrasados 3", no
+  Financeiro), contado na lista inteira por uma função pura do módulo (`countAccounts`).
 - **Estados da tabela pelo `ListMessage`** (`shared/components`): carregando, erro da API, o
   filtro escondeu todos (`hasRecords`: a lista inteira não está vazia) ou nada cadastrado.
   Cada tabela passa só os textos com o nome do que lista.
@@ -629,7 +675,10 @@ Contratos), escolhido em 2026-11-11 a partir do que cada uma fazia melhor:
   - `--color-change-bg` e `--color-change-text`: o que é **novo ou alterado** (as
     "Alterações" do aditivo, o histórico do contrato, o item novo);
   - `--color-frame-*` (molduras claras), `--color-table-head*` (cabeçalho das tabelas) e
-    `--color-row-*` (linhas das tabelas).
+    `--color-row-*` (linhas das tabelas);
+  - `--color-neutral-*` (selo neutro, ex: "A vencer"), `--color-count-bg` (a contagem dos
+    filtros e o trilho das barras de uso) e `--color-extra` (o além do contratado, na barra de
+    uso do item).
 - **Casca do app com tokens próprios:** o menu claro usa as `--menu-*` do `index.css` (fundo,
   texto, ícones, o preenchimento dos itens); o ritmo de abrir e recolher é a `--shell-motion`;
   o conteúdo usa só as `--color-*`. A fonte da marca fica em `--font-brand` (só o peso 500 é
@@ -638,7 +687,12 @@ Contratos), escolhido em 2026-11-11 a partir do que cada uma fazia melhor:
   `--color-primary-soft`...), nunca o valor escrito direto: assim a paleta muda num lugar só.
   As telas não redefinem as variáveis no próprio contêiner: todas usam as mesmas cores.
 - **Etiquetas (`Badge`):** retângulo com cantos arredondados, igual em todo o app; "Ativo",
-  "Vigente" e "Atual" no mesmo verde suave (`active`).
+  "Vigente" e "Atual" no mesmo verde suave (`active`); `neutral` (cinza, sem destaque) e
+  `outline` (só a borda verde, ex: a parcela "Próxima"). O texto aparece como foi escrito (sem
+  transformação de maiúsculas): o rótulo vem do `display/` do módulo, já com a maiúscula certa.
+- **Abas:** `Tabs` (`shared/components`), todas com a mesma largura e a linha da ativa
+  deslizando entre elas; o painel é de quem usa, com altura fixa para o modal não mudar de
+  tamanho ao trocar (ex: o detalhe do contrato e a conta do paciente).
 - `Modal variant="soft"` (ex: o plano na tela de Preços): `eyebrow` com as etiquetas acima do
   título, título maior, cabeçalho sem borda e rodapé com fundo. `Modal size="medium"`: detalhe
   com mais conteúdo (ex: o contrato, com abas), com a largura acompanhando a tela entre um
@@ -662,6 +716,8 @@ Contratos), escolhido em 2026-11-11 a partir do que cada uma fazia melhor:
 - **Mudança de estado por variáveis:** um estado (ex: o menu recolhido) só troca valores de
   variáveis CSS; as que animam são registradas com `@property` (ex: `AppSidebar.module.css`).
   `prefers-reduced-motion` desliga as animações.
+- **Dica embaixo do campo:** o `hint` do `FormField` (ex: "Vazio: o início do contrato", no 1º
+  vencimento), no lugar do erro; o erro, quando há, toma o lugar dela.
 - **Seleção num formulário:** `Select` (nativo, poucas opções), `RichSelect` (opções ricas, por
   clique) e `Combobox` (digitar e filtrar, todo pelo teclado: o Enter escolhe e confirma o campo
   preenchido, e o `onConfirm` leva ao próximo campo; ex: a barra do Lançamento).
@@ -672,13 +728,13 @@ Contratos), escolhido em 2026-11-11 a partir do que cada uma fazia melhor:
 
 - `app/router.jsx`: `createBrowserRouter` com rotas `lazy`. `/login` é pública; as demais
   ficam dentro do `ProtectedRoute` + `AppLayout`, em dois grupos por papel: só `ADMIN`
-  (`/patients`, `/pricing`, `/providers`, `/users`, `/contracts`) e `ADMIN` + `PROVIDER`
+  (`/patients`, `/pricing`, `/providers`, `/users`, `/contracts`, `/billing`) e `ADMIN` + `PROVIDER`
   (`/consultations`, `/settings`); `*` é a página de não encontrado.
 - **`ProtectedRoute`:** sem sessão, leva ao `/login` (e volta à rota pedida depois do
   login); com `roles`, quem não tem o papel vai para a tela inicial do próprio papel. É só
   experiência de uso: a proteção real é o 403 da API (princípio 3).
 - **Menu por papel** (`app/layout/navigationItems.js`, campo `roles`): o `ADMIN` vê
-  Pacientes, Contratos, Preços, Lançamentos, Prestadores, Usuários e Configurações; o
+  Pacientes, Contratos, Financeiro, Preços, Lançamentos, Prestadores, Usuários e Configurações; o
   `PROVIDER`, Lançamentos e Configurações. Itens sem tela pronta (Dashboard) ficam
   desabilitados.
 - **Sessão no `localStorage`** ([ADR 0024](adr/0024-sessao-frontend-localstorage.md)): o

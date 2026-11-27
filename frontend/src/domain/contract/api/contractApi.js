@@ -8,8 +8,9 @@ export async function listContracts() {
 }
 
 // POST /api/contracts — no formato do ContractRequestDTO: { patientId, beneficiaryId, planId,
-// startDate, paymentMethod, items: [{ techniqueId, sessionDurationPriceId + frequency |
-// sessionFrequencyPriceId }] }. O fim é calculado pelo backend
+// startDate, paymentMethod, installments, firstDueDate (opcional: vazio = o início), items:
+// [{ techniqueId, sessionDurationPriceId + frequency | sessionFrequencyPriceId }] }. O fim e o
+// cronograma das parcelas são calculados pelo backend
 export async function createContract(payload) {
   const { data } = await apiClient.post("/contracts", payload);
   return data;
@@ -21,8 +22,9 @@ export async function deactivateContract(id) {
 }
 
 // POST /api/contracts/preview — sem gravar e com as contas do cadastro: fim, opções do plano do
-// Grupo, valor de cada item, total e parcelas. { planId, startDate, items (os já escolhidos, no
-// formato do cadastro), installments (opcional: vazio = o máximo do contrato) }
+// Grupo, valor de cada item, total, parcelas e o cronograma. { planId, startDate, items (os já
+// escolhidos, no formato do cadastro), installments (opcional: vazio = o máximo do contrato),
+// firstDueDate (opcional: vazio = o início) }
 export async function getContractPreview(payload) {
   const { data } = await apiClient.post("/contracts/preview", payload);
   return data;
@@ -37,15 +39,17 @@ export async function listContractVersions(id) {
 
 // POST /api/contracts/{id}/amendments — gera a nova versão (a atual é inativada). No formato do
 // ContractAmendmentRequestDTO, o estado completo: { beneficiaryId, paymentMethod, installments,
-// endDate (opcional, prorrogação), items (item que não vier é removido) }
+// endDate (opcional, prorrogação), firstDueDate (opcional: vazio = o sugerido), items (item que
+// não vier é removido) }
 export async function amendContract({ id, payload }) {
   const { data } = await apiClient.post(`/contracts/${id}/amendments`, payload);
   return data;
 }
 
 // POST /api/contracts/{id}/amendments/preview — sem gravar e com as contas do aditivo: o novo fim,
-// as opções do plano do Grupo, os valores, o total e as parcelas, pela nova vigência. { endDate,
-// items, installments }, todos opcionais (parcelas vazias = o máximo)
+// as opções do plano do Grupo, os valores, o total, o já pago, o valor parcelado, as parcelas com
+// o cronograma e o 1º vencimento sugerido, pela nova vigência. { endDate, items, installments,
+// firstDueDate }, todos opcionais (parcelas vazias = o máximo; vencimento vazio = o sugerido)
 export async function getAmendmentPreview({ id, payload }) {
   const { data } = await apiClient.post(`/contracts/${id}/amendments/preview`, payload);
   return data;

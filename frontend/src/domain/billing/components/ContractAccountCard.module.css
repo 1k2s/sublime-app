@@ -1,0 +1,80 @@
+.card {
+  display: flex;
+  flex-direction: column;
+  gap: 16px;
+}
+
+/* Moldura clara: a linha das parcelas e os itens */
+.section {
+  display: flex;
+  flex-direction: column;
+  gap: 18px;
+  padding: 16px 20px;
+  border: 1px solid var(--color-frame-line);
+  border-radius: var(--radius);
+  background: var(--color-frame-bg);
+}
+
+.installments {
+  flex-direction: row;
+  flex-wrap: wrap;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+  padding: 14px 20px;
+}
+
+.installmentsText {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: baseline;
+  gap: 14px;
+}
+
+.label {
+  color: var(--color-muted);
+  font-size: 12px;
+  font-weight: 700;
+  letter-spacing: 0.06em;
+  text-transform: uppercase;
+}
+
+.installmentsValue {
+  color: var(--color-title);
+  font-size: 14px;
+}
+
+.negative {
+  color: var(--color-danger);
+}
+
+/* "Ver parcelas": um link, que troca de aba */
+.link {
+  padding: 0;
+  border: none;
+  background: none;
+  color: var(--color-primary);
+  font: inherit;
+  font-size: 13px;
+  font-weight: 600;
+  cursor: pointer;
+}
+
+.link:hover {
+  color: var(--color-primary-strong);
+}
+
+/* Os avisos do contrato, no amarelo de aviso */
+.warnings {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+  margin: 0;
+  padding: 10px 16px;
+  border: 1px solid var(--color-warning-soft);
+  border-radius: var(--radius);
+  background: var(--color-warning-bg);
+  color: var(--color-warning-text);
+  font-size: 13px;
+  list-style: none;
+}

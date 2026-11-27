@@ -124,7 +124,7 @@ export function ContractPage() {
     <div className={styles.page}>
       <PageHeader
         title="Contratos"
-        description="Contratos dos pacientes: vigentes, vencidos e inativos."
+        description="Contratos dos pacientes: vigentes, vencidos, encerrados e cancelados."
         action={
           <Button onClick={() => setIsCreating(true)}>
             <Plus size={18} /> Novo contrato

@@ -62,11 +62,11 @@ class ContractGroupItemValueTest {
     }
 
     @Test
-    @DisplayName("A1. Contrato misto: o Grupo cobra só as aulas que cabem na vigência do contrato")
+    @DisplayName("Contrato misto: o Grupo cobra só as aulas que cabem na vigência do contrato")
     void mixedContractChargesClassesWithinTheTerm() {
         // Evolução 2x por semana = 12 sessões em 6 semanas; o Grupo Trimestral 2x acompanha as 6
         ContractEntity contract = ContractEntity.create(holder, null, evolution, START, PaymentMethod.PIX, 1,
-                List.of(rpgDraft(SessionFrequency.TWICE_A_WEEK), groupDraft()), START);
+                List.of(rpgDraft(SessionFrequency.TWICE_A_WEEK), groupDraft()), null, START);
 
         ContractItemEntity groupItem = groupItemOf(contract);
         assertThat(contract.getDurationInWeeks()).isEqualTo(6);
@@ -75,21 +75,21 @@ class ContractGroupItemValueTest {
     }
 
     @Test
-    @DisplayName("A2. Contrato só de mensalidade: as aulas do prazo do plano, como antes")
+    @DisplayName("Contrato só de mensalidade: as aulas do prazo do plano, como antes")
     void monthlyFeeOnlyKeepsThePlanTerm() {
         ContractEntity contract = ContractEntity.create(holder, null, quarterly, START, PaymentMethod.PIX, 3,
-                List.of(groupDraft()), START);
+                List.of(groupDraft()), null, START);
 
         assertThat(groupItemOf(contract).getValue().sessionCount()).isEqualTo(26);
         assertThat(contract.getTotalValue().amount()).isEqualByComparingTo("1711.06");
     }
 
     @Test
-    @DisplayName("A3. Mensalidade com item por duração mais longo: o Grupo segue a vigência maior")
+    @DisplayName("Mensalidade com item por duração mais longo: o Grupo segue a vigência maior")
     void monthlyFeeWithLongerDurationItemFollowsTheTerm() {
         // Evolução quinzenal = 24 semanas, mais que as 13 do Trimestral
         ContractEntity contract = ContractEntity.create(holder, null, quarterly, START, PaymentMethod.PIX, 6,
-                List.of(groupDraft(), rpgDraft(SessionFrequency.BIWEEKLY)), START);
+                List.of(groupDraft(), rpgDraft(SessionFrequency.BIWEEKLY)), null, START);
 
         ContractItemEntity groupItem = groupItemOf(contract);
         assertThat(groupItem.getValue().sessionCount()).isEqualTo(48);
@@ -97,15 +97,16 @@ class ContractGroupItemValueTest {
     }
 
     @Test
-    @DisplayName("A4. Aditivo que prorroga: o Grupo ganha as aulas da nova vigência, ao preço travado")
+    @DisplayName("Aditivo que prorroga: o Grupo ganha as aulas da nova vigência, ao preço travado")
     void amendmentExtensionAddsGroupClasses() {
         // Evolução 1x por semana = 12 semanas; prorrogado em 4 semanas = 16
         ContractEntity contract = ContractEntity.create(holder, null, evolution, START, PaymentMethod.PIX, 3,
-                List.of(rpgDraft(SessionFrequency.ONCE_A_WEEK), groupDraft()), START);
+                List.of(rpgDraft(SessionFrequency.ONCE_A_WEEK), groupDraft()), null, START);
         LocalDate extendedEnd = contract.getEndDate().plusWeeks(4);
 
         ContractEntity amended = contract.amend(null, PaymentMethod.PIX, 3, extendedEnd,
-                List.of(rpgDraft(SessionFrequency.ONCE_A_WEEK), groupDraft()), START.plusWeeks(2));
+                List.of(rpgDraft(SessionFrequency.ONCE_A_WEEK), groupDraft()), null, Money.of(BigDecimal.ZERO),
+                START.plusWeeks(2));
 
         assertThat(groupItemOf(contract).getValue().sessionCount()).isEqualTo(24);
         assertThat(amended.getDurationInWeeks()).isEqualTo(16);
@@ -114,13 +115,15 @@ class ContractGroupItemValueTest {
     }
 
     @Test
-    @DisplayName("A5. Aditivo sem alteração num contrato misto continua recusado")
+    @DisplayName("Aditivo sem alteração num contrato misto continua recusado")
     void amendmentWithoutChangesIsStillRejected() {
         ContractEntity contract = ContractEntity.create(holder, null, evolution, START, PaymentMethod.PIX, 3,
-                List.of(rpgDraft(SessionFrequency.ONCE_A_WEEK), groupDraft()), START);
+                List.of(rpgDraft(SessionFrequency.ONCE_A_WEEK), groupDraft()), null, START);
         List<ContractItemDraft> sameItems = List.of(rpgDraft(SessionFrequency.ONCE_A_WEEK), groupDraft());
 
-        assertThatThrownBy(() -> contract.amend(null, PaymentMethod.PIX, 3, null, sameItems, START.plusWeeks(2)))
+        // Aditivo em 16/11: das 3 parcelas (02/11, 02/12, 02/01), faltam 2; mantê-las não é alteração
+        assertThatThrownBy(() -> contract.amend(null, PaymentMethod.PIX, 2, null, sameItems, null,
+                Money.of(BigDecimal.ZERO), START.plusWeeks(2)))
                 .isInstanceOf(BusinessRuleException.class)
                 .hasMessage("Nenhuma alteração no contrato.");
     }

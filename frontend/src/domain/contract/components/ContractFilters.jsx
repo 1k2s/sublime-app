@@ -3,11 +3,12 @@ import { FilterPills } from "@/shared/components/FilterPills";
 import { Input } from "@/shared/components/Input";
 import styles from "./ContractFilters.module.css";
 
-// Os status vêm do backend (active e current; ver contractStatus.js)
+// Os status vêm do backend (o campo status; ver contractStatus.js)
 const STATUS_OPTIONS = [
   { label: "Vigentes", value: "CURRENT" },
   { label: "Vencidos", value: "EXPIRED" },
-  { label: "Inativos", value: "INACTIVE" },
+  { label: "Encerrados", value: "CLOSED" },
+  { label: "Cancelados", value: "CANCELED" },
   { label: "Todos", value: "ALL" },
 ];
 

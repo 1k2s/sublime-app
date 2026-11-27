@@ -24,8 +24,9 @@ public record ContractAmendmentRequestDTO(
         @NotNull(message = "O método de pagamento é obrigatório.")
         PaymentMethod paymentMethod,
 
-        // Escolhidas em todo aditivo (dividem o total da nova versão): de 1 até os meses da
-        // NOVA vigência (a entidade confere depois de calcular o fim); 12 no máximo
+        // Escolhidas em todo aditivo (dividem o que falta pagar: o total da nova versão − o pago):
+        // de 1 até os meses do 1º vencimento ao novo fim (a entidade confere depois de calcular o
+        // fim); 12 no máximo
         @NotNull(message = "O número de parcelas é obrigatório.")
         @Min(value = 1, message = "O número de parcelas deve ser no mínimo 1.")
         @Max(value = Installments.MAX_COUNT, message = "O número de parcelas deve ser no máximo 12.")
@@ -34,6 +35,10 @@ public record ContractAmendmentRequestDTO(
         // Opcional: só para estender o fim (prorrogação). Vazio = mantém o fim atual
         // (ou o recalculado, se um item por duração for incluído).
         LocalDate endDate,
+
+        // Opcional: o 1º vencimento da nova versão (a partir da data do aditivo); vazio = o
+        // sugerido (o dia de vencimento atual, neste mês ou no próximo)
+        LocalDate firstDueDate,
 
         @NotEmpty(message = "O contrato precisa ter pelo menos um item.")
         @Valid

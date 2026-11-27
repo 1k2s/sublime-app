@@ -29,12 +29,17 @@ import br.com.senai.sublime_app.shared.exception.ConflictException;
 // Regras do aditivo no ContractEntity (ver "Versionamento (aditivos)" e "Valor e parcelas" em
 // Contract, no domain-model). Teste de unidade puro: sem Spring e sem banco. O
 // ReflectionTestUtils só preenche os ids, que em produção vêm do banco (as regras comparam ids).
+//
+// O contrato base: 1º vencimento = o início (02/11), 3 parcelas (02/11, 02/12, 02/01), fim em
+// 24/01. No aditivo de 01/12, sem nada pago: o 1º vencimento sugerido é 02/12; faltam 2 parcelas
+// (02/12 e 02/01); o máximo são os meses de 02/12 a 24/01 = 8 semanas = 2.
 class ContractEntityAmendmentTest {
 
     private static final LocalDate START = LocalDate.of(2026, 11, 2);
-    // 24 sessões a 2x por semana = 12 semanas: fim em 24/01/2027, máximo de 3 parcelas
+    // 24 sessões a 2x por semana = 12 semanas: fim em 24/01/2027
     private static final LocalDate CURRENT_END = LocalDate.of(2027, 1, 24);
     private static final LocalDate AMENDMENT_DATE = LocalDate.of(2026, 12, 1);
+    private static final Money NOTHING_PAID = Money.of(BigDecimal.ZERO);
 
     private PlanEntity plan;
     private TechniqueEntity rpg;
@@ -68,38 +73,43 @@ class ContractEntityAmendmentTest {
     class InstallmentsInAmendment {
 
         @Test
-        @DisplayName("Recusa parcelas acima dos meses da nova vigência (sem prorrogar: 3)")
-        void rejectsInstallmentsAboveNewTerm() {
+        @DisplayName("Recusa parcelas acima dos meses que faltam até o fim (aqui, 2)")
+        void rejectsInstallmentsAboveRemainingMonths() {
             ContractEntity contract = newContract();
 
-            assertThatThrownBy(() -> contract.amend(null, PaymentMethod.CASH, 4, null, rpgItem(), AMENDMENT_DATE))
+            assertThatThrownBy(() -> amend(contract, null, PaymentMethod.CASH, 3, null, rpgItem(), AMENDMENT_DATE))
                     .isInstanceOf(BusinessRuleException.class)
-                    .hasMessage("O número de parcelas deve ser de 1 a 3 (meses do contrato).");
+                    .hasMessage("O número de parcelas deve ser de 1 a 2 (meses do contrato).");
             assertThat(contract.isActive()).isTrue();
         }
 
         @Test
-        @DisplayName("Prorrogação aumenta o máximo: 26 semanas aceitam 6 parcelas")
+        @DisplayName("Prorrogação aumenta o máximo: de 02/12 ao novo fim (30/04), 5 parcelas")
         void extensionRaisesMaxInstallments() {
             ContractEntity contract = newContract();
             LocalDate end26Weeks = ContractEntity.endDateFor(START, 26);
 
-            ContractEntity amended = contract.amend(null, PaymentMethod.PIX, 6, end26Weeks, rpgItem(), AMENDMENT_DATE);
+            ContractEntity amended = amend(contract, null, PaymentMethod.PIX, 5, end26Weeks, rpgItem(), AMENDMENT_DATE);
 
-            assertThat(amended.getMaxInstallments()).isEqualTo(6);
-            assertThat(amended.getInstallments()).isEqualTo(6);
+            assertThat(amended.getInstallments()).isEqualTo(5);
+            assertThatThrownBy(() -> amend(newContract(), null, PaymentMethod.PIX, 6, end26Weeks, rpgItem(),
+                    AMENDMENT_DATE))
+                    .isInstanceOf(BusinessRuleException.class)
+                    .hasMessage("O número de parcelas deve ser de 1 a 5 (meses do contrato).");
         }
 
         @Test
-        @DisplayName("Item incluído com as mesmas parcelas: elas dividem o novo total")
+        @DisplayName("Item incluído, sem nada pago: as parcelas dividem o novo total")
         void installmentsSplitTheNewTotal() {
             ContractEntity contract = newContract();
             List<ContractItemDraft> items = List.of(rpgDraft(), chiropracticDraft(SessionFrequency.TWICE_A_WEEK));
 
-            ContractEntity amended = contract.amend(null, PaymentMethod.PIX, 3, null, items, AMENDMENT_DATE);
+            // O item incluído conta de 01/12: fim em 22/02, de 02/12 ao fim cabem 3 parcelas
+            ContractEntity amended = amend(contract, null, PaymentMethod.PIX, 3, null, items, AMENDMENT_DATE);
 
             // 24 × 100,00 + 24 × 120,00 = 5.280,00, em 3 parcelas de 1.760,00
             assertThat(amended.getTotalValue().amount()).isEqualByComparingTo("5280.00");
+            assertThat(amended.getInstallmentBase().amount()).isEqualByComparingTo("5280.00");
             assertThat(amended.getInstallmentValues().count()).isEqualTo(3);
             assertThat(amended.getInstallmentValues().value().amount()).isEqualByComparingTo("1760.00");
         }
@@ -110,11 +120,11 @@ class ContractEntityAmendmentTest {
     class NoChanges {
 
         @Test
-        @DisplayName("Recusa o aditivo igual à versão atual e mantém a versão ativa")
+        @DisplayName("Recusa o aditivo igual à versão atual (as 2 parcelas que faltam, no mesmo dia) e a mantém ativa")
         void rejectsIdenticalAmendment() {
             ContractEntity contract = newContract();
 
-            assertThatThrownBy(() -> contract.amend(null, PaymentMethod.PIX, 3, null, rpgItem(), AMENDMENT_DATE))
+            assertThatThrownBy(() -> amend(contract, null, PaymentMethod.PIX, 2, null, rpgItem(), AMENDMENT_DATE))
                     .isInstanceOf(BusinessRuleException.class)
                     .hasMessage("Nenhuma alteração no contrato.");
             assertThat(contract.isActive()).isTrue();
@@ -123,26 +133,26 @@ class ContractEntityAmendmentTest {
         @Test
         @DisplayName("Só a prorrogação conta como alteração")
         void acceptsOnlyExtension() {
-            assertAccepted(newContract().amend(null, PaymentMethod.PIX, 3, CURRENT_END.plusWeeks(1), rpgItem(),
+            assertAccepted(amend(newContract(), null, PaymentMethod.PIX, 2, CURRENT_END.plusWeeks(1), rpgItem(),
                     AMENDMENT_DATE));
         }
 
         @Test
-        @DisplayName("Só as parcelas contam como alteração")
+        @DisplayName("Só as parcelas contam como alteração (1, das 2 que faltam)")
         void acceptsOnlyInstallments() {
-            assertAccepted(newContract().amend(null, PaymentMethod.PIX, 2, null, rpgItem(), AMENDMENT_DATE));
+            assertAccepted(amend(newContract(), null, PaymentMethod.PIX, 1, null, rpgItem(), AMENDMENT_DATE));
         }
 
         @Test
         @DisplayName("Só a forma de pagamento conta como alteração")
         void acceptsOnlyPaymentMethod() {
-            assertAccepted(newContract().amend(null, PaymentMethod.CASH, 3, null, rpgItem(), AMENDMENT_DATE));
+            assertAccepted(amend(newContract(), null, PaymentMethod.CASH, 2, null, rpgItem(), AMENDMENT_DATE));
         }
 
         @Test
         @DisplayName("Só o beneficiário conta como alteração")
         void acceptsOnlyBeneficiary() {
-            assertAccepted(newContract().amend(beneficiary, PaymentMethod.PIX, 3, null, rpgItem(), AMENDMENT_DATE));
+            assertAccepted(amend(newContract(), beneficiary, PaymentMethod.PIX, 2, null, rpgItem(), AMENDMENT_DATE));
         }
 
         @Test
@@ -151,7 +161,7 @@ class ContractEntityAmendmentTest {
             List<ContractItemDraft> items = List.of(
                     ContractItemDraft.withDurationPrice(rpg, rpgPrice, SessionFrequency.THREE_TIMES_A_WEEK));
 
-            assertAccepted(newContract().amend(null, PaymentMethod.PIX, 3, null, items, AMENDMENT_DATE));
+            assertAccepted(amend(newContract(), null, PaymentMethod.PIX, 2, null, items, AMENDMENT_DATE));
         }
 
         @Test
@@ -160,7 +170,7 @@ class ContractEntityAmendmentTest {
             List<ContractItemDraft> items = List.of(
                     ContractItemDraft.withDurationPrice(otherRpgTechnique, rpgPrice, SessionFrequency.TWICE_A_WEEK));
 
-            assertAccepted(newContract().amend(null, PaymentMethod.PIX, 3, null, items, AMENDMENT_DATE));
+            assertAccepted(amend(newContract(), null, PaymentMethod.PIX, 2, null, items, AMENDMENT_DATE));
         }
 
         @Test
@@ -169,16 +179,16 @@ class ContractEntityAmendmentTest {
             List<ContractItemDraft> items = List.of(
                     ContractItemDraft.withDurationPrice(rpg, rpgShorterPrice, SessionFrequency.TWICE_A_WEEK));
 
-            assertAccepted(newContract().amend(null, PaymentMethod.PIX, 3, null, items, AMENDMENT_DATE));
+            assertAccepted(amend(newContract(), null, PaymentMethod.PIX, 2, null, items, AMENDMENT_DATE));
         }
 
         @Test
         @DisplayName("Item removido conta como alteração")
         void acceptsRemovedItem() {
             ContractEntity contract = ContractEntity.create(holder, null, plan, START, PaymentMethod.PIX, 3,
-                    List.of(rpgDraft(), chiropracticDraft(SessionFrequency.TWICE_A_WEEK)), START);
+                    List.of(rpgDraft(), chiropracticDraft(SessionFrequency.TWICE_A_WEEK)), null, START);
 
-            assertAccepted(contract.amend(null, PaymentMethod.PIX, 3, null, rpgItem(), AMENDMENT_DATE));
+            assertAccepted(amend(contract, null, PaymentMethod.PIX, 2, null, rpgItem(), AMENDMENT_DATE));
         }
     }
 
@@ -201,8 +211,9 @@ class ContractEntityAmendmentTest {
             LocalDate secondAmendmentDate = AMENDMENT_DATE.plusDays(10);
             ContractEntity original = newContract();
 
-            ContractEntity first = original.amend(null, PaymentMethod.CASH, 3, null, rpgItem(), AMENDMENT_DATE);
-            ContractEntity second = first.amend(null, PaymentMethod.PIX, 3, null, rpgItem(), secondAmendmentDate);
+            ContractEntity first = amend(original, null, PaymentMethod.CASH, 2, null, rpgItem(), AMENDMENT_DATE);
+            // Em 11/12 o dia 02 já passou: o 1º vencimento sugerido é 02/01, e até 24/01 cabe 1 parcela
+            ContractEntity second = amend(first, null, PaymentMethod.PIX, 1, null, rpgItem(), secondAmendmentDate);
 
             assertThat(first.getAmendmentNumber()).isEqualTo(1);
             assertThat(first.getCreatedAt()).isEqualTo(AMENDMENT_DATE);
@@ -226,7 +237,7 @@ class ContractEntityAmendmentTest {
 
             assertThat(previewEnd).isEqualTo(ContractEntity.endDateFor(AMENDMENT_DATE, 12));
             assertThat(contract.isActive()).isTrue();
-            assertThat(contract.amend(null, PaymentMethod.PIX, 3, null, items, AMENDMENT_DATE).getEndDate())
+            assertThat(amend(contract, null, PaymentMethod.PIX, 3, null, items, AMENDMENT_DATE).getEndDate())
                     .isEqualTo(previewEnd);
         }
 
@@ -244,7 +255,7 @@ class ContractEntityAmendmentTest {
         @DisplayName("Versão substituída não pode ser alterada (nem na prévia)")
         void supersededVersionIsNotAmendable() {
             ContractEntity contract = newContract();
-            contract.amend(null, PaymentMethod.CASH, 3, null, rpgItem(), AMENDMENT_DATE);
+            amend(contract, null, PaymentMethod.CASH, 2, null, rpgItem(), AMENDMENT_DATE);
 
             assertThatThrownBy(contract::requireAmendable)
                     .isInstanceOf(ConflictException.class)
@@ -254,9 +265,16 @@ class ContractEntityAmendmentTest {
 
     private ContractEntity newContract() {
         ContractEntity contract = ContractEntity.create(holder, null, plan, START, PaymentMethod.PIX, 3, rpgItem(),
-                START);
+                null, START);
         assertThat(contract.getEndDate()).isEqualTo(CURRENT_END);
         return contract;
+    }
+
+    // O aditivo com o 1º vencimento sugerido e sem nada pago (as regras do pago e do vencimento
+    // estão no ContractEntityDueDateTest)
+    private static ContractEntity amend(ContractEntity contract, PatientEntity beneficiary, PaymentMethod method,
+            int installments, LocalDate endDate, List<ContractItemDraft> items, LocalDate amendmentDate) {
+        return contract.amend(beneficiary, method, installments, endDate, items, null, NOTHING_PAID, amendmentDate);
     }
 
     private List<ContractItemDraft> rpgItem() {

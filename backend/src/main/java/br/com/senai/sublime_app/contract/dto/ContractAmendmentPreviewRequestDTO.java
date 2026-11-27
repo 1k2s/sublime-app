@@ -20,11 +20,14 @@ public record ContractAmendmentPreviewRequestDTO(
         @Valid
         List<ContractItemRequestDTO> items,
 
-        // Opcional: vazio ou acima do máximo da nova vigência = o máximo (a resposta diz as
-        // aplicadas). O aditivo de verdade recusa acima do máximo
+        // Opcional: vazio ou acima do máximo (os meses do 1º vencimento ao novo fim) = o máximo (a
+        // resposta diz as aplicadas). O aditivo de verdade recusa acima do máximo
         @Min(value = 1, message = "O número de parcelas deve ser no mínimo 1.")
         @Max(value = Installments.MAX_COUNT, message = "O número de parcelas deve ser no máximo 12.")
-        Integer installments
+        Integer installments,
+
+        // Opcional: o 1º vencimento da nova versão; vazio = o sugerido (a resposta traz os dois)
+        LocalDate firstDueDate
 
 ) {
     public List<ContractItemRequestDTO> itemsOrEmpty() {

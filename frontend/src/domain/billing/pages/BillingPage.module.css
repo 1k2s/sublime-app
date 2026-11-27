@@ -1,0 +1,7 @@
+.page {
+  display: flex;
+  flex-direction: column;
+  gap: 24px;
+  /* Ocupa a altura do conteúdo: só a tabela rola (o cabeçalho e os filtros ficam parados) */
+  height: 100%;
+}

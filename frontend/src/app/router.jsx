@@ -74,6 +74,13 @@ export const router = createBrowserRouter([
                   const { ContractPage } = await import('@/domain/contract/pages/ContractPage');
                   return { Component: ContractPage };
                 }
+              },
+              {
+                path: 'billing',
+                lazy: async () => {
+                  const { BillingPage } = await import('@/domain/billing/pages/BillingPage');
+                  return { Component: BillingPage };
+                }
               }
             ]
           },

@@ -35,6 +35,8 @@ const DEFAULT_VALUES = {
   startDate: "",
   paymentMethod: "",
   installments: "",
+  firstDueDate: "",
+  applyCredit: false,
   items: [EMPTY_ITEM],
 };
 
@@ -95,9 +97,9 @@ export function ContractForm({
   const { fields, append, remove } = useFieldArray({ control, name: "items" });
 
   const draft = useContractDraft({ control, plans, techniques, pricingGroups, amendedContract: contract });
-  const [patient, items = [], beneficiary, paymentMethod, installments, endDate] = useWatch({
+  const [patient, items = [], beneficiary, paymentMethod, installments, endDate, firstDueDate] = useWatch({
     control,
-    name: ["patient", "items", "beneficiary", "paymentMethod", "installments", "endDate"],
+    name: ["patient", "items", "beneficiary", "paymentMethod", "installments", "endDate", "firstDueDate"],
   });
 
   // Aditivo: o que mudou em relação à versão atual (só para mostrar; o backend recusa o aditivo
@@ -105,7 +107,7 @@ export function ContractForm({
   const changes = isAmendment
     ? listAmendmentChanges({
         contract,
-        form: { beneficiary, paymentMethod, installments, endDate },
+        form: { beneficiary, paymentMethod, installments, endDate, firstDueDate },
         formItems: draft.formItems,
         preview: draft.preview.isError ? null : draft.preview.data,
         balances: sessionBalance,

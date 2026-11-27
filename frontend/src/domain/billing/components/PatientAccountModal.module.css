@@ -1,0 +1,58 @@
+.content {
+  display: flex;
+  flex-direction: column;
+  gap: 20px;
+}
+
+/* Conteúdo da aba: altura fixa, igual nas quatro (a do detalhe do contrato); o que cresce rola por
+   dentro */
+.panel {
+  display: flex;
+  flex-direction: column;
+  gap: 16px;
+  /* acompanha a altura da tela: de 360px (telas menores) até 640px (monitores grandes) */
+  height: clamp(360px, 58vh, 640px);
+  min-height: 0;
+}
+
+/* As pílulas dos contratos e, no fim, a dos encerrados, que abre as deles */
+.contracts {
+  display: flex;
+  flex-shrink: 0;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 8px;
+}
+
+.closedToggle {
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+  height: 40px;
+  padding: 0 14px;
+  border: 1px dashed var(--color-border);
+  border-radius: 9999px;
+  background: none;
+  color: var(--color-muted);
+  font: inherit;
+  font-size: 13px;
+  font-weight: 500;
+  cursor: pointer;
+}
+
+.closedToggle:hover {
+  border-color: var(--color-muted);
+  color: var(--color-text);
+}
+
+.empty {
+  margin: 0;
+  color: var(--color-muted);
+  font-size: 14px;
+}
+
+.footer {
+  display: flex;
+  justify-content: flex-end;
+  gap: 12px;
+}

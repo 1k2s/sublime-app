@@ -115,7 +115,8 @@ class ContractEntityMonthlyFeeTest {
                 ContractItemDraft.withFrequencyPrice(groupPilates, monthlyGroupPrice),
                 rpgDraft(rpgEvolutionPrice, SessionFrequency.ONCE_A_WEEK));
 
-        assertThatThrownBy(() -> ContractEntity.create(holder, null, monthly, START, PaymentMethod.PIX, 1, drafts, START))
+        assertThatThrownBy(() -> ContractEntity.create(holder, null, monthly, START, PaymentMethod.PIX, 1, drafts, null,
+                START))
                 .isInstanceOf(BusinessRuleException.class)
                 .hasMessage("O plano Mensal não tem plano equivalente definido (de-para).");
     }
@@ -127,7 +128,8 @@ class ContractEntityMonthlyFeeTest {
         LocalDate amendmentDate = START.plusWeeks(8);
 
         ContractEntity amended = contract.amend(null, PaymentMethod.PIX, 3, null,
-                List.of(groupDraft(), rpgDraft(rpgEvolutionPrice, SessionFrequency.ONCE_A_WEEK)), amendmentDate);
+                List.of(groupDraft(), rpgDraft(rpgEvolutionPrice, SessionFrequency.ONCE_A_WEEK)), null,
+                Money.of(BigDecimal.ZERO), amendmentDate);
 
         // O fim atual (13 semanas) passa a ser o do item novo: 12 semanas a partir do aditivo
         assertThat(amended.getEndDate()).isEqualTo(ContractEntity.endDateFor(amendmentDate, 12));
@@ -135,7 +137,7 @@ class ContractEntityMonthlyFeeTest {
     }
 
     private ContractEntity create(List<ContractItemDraft> drafts) {
-        return ContractEntity.create(holder, null, quarterly, START, PaymentMethod.PIX, 3, drafts, START);
+        return ContractEntity.create(holder, null, quarterly, START, PaymentMethod.PIX, 3, drafts, null, START);
     }
 
     private ContractItemDraft groupDraft() {

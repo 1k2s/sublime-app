@@ -9,8 +9,8 @@ import styles from "./ContractVersionDetails.module.css";
 
 const ITEM_BADGES = { added: "Novo", changed: "Alterado" };
 
-// Os dados e os itens de uma versão do contrato (a atual, na aba Contrato, ou uma do histórico),
-// só para ler. version: já com beneficiaryName (withPatientNames). changes: no histórico, o que
+// Os dados, os itens e as parcelas (vencimento e valor) de uma versão do contrato (a atual, na
+// aba Contrato, ou uma do histórico), só para ler. version: já com beneficiaryName (withPatientNames). changes: no histórico, o que
 // mudou em relação à versão anterior (getVersionChanges): os dados e os itens que mudaram ficam
 // marcados em azul, com o valor anterior embaixo, e os itens removidos aparecem no fim, riscados.
 // Sem changes (a aba Contrato), nada é marcado. frame: os dados e os itens em molduras de fundo
@@ -36,7 +36,19 @@ export function ContractVersionDetails({ version, changes = null, frame = null, 
     // Calculados pela API a partir das linhas travadas nos itens
     { key: "totalValue", label: "Valor total", value: formatCurrency(version.totalValue) },
     { key: "installments", label: "Parcelas", value: formatInstallments(version) },
-  ];
+    { label: "1º vencimento", value: formatDate(version.firstDueDate) },
+    // No aditivo, o valor parcelado é o total menos o já pago antes dele (a API manda pronto)
+    Number(version.installmentBase) !== Number(version.totalValue) && {
+      label: "Valor parcelado",
+      value: `${formatCurrency(version.installmentBase)} (descontado o já pago)`,
+    },
+    // A versão substituída por aditivo também tem a data (a do aditivo)
+    version.deactivatedOn && {
+      label: version.superseded ? "Substituída em" : "Cancelado em",
+      value: formatDate(version.deactivatedOn),
+    },
+  ].filter(Boolean);
+  const schedule = version.installmentSchedule ?? [];
 
   return (
     <div className={[styles.details, className].filter(Boolean).join(" ")}>
@@ -67,6 +79,23 @@ export function ContractVersionDetails({ version, changes = null, frame = null, 
           ))}
         </ul>
       </section>
+
+      {/* O cronograma: o vencimento e o valor de cada parcela, sem a situação (o que foi pago fica
+          no Financeiro: o contract não lê os pagamentos) */}
+      {schedule.length > 0 && (
+        <section className={[styles.items, styles.schedule, frameClass].filter(Boolean).join(" ")}>
+          <h4 className={styles.sectionTitle}>Parcelas ({schedule.length})</h4>
+          <ul className={styles.scheduleList}>
+            {schedule.map((installment) => (
+              <li key={installment.number} className={styles.scheduleRow}>
+                <span>{installment.number}ª</span>
+                <span>{formatDate(installment.dueDate)}</span>
+                <span className={styles.scheduleValue}>{formatCurrency(installment.value)}</span>
+              </li>
+            ))}
+          </ul>
+        </section>
+      )}
     </div>
   );
 }

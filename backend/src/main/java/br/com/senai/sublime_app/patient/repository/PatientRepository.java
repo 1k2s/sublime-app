@@ -2,6 +2,7 @@ package br.com.senai.sublime_app.patient.repository;
 
 import java.util.List;
 
+import org.springframework.data.jpa.repository.EntityGraph;
 import org.springframework.data.jpa.repository.JpaRepository;
 
 import br.com.senai.sublime_app.patient.domain.PatientEntity;
@@ -18,4 +19,11 @@ public interface PatientRepository extends JpaRepository<PatientEntity, Long> {
 
     // Pacientes que podem ser atendidos (tela de lançamento), por nome
     List<PatientEntity> findByActiveTrueOrderByNameAsc();
+
+    // Listagem com o prestador de origem junto (EntityGraph): a resposta mostra o nome dele, e
+    // sem isso seria uma consulta por prestador distinto (N+1). Mesmo precedente do
+    // PlanRepository.findAll
+    @Override
+    @EntityGraph(attributePaths = "referringProvider")
+    List<PatientEntity> findAll();
 }

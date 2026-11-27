@@ -1,0 +1,100 @@
+.form {
+  display: flex;
+  flex-direction: column;
+  gap: 16px;
+  min-width: min(520px, 80vw);
+}
+
+.row {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 16px;
+}
+
+/* "O que está sendo pago": uma opção por linha, com o valor à direita */
+.choices {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  margin: 0;
+  padding: 0;
+  border: 0;
+}
+
+.legend {
+  margin-bottom: 6px;
+  padding: 0;
+  color: var(--color-muted);
+  font-size: 12px;
+  font-weight: 700;
+  letter-spacing: 0.06em;
+  text-transform: uppercase;
+}
+
+.choice {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+  padding: 10px 14px;
+  border: 1px solid var(--color-border);
+  border-radius: var(--radius);
+  color: var(--color-text);
+  font-size: 14px;
+  cursor: pointer;
+}
+
+.choice > span:first-child {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+
+.choiceOn {
+  border-color: var(--color-suggestion-border);
+  background: var(--color-suggestion-bg);
+}
+
+.choiceValue {
+  color: var(--color-title);
+  font-weight: 600;
+  font-variant-numeric: tabular-nums;
+}
+
+/* O aviso do valor acima do maior em aberto, no amarelo de aviso, como a nota da prévia
+   do contrato */
+.warning {
+  margin: 0;
+  padding: 10px 12px;
+  border: 1px solid var(--color-warning-soft);
+  border-radius: 8px;
+  background: var(--color-warning-bg);
+  color: var(--color-warning-text);
+  font-size: 13px;
+  line-height: 18px;
+}
+
+.hint {
+  margin: 0;
+  color: var(--color-muted);
+  font-size: 13px;
+}
+
+/* A conferência: a taxa e a previsão de recebimento */
+.summary {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+  padding: 12px 16px;
+  border-radius: var(--radius);
+  background: var(--color-frame-bg);
+  border: 1px solid var(--color-frame-line);
+  color: var(--color-text);
+  font-size: 14px;
+}
+
+.previewError {
+  margin: 0;
+  color: var(--color-danger);
+  font-size: 13px;
+}

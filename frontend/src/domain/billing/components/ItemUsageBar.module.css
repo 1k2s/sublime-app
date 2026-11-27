@@ -1,0 +1,73 @@
+.item {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+}
+
+/* O nome do item, no estilo do cabeçalho das tabelas */
+.title {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  padding-bottom: 8px;
+  box-shadow: inset 0 -2px 0 var(--color-frame-line);
+  color: var(--color-muted);
+  font-size: 12px;
+  font-weight: 700;
+  letter-spacing: 0.06em;
+  text-transform: uppercase;
+}
+
+.title > span {
+  letter-spacing: 0;
+  text-transform: none;
+}
+
+/* O usado no início e o contratado no fim */
+.scale {
+  display: flex;
+  justify-content: space-between;
+  gap: 12px;
+  color: var(--color-muted);
+  font-size: 13px;
+  font-variant-numeric: tabular-nums;
+}
+
+.scale strong {
+  color: var(--color-title);
+  font-weight: 600;
+}
+
+.bar {
+  height: 8px;
+  overflow: hidden;
+  border-radius: 9999px;
+  background: var(--color-count-bg);
+}
+
+.fill {
+  height: 100%;
+  border-radius: 9999px;
+  background: var(--color-primary);
+}
+
+/* Além do contratado: o trilho cheio até o contratado e a extensão laranja ao lado */
+.extraGrid {
+  display: grid;
+  column-gap: 3px;
+  row-gap: 8px;
+}
+
+.scaleExtra,
+.scaleExtra strong {
+  justify-content: flex-end;
+  color: var(--color-warning-text);
+}
+
+.barExtra {
+  background: var(--color-warning-soft);
+}
+
+.fillExtra {
+  background: var(--color-extra);
+}

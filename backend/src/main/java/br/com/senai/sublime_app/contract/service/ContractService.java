@@ -13,6 +13,8 @@ import br.com.senai.sublime_app.contract.dto.ContractPreviewRequestDTO;
 import br.com.senai.sublime_app.contract.dto.ContractPreviewResponseDTO;
 import br.com.senai.sublime_app.contract.dto.ContractRequestDTO;
 import br.com.senai.sublime_app.contract.dto.ContractResponseDTO;
+import br.com.senai.sublime_app.contract.dto.InstallmentResponseDTO;
+import br.com.senai.sublime_app.contract.enums.ContractStatus;
 import br.com.senai.sublime_app.contract.enums.SessionFrequency;
 import br.com.senai.sublime_app.contract.repository.ContractRepository;
 import br.com.senai.sublime_app.patient.domain.PatientEntity;
@@ -34,9 +36,12 @@ import br.com.senai.sublime_app.shared.exception.ResourceNotFoundException;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
+import java.math.BigDecimal;
 import java.time.LocalDate;
 import java.util.ArrayList;
+import java.util.HashMap;
 import java.util.List;
+import java.util.Map;
 import java.util.stream.Collectors;
 
 @Service
@@ -48,19 +53,27 @@ public class ContractService {
     private final TechniqueRepository techniqueRepository;
     private final SessionDurationPriceRepository sessionDurationPriceRepository;
     private final SessionFrequencyPriceRepository sessionFrequencyPriceRepository;
+    // O pago do contrato, para o aditivo: implementado pelo billing (inversão de dependência)
+    private final PaidAmountProvider paidAmountProvider;
+    // O saldo da conta (para o status) e o crédito do titular (para o cadastro): também do billing
+    private final ContractBalanceProvider balanceProvider;
 
     public ContractService(ContractRepository contractRepository,
             PatientRepository patientRepository,
             PlanRepository planRepository,
             TechniqueRepository techniqueRepository,
             SessionDurationPriceRepository sessionDurationPriceRepository,
-            SessionFrequencyPriceRepository sessionFrequencyPriceRepository) {
+            SessionFrequencyPriceRepository sessionFrequencyPriceRepository,
+            PaidAmountProvider paidAmountProvider,
+            ContractBalanceProvider balanceProvider) {
         this.contractRepository = contractRepository;
         this.patientRepository = patientRepository;
         this.planRepository = planRepository;
         this.techniqueRepository = techniqueRepository;
         this.sessionDurationPriceRepository = sessionDurationPriceRepository;
         this.sessionFrequencyPriceRepository = sessionFrequencyPriceRepository;
+        this.paidAmountProvider = paidAmountProvider;
+        this.balanceProvider = balanceProvider;
     }
 
     /**
@@ -86,13 +99,23 @@ public class ContractService {
         PatientEntity beneficiary = findBeneficiary(dto.beneficiaryId());
         PlanEntity plan = getPlanOrThrow(dto.planId());
 
-        ContractEntity contract = ContractEntity.create(patient, beneficiary, plan,
-                dto.startDate(), dto.paymentMethod(), dto.installments(), toDrafts(dto.items()), LocalDate.now());
+        // O crédito dos contratos anteriores do titular, quando pedido: o inteiro, até o total
+        // (o que passar continua no contrato antigo). A entidade desconta do valor parcelado
+        Money availableCredit = dto.isApplyingCredit()
+                ? balanceProvider.availableCreditOf(dto.patientId())
+                : Money.of(BigDecimal.ZERO);
+        ContractEntity contract = ContractEntity.create(patient, beneficiary, plan, dto.startDate(),
+                dto.paymentMethod(), dto.installments(), toDrafts(dto.items()), dto.firstDueDate(), availableCredit,
+                LocalDate.now());
         validateGroupItemPlan(contract, null);
 
-        // Os itens são salvos junto (cascade do agregado)
+        // Os itens são salvos junto (cascade do agregado). Depois de salvo (com o id), o billing
+        // grava a transferência do crédito aplicado
         contractRepository.save(contract);
-        return ContractResponseDTO.fromEntity(contract, false);
+        if (contract.getCreditApplied().isPositive()) {
+            balanceProvider.transferCreditTo(contract, contract.getCreditApplied());
+        }
+        return ContractResponseDTO.fromEntity(contract, false, statusOf(contract, false));
     }
 
     /**
@@ -108,29 +131,33 @@ public class ContractService {
         validateBeneficiaryAvailable(dto.beneficiaryId(), current);
         PatientEntity beneficiary = findBeneficiary(dto.beneficiaryId());
 
+        Money paidSoFar = paidAmountProvider.paidOn(current.getVersionChainIds());
         ContractEntity newVersion = current.amend(beneficiary, dto.paymentMethod(), dto.installments(),
-                dto.endDate(), toDrafts(dto.items()), LocalDate.now());
+                dto.endDate(), toDrafts(dto.items()), dto.firstDueDate(), paidSoFar, LocalDate.now());
         validateGroupItemPlan(newVersion, current);
 
         // A versão atual (inativada) é salva pelo dirty checking do Hibernate, pois
         // foi carregada nesta transação; a nova versão precisa de save explícito.
         contractRepository.save(newVersion);
-        return ContractResponseDTO.fromEntity(newVersion, false);
+        return ContractResponseDTO.fromEntity(newVersion, false, statusOf(newVersion, false));
     }
 
     // Um contrato por linha: só a versão atual de cada um (nenhuma é substituída). As
     // anteriores ficam no histórico (findVersions).
     @Transactional(readOnly = true)
     public List<ContractResponseDTO> findAll() {
-        return contractRepository.findAllCurrentVersions().stream()
-                .map(contract -> ContractResponseDTO.fromEntity(contract, false))
+        List<ContractEntity> contracts = contractRepository.findAllCurrentVersions();
+        Map<Long, ContractStatus> statuses = statusesOf(contracts);
+        return contracts.stream()
+                .map(contract -> ContractResponseDTO.fromEntity(contract, false, statuses.get(contract.getId())))
                 .toList();
     }
 
     @Transactional(readOnly = true)
     public ContractResponseDTO findById(Long id) {
         ContractEntity contract = getContractOrThrow(id);
-        return ContractResponseDTO.fromEntity(contract, contractRepository.existsByPreviousContractId(id));
+        boolean superseded = contractRepository.existsByPreviousContractId(id);
+        return ContractResponseDTO.fromEntity(contract, superseded, statusOf(contract, superseded));
     }
 
     /**
@@ -145,9 +172,33 @@ public class ContractService {
         List<ContractResponseDTO> versions = new ArrayList<>();
         for (int position = 0; position < chain.size(); position++) {
             boolean superseded = position > 0 || firstSuperseded;
-            versions.add(ContractResponseDTO.fromEntity(chain.get(position), superseded));
+            ContractEntity version = chain.get(position);
+            versions.add(ContractResponseDTO.fromEntity(version, superseded, statusOf(version, superseded)));
         }
         return versions;
+    }
+
+    // ---------------------------------------------------------------------------
+    // Status (ver "Status do contrato" em Contract, no domain-model)
+    // ---------------------------------------------------------------------------
+
+    // O status de cada versão atual. O saldo (do billing) só importa nas ativas que passaram do
+    // fim (encerrado ou vencido) e é lido de uma vez, para todas: a lista não faz uma leitura por
+    // contrato
+    private Map<Long, ContractStatus> statusesOf(List<ContractEntity> currentVersions) {
+        LocalDate today = LocalDate.now();
+        List<ContractEntity> ended = currentVersions.stream()
+                .filter(contract -> contract.isActive() && !contract.isCurrentOn(today))
+                .toList();
+        Map<Long, BigDecimal> balances = ended.isEmpty() ? Map.of() : balanceProvider.balancesOf(ended);
+        Map<Long, ContractStatus> statuses = new HashMap<>();
+        currentVersions.forEach(contract -> statuses.put(contract.getId(),
+                contract.statusOn(today, false, balances.get(contract.getId()))));
+        return statuses;
+    }
+
+    private ContractStatus statusOf(ContractEntity contract, boolean superseded) {
+        return superseded ? ContractStatus.SUPERSEDED : statusesOf(List.of(contract)).get(contract.getId());
     }
 
     // Soft delete: a versão é inativada, nunca removida (o histórico de versões e
@@ -155,7 +206,7 @@ public class ContractService {
     @Transactional
     public void deactivate(Long id) {
         ContractEntity contract = getContractOrThrow(id);
-        contract.deactivate();
+        contract.deactivate(LocalDate.now());
     }
 
     /**
@@ -174,7 +225,20 @@ public class ContractService {
                 .map(ContractItemDraft::frequency)
                 .toList();
         int weeks = ContractEntity.durationWeeksFor(plan, frequencies);
-        return toPreview(plan, weeks, ContractEntity.endDateFor(dto.startDate(), weeks), drafts, dto.installments());
+        LocalDate firstDueDate = dto.firstDueDate() != null ? dto.firstDueDate() : dto.startDate();
+        ContractEntity.validateFirstDueDateOnCreation(firstDueDate, dto.startDate());
+        Money total = totalOf(drafts, weeks);
+        // No cadastro: o valor parcelado é o total − o crédito aplicado (o inteiro, até o total), e
+        // o máximo, os meses do contrato. Com o titular, a resposta traz o crédito disponível dele
+        Money availableCredit = dto.patientId() != null
+                ? balanceProvider.availableCreditOf(dto.patientId())
+                : Money.of(BigDecimal.ZERO);
+        Money installmentBase = ContractEntity.amendedInstallmentBase(total,
+                dto.isApplyingCredit() ? availableCredit : Money.of(BigDecimal.ZERO));
+        Money creditApplied = Money.of(total.amount().subtract(installmentBase.amount()));
+        return toPreview(plan, weeks, ContractEntity.endDateFor(dto.startDate(), weeks), drafts, total, null,
+                installmentBase, Installments.maxFor(weeks), dto.installments(), firstDueDate, null,
+                availableCredit, creditApplied);
     }
 
     /**
@@ -188,29 +252,56 @@ public class ContractService {
         ContractEntity current = getContractOrThrow(id);
         current.requireAmendable();
         List<ContractItemDraft> drafts = toDrafts(dto.itemsOrEmpty());
-        LocalDate endDate = current.calculateAmendedEndDate(drafts, dto.endDate(), LocalDate.now());
+        LocalDate today = LocalDate.now();
+        LocalDate endDate = current.calculateAmendedEndDate(drafts, dto.endDate(), today);
         int weeks = ContractEntity.durationInWeeksBetween(current.getStartDate(), endDate);
-        return toPreview(current.getPlan(), weeks, endDate, drafts, dto.installments());
+        // As mesmas contas do aditivo: o pago da cadeia, o 1º vencimento (o pedido ou o
+        // sugerido, a partir de hoje), o valor parcelado e o máximo até o novo fim
+        Money paidSoFar = paidAmountProvider.paidOn(current.getVersionChainIds());
+        LocalDate suggestedFirstDueDate = current.suggestedFirstDueDate(paidSoFar, today);
+        LocalDate firstDueDate = dto.firstDueDate() != null ? dto.firstDueDate() : suggestedFirstDueDate;
+        ContractEntity.validateFirstDueDateOnAmendment(firstDueDate, today);
+        Money total = totalOf(drafts, weeks);
+        return toPreview(current.getPlan(), weeks, endDate, drafts, total, paidSoFar,
+                ContractEntity.amendedInstallmentBase(total, paidSoFar),
+                ContractEntity.maxInstallmentsBetween(firstDueDate, endDate), dto.installments(), firstDueDate,
+                suggestedFirstDueDate, null, null);
     }
 
-    // Parte comum das duas prévias (criação e aditivo), a partir da vigência já calculada
+    // O total dos itens da prévia, pela vigência calculada (a mesma conta do item salvo)
+    private static Money totalOf(List<ContractItemDraft> drafts, int weeks) {
+        return ContractItemValue.sumOf(drafts.stream().map(draft -> draft.value(weeks)).toList());
+    }
+
+    // Parte comum das duas prévias (criação e aditivo), a partir da vigência, do valor parcelado e
+    // do máximo de parcelas já calculados. paidSoFar e suggestedFirstDueDate: só no aditivo;
+    // availableCredit e creditApplied: só no cadastro
     private ContractPreviewResponseDTO toPreview(PlanEntity plan, int weeks, LocalDate endDate,
-            List<ContractItemDraft> drafts, Integer requestedInstallments) {
+            List<ContractItemDraft> drafts, Money total, Money paidSoFar, Money installmentBase,
+            int maxInstallments, Integer requestedInstallments, LocalDate firstDueDate,
+            LocalDate suggestedFirstDueDate, Money availableCredit, Money creditApplied) {
         List<PlanEntity> groupPlanOptions = groupPlanOptionsFor(plan, weeks);
 
-        Money total = ContractItemValue.sumOf(drafts.stream().map(draft -> draft.value(weeks)).toList());
         // Na prévia, parcelas acima do máximo (ex: o plano mudou para um mais curto) valem o
-        // máximo: a resposta diz as aplicadas. O cadastro e o aditivo recusam (Installments.validateCount)
-        int maxInstallments = Installments.maxFor(weeks);
+        // máximo: a resposta diz as aplicadas. O cadastro e o aditivo recusam (Installments.validateCount).
+        // Com o valor parcelado zero (o pago cobre o total), 1 parcela de R$ 0,00, como no aditivo
         int applied = requestedInstallments != null ? Math.min(requestedInstallments, maxInstallments) : maxInstallments;
-        Installments installments = Installments.split(total, applied);
+        if (!installmentBase.isPositive()) {
+            applied = 1;
+        }
+        Installments installments = Installments.split(installmentBase, applied);
 
         return new ContractPreviewResponseDTO(weeks, endDate,
                 suggestedGroupPlanId(plan, groupPlanOptions),
                 groupPlanOptions.stream().map(PlanResponseDTO::fromEntity).toList(),
                 drafts.stream().map(draft -> ContractItemPreviewDTO.fromDraft(draft, weeks)).toList(),
-                total.amount(), maxInstallments, installments.count(),
-                installments.firstValue().amount(), installments.value().amount());
+                total.amount(), paidSoFar != null ? paidSoFar.amount() : null, installmentBase.amount(),
+                maxInstallments, installments.count(),
+                installments.firstValue().amount(), installments.value().amount(),
+                firstDueDate, suggestedFirstDueDate,
+                InstallmentResponseDTO.fromSchedule(installments.scheduleFrom(firstDueDate)),
+                availableCredit != null ? availableCredit.amount() : null,
+                creditApplied != null ? creditApplied.amount() : null);
     }
 
     // Um paciente é beneficiário de no máximo um contrato vigente (mesma regra do

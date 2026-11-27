@@ -8,6 +8,7 @@ import org.springframework.data.jpa.repository.JpaRepository;
 import org.springframework.data.jpa.repository.Query;
 import org.springframework.data.repository.query.Param;
 
+import br.com.senai.sublime_app.consultation.domain.ConsultationConsumption;
 import br.com.senai.sublime_app.consultation.domain.ConsultationEntity;
 import br.com.senai.sublime_app.consultation.domain.PricingSource;
 
@@ -19,6 +20,68 @@ public interface ConsultationRepository extends JpaRepository<ConsultationEntity
     // por duração têm saldo, por isso o grupo vem da linha por duração.
     long countByContractIdInAndPricingSourceAndActiveTrueAndSessionDurationPricePricingGroupId(
             List<Long> contractIds, PricingSource pricingSource, Long pricingGroupId);
+
+    // Aulas do Pilates em Grupo lançadas por um item (o grupo vem da linha por frequência), na
+    // cadeia toda: só controle de presença
+    long countByContractIdInAndPricingSourceAndActiveTrueAndSessionFrequencyPricePricingGroupId(
+            List<Long> contractIds, PricingSource pricingSource, Long pricingGroupId);
+
+    // ---------------------------------------------------------------------------
+    // Consumo para a conta do paciente (módulo billing): só os campos da projeção, sem carregar
+    // as entidades. Os joins são "left" porque o contrato (avulso) e a linha por duração (Grupo)
+    // podem ser nulos. A soma é feita em Java (ConsultationConsumption.sumConsumed): somar no
+    // JPQL um campo Money, que tem AttributeConverter, não tem tipo de retorno garantido
+    // ---------------------------------------------------------------------------
+
+    // De um contrato: os atendimentos ativos de qualquer versão da cadeia
+    @Query("""
+            select new br.com.senai.sublime_app.consultation.domain.ConsultationConsumption(
+                c.id, ct.id, p.id, c.pricingSource, c.baseValue, case when sdp.id is not null then true else false end,
+                coalesce(sdp.pricingGroup.id, sfp.pricingGroup.id), c.occurredAt)
+            from ConsultationEntity c join c.patient p left join c.contract ct
+                left join c.sessionDurationPrice sdp left join c.sessionFrequencyPrice sfp
+            where c.active = true and ct.id in :contractIds
+            """)
+    List<ConsultationConsumption> findConsumptionByContractIdIn(@Param("contractIds") List<Long> contractIds);
+
+    // Do avulso de um paciente: os atendimentos ativos sem contrato
+    @Query("""
+            select new br.com.senai.sublime_app.consultation.domain.ConsultationConsumption(
+                c.id, ct.id, p.id, c.pricingSource, c.baseValue, case when sdp.id is not null then true else false end,
+                coalesce(sdp.pricingGroup.id, sfp.pricingGroup.id), c.occurredAt)
+            from ConsultationEntity c join c.patient p left join c.contract ct
+                left join c.sessionDurationPrice sdp left join c.sessionFrequencyPrice sfp
+            where c.active = true and ct is null and p.id = :patientId
+            """)
+    List<ConsultationConsumption> findConsumptionWithoutContractByPatientId(@Param("patientId") Long patientId);
+
+    // Todos os atendimentos ativos: a lista do Financeiro numa consulta só (sem N+1)
+    @Query("""
+            select new br.com.senai.sublime_app.consultation.domain.ConsultationConsumption(
+                c.id, ct.id, p.id, c.pricingSource, c.baseValue, case when sdp.id is not null then true else false end,
+                coalesce(sdp.pricingGroup.id, sfp.pricingGroup.id), c.occurredAt)
+            from ConsultationEntity c join c.patient p left join c.contract ct
+                left join c.sessionDurationPrice sdp left join c.sessionFrequencyPrice sfp
+            where c.active = true
+            """)
+    List<ConsultationConsumption> findAllActiveConsumption();
+
+    // Os atendimentos ativos num período (pela data do atendimento, inclusivo): a Produção
+    @Query("""
+            select new br.com.senai.sublime_app.consultation.domain.ConsultationConsumption(
+                c.id, ct.id, p.id, c.pricingSource, c.baseValue, case when sdp.id is not null then true else false end,
+                coalesce(sdp.pricingGroup.id, sfp.pricingGroup.id), c.occurredAt)
+            from ConsultationEntity c join c.patient p left join c.contract ct
+                left join c.sessionDurationPrice sdp left join c.sessionFrequencyPrice sfp
+            where c.active = true and c.occurredAt between :from and :to
+            """)
+    List<ConsultationConsumption> findConsumptionBetween(@Param("from") LocalDate from, @Param("to") LocalDate to);
+
+    // Os atendimentos ativos de um contrato (a cadeia toda), na ordem da numeração das sessões:
+    // pela data e, no mesmo dia, pela ordem do lançamento. As relações exibidas vêm junto (N+1)
+    @EntityGraph(attributePaths = { "patient", "provider", "technique",
+            "sessionDurationPrice.pricingGroup", "sessionFrequencyPrice.pricingGroup" })
+    List<ConsultationEntity> findByContractIdInAndActiveTrueOrderByOccurredAtAscIdAsc(List<Long> contractIds);
 
     // Listagem com filtros opcionais (nulo = sem filtro), ativos e inativos, do mais
     // recente para o mais antigo. As relações exibidas na resposta vêm junto

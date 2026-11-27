@@ -1,0 +1,75 @@
+/* Ocupa o painel: a tabela rola por dentro, com o cabeçalho parado */
+.payments {
+  display: flex;
+  flex: 1;
+  flex-direction: column;
+  gap: 16px;
+  min-height: 0;
+}
+
+.table {
+  flex: 1 1 auto;
+}
+
+.stack {
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+}
+
+.name {
+  color: var(--color-title);
+}
+
+.detail {
+  font-size: 12px;
+}
+
+/* O pagamento inativado: apagado, com a data e o bruto riscados */
+.off td {
+  opacity: 0.6;
+}
+
+.strike {
+  text-decoration: line-through;
+}
+
+/* "Inativar": um link vermelho na coluna Ações */
+.action {
+  padding: 0;
+  border: none;
+  background: none;
+  color: var(--color-danger);
+  font: inherit;
+  font-size: 13px;
+  font-weight: 600;
+  cursor: pointer;
+}
+
+.action:disabled {
+  cursor: default;
+  opacity: 0.5;
+}
+
+/* A confirmação do inativar, como a do contrato */
+.confirmBox {
+  display: flex;
+  flex-shrink: 0;
+  flex-direction: column;
+  gap: 16px;
+  padding: 16px;
+  border: 1px solid var(--color-border);
+  border-radius: var(--radius);
+  background: var(--color-bg);
+}
+
+.confirmText {
+  margin: 0;
+  font-size: 14px;
+}
+
+.actions {
+  display: flex;
+  justify-content: flex-end;
+  gap: 12px;
+}

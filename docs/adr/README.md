@@ -77,13 +77,21 @@ discussões que estavam no `domain-model.md` e no `architecture.md`.
 | [0029](0029-senha-provisoria-por-coluna.md) | Senha provisória marcada por uma coluna, não por prefixo no hash | aceito |
 | [0030](0030-seed-do-catalogo-por-migration.md) | Seed do catálogo de preços por migration | aceito |
 | [0031](0031-prestador-com-usuario-revisto.md) | Prestador continua sempre com usuário, com o admin lançando por ele | aceito |
-| [0032](0032-valor-e-parcelas-do-contrato.md) | Valor e parcelas do contrato calculados pelas linhas travadas, só o número de parcelas gravado | aceito (em parte substituído por 0037: as parcelas no aditivo, e por 0041: as aulas do Grupo) |
+| [0032](0032-valor-e-parcelas-do-contrato.md) | Valor e parcelas do contrato calculados pelas linhas travadas, só o número de parcelas gravado | aceito (em parte substituído por 0037: as parcelas no aditivo, por 0041: as aulas do Grupo, e por 0046: o valor parcelado gravado) |
 | [0033](0033-lancamento-retroativo-com-liberacao.md) | Lançamento só de hoje para o prestador, com o retroativo liberado pelo admin | aceito |
 | [0034](0034-hoje-no-fuso-da-clinica.md) | "Hoje" no fuso da clínica, fixado na inicialização | aceito (em parte substituído por 0036: onde o fuso é aplicado) |
 | [0035](0035-sessao-sincronizada-entre-abas.md) | Uma sessão por navegador, com as abas sincronizadas pelo evento `storage` | aceito |
 | [0036](0036-testes-de-integracao-com-testcontainers.md) | Testes de integração com o MySQL do Testcontainers | aceito |
-| [0037](0037-parcelas-escolhidas-no-aditivo.md) | Parcelas escolhidas em todo aditivo | aceito |
+| [0037](0037-parcelas-escolhidas-no-aditivo.md) | Parcelas escolhidas em todo aditivo | aceito (em parte substituído por 0047: o que as parcelas dividem e o máximo) |
 | [0038](0038-previa-do-aditivo.md) | Prévia do aditivo num endpoint e num pedido próprios | aceito |
 | [0039](0039-lista-pela-versao-atual.md) | Lista pela versão atual, com o número do aditivo e a data gravados | aceito |
 | [0040](0040-item-por-duracao-em-contrato-de-mensalidade.md) | Item por duração em contrato de mensalidade, pelo pacote equivalente | aceito |
 | [0041](0041-aulas-do-grupo-pela-vigencia.md) | Aulas do Pilates em Grupo pela vigência do contrato | aceito |
+| [0042](0042-conta-do-paciente-pelo-consumo.md) | A conta do paciente pelo consumo, com as parcelas como referência | aceito |
+| [0043](0043-pilates-em-grupo-com-duas-contas.md) | Pilates em Grupo com duas contas: o dinheiro e as aulas | aceito |
+| [0044](0044-pagamento-bruto-liquido-e-cartao-parcelado.md) | O pagamento: bruto e líquido, e o cartão parcelado como um pagamento só | aceito |
+| [0045](0045-vencimento-das-parcelas.md) | O vencimento das parcelas e a data da inativação | aceito |
+| [0046](0046-valor-parcelado-gravado-por-versao.md) | O valor parcelado gravado por versão | aceito |
+| [0047](0047-parcelas-do-aditivo-sobre-o-que-falta.md) | As parcelas do aditivo sobre o que falta pagar, até os meses que faltam | aceito |
+| [0048](0048-paid-amount-provider.md) | O `contract` declara o `PaidAmountProvider`, o `billing` implementa | aceito |
+| [0049](0049-status-pelo-saldo-e-credito-transferido.md) | O status do contrato terminado pelo saldo, e o crédito transferido ao contrato novo | aceito |

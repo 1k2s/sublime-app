@@ -103,12 +103,17 @@ export function useContractDraft({ control, plans, techniques, pricingGroups, am
     resolutions[index].line ? [toItemRequest(item, resolutions[index].line)] : [],
   );
   const installments = Number(values.installments) || null;
+  const firstDueDate = values.firstDueDate || null;
   const creationPreviewQuery = useContractPreview(
     {
       planId: values.planId ? Number(values.planId) : null,
       startDate: values.startDate,
       items: resolvedItems,
       installments,
+      firstDueDate,
+      // o titular, para a prévia trazer o crédito disponível dele, e se aplica
+      patientId: values.patient?.id ?? null,
+      applyCredit: Boolean(values.applyCredit),
     },
     { enabled: !amendedContract },
   );
@@ -116,6 +121,7 @@ export function useContractDraft({ control, plans, techniques, pricingGroups, am
     endDate: values.endDate || null,
     items: resolvedItems,
     installments,
+    firstDueDate,
   });
   const previewQuery = amendedContract ? amendmentPreviewQuery : creationPreviewQuery;
   const preview = {
@@ -212,6 +218,7 @@ export function useContractDraft({ control, plans, techniques, pricingGroups, am
           paymentMethod: formValues.paymentMethod,
           installments: previewQuery.data.installments,
           endDate: formValues.endDate || null,
+          firstDueDate: formValues.firstDueDate || null,
           items: requestItems,
         },
       };
@@ -224,7 +231,9 @@ export function useContractDraft({ control, plans, techniques, pricingGroups, am
         startDate: formValues.startDate,
         paymentMethod: formValues.paymentMethod,
         installments: previewQuery.data.installments,
+        firstDueDate: formValues.firstDueDate || null,
         items: requestItems,
+        applyCredit: Boolean(formValues.applyCredit),
       },
     };
   }

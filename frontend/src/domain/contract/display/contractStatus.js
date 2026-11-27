@@ -1,16 +1,23 @@
-// Status do contrato na tela, a partir do que a API resolve (active e current), sem comparar
-// datas no front. Ver "Vigente, vencimento e prorrogação" em Contract, no domain-model.
-// badge: a variante do Badge
+// Status do contrato na tela, como a API resolve (o campo status: depende da vigência e, depois do
+// fim, do saldo da conta, que é do billing), sem regra no front. Ver "Status do contrato" em
+// Contract, no domain-model. badge: a variante do Badge
 export const CONTRACT_STATUS = {
   CURRENT: { value: "CURRENT", label: "Vigente", badge: "active" },
-  // ativo, com o fim antes de hoje: aguarda a decisão do administrador
+  // passou do fim com pendência (dívida ou crédito): aguarda a decisão do administrador
   EXPIRED: { value: "EXPIRED", label: "Vencido", badge: "warning" },
-  // inativado. A versão substituída por aditivo não aparece na lista (só a atual de cada
-  // contrato); no histórico, ela tem o selo "Substituída"
-  INACTIVE: { value: "INACTIVE", label: "Inativo", badge: "inactive" },
+  // passou do fim com o saldo zerado
+  CLOSED: { value: "CLOSED", label: "Encerrado", badge: "neutral" },
+  // inativado à mão (o "Cancelar contrato")
+  CANCELED: { value: "CANCELED", label: "Cancelado", badge: "inactive" },
+  // a versão substituída por aditivo (só no histórico)
+  SUPERSEDED: { value: "SUPERSEDED", label: "Substituída", badge: "default" },
 };
 
+export function getContractStatusByValue(status) {
+  return CONTRACT_STATUS[status] ?? CONTRACT_STATUS.CURRENT;
+}
+
+// contract: a resposta da API (ContractResponseDTO), com o status
 export function getContractStatus(contract) {
-  if (!contract.active) return CONTRACT_STATUS.INACTIVE;
-  return contract.current ? CONTRACT_STATUS.CURRENT : CONTRACT_STATUS.EXPIRED;
+  return getContractStatusByValue(contract.status);
 }

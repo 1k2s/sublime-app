@@ -1,0 +1,21 @@
+/* Ocupa o painel: a tabela rola por dentro, com o cabeçalho parado */
+.sessions {
+  display: flex;
+  flex: 1;
+  flex-direction: column;
+  gap: 16px;
+  min-height: 0;
+}
+
+.table {
+  flex: 1 1 auto;
+}
+
+.name {
+  color: var(--color-title);
+}
+
+/* A sessão além do contratado (ou das aulas previstas): a linha destacada */
+.extra td {
+  background: var(--color-warning-bg);
+}

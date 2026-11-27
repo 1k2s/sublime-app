@@ -50,6 +50,11 @@ export const contractSchema = z
     installments: z.string().optional(),
     // Só no aditivo: prorrogar até (opcional; o backend confere que passa do fim atual)
     endDate: z.string().optional(),
+    // 1º vencimento (opcional): vazio = o início, no cadastro, ou o sugerido, no aditivo. A regra
+    // (o intervalo aceito) é do backend
+    firstDueDate: z.string().optional(),
+    // Só no cadastro: aplicar o crédito dos contratos anteriores do titular (a caixa vem desmarcada)
+    applyCredit: z.boolean().optional(),
     items: z.array(contractItem).min(1, "Inclua pelo menos um item."),
   })
   .superRefine((values, ctx) => {

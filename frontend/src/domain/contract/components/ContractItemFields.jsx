@@ -235,7 +235,8 @@ export function ContractItemFields({
             <Badge variant="suggestion">Novo</Badge>
           ) : (
             <>
-              Restam <strong>{balance.remainingSessions}</strong> de {balance.sessionCount} sessões
+              Restam <strong>{balance.remainingSessions}</strong> de {balance.sessionCount}{" "}
+              {balance.groupItem ? "aulas" : "sessões"}
             </>
           )}
         </p>

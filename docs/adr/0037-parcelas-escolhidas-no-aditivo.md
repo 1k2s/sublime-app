@@ -1,6 +1,6 @@
 # 0037 — Parcelas escolhidas em todo aditivo
 
-- **Status:** aceito
+- **Status:** aceito (em parte substituído por [0047](0047-parcelas-do-aditivo-sobre-o-que-falta.md): o que as parcelas dividem e o máximo)
 - **Data:** 2026-11-26
 
 ## Contexto

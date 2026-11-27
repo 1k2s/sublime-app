@@ -97,6 +97,12 @@ Ao escrever:
   uma recomendação, não só as opções.
 - **Compile depois das mudanças** (`./mvnw -q compile` em `backend/`; erros do Lombok
   na IDE são falsos, ver `development.md`) e diga claramente o que foi ou não testado.
+- **Testes acompanham a mudança** (padrões em "Testes do backend", no `architecture.md`): regra
+  de negócio nova ou alterada tem **teste de unidade** (as variações da regra); endpoint novo ou
+  alterado tem **teste de integração pela API** (MockMvc: o caminho feliz com o JSON, os erros
+  principais com a mensagem e a autorização); listagem tem o teste do **número de consultas**
+  (N+1). Script pela API no scratchpad serve para explorar durante o desenvolvimento, não
+  substitui os testes.
 - Commit e push só quando pedido.
 - **PRs vão para a `dev`, com "merge commit"** (não "squash" nem "rebase"): os commits da
   branch ficam no histórico.
@@ -138,22 +144,25 @@ Antes de dizer que terminou, confira (e diga o que foi ou não conferido):
 
 1. **Build:** `./mvnw -q compile` em `backend/`; `npm run build` e `npm run lint` em
    `frontend/`.
-2. **Documentação:** `node scripts/check-docs.mjs` na raiz (índices, links entre
+2. **Testes:** durante o trabalho, as classes do que mudou (`./mvnw test -Dtest=...`); ao
+   concluir, a suíte inteira (`./mvnw test` em `backend/`, com o Docker no ar): um módulo de
+   baixo pode quebrar os de cima.
+3. **Documentação:** `node scripts/check-docs.mjs` na raiz (índices, links entre
    arquivos e specs citadas que não existem mais, nos docs e nos comentários do código).
-3. **Nomes removidos ou renomeados** na tarefa (spec, arquivo, classe, método, endpoint,
+4. **Nomes removidos ou renomeados** na tarefa (spec, arquivo, classe, método, endpoint,
    coluna): procure cada um nos `docs/` e nos comentários do código.
-4. **Referência só com o presente:** procure "ainda não", "hoje", "em andamento" e
+5. **Referência só com o presente:** procure "ainda não", "hoje", "em andamento" e
    "futuramente" no `architecture.md` e no `domain-model.md`; cada ocorrência é uma regra
    que mudou ou um status fora do lugar.
-5. **Swagger:** os textos das anotações (`@Operation`) dos endpoints novos ou alterados têm só o
+6. **Swagger:** os textos das anotações (`@Operation`) dos endpoints novos ou alterados têm só o
    básico do endpoint, sem regra de negócio, e apontam a seção certa do `domain-model.md`.
-6. **ADRs:** status dos substituídos atualizado; numeração sequencial.
-7. **Roadmap:** tire o que foi resolvido; o que a spec deixou para depois vira item
+7. **ADRs:** status dos substituídos atualizado; numeração sequencial.
+8. **Roadmap:** tire o que foi resolvido; o que a spec deixou para depois vira item
    antes de a spec ser removida.
-8. **Ambiente:** variável nova entra no `backend/.env.example`; migration editada
+9. **Ambiente:** variável nova entra no `backend/.env.example`; migration editada
    ([ADR 0028](docs/adr/0028-migrations-editaveis-ate-versao-estavel.md)) vira aviso na
    descrição do PR ("zerem o banco local").
-9. **Sugira o commit e a descrição do PR:**
+10. **Sugira o commit e a descrição do PR:**
    - **commit em uma linha**, no padrão do histórico (`feat:`, `fix:`, `docs:`,
      `chore:` + descrição em português);
    - **descrição do PR com tudo:** o que mudou e por quê, as decisões tomadas, o que foi

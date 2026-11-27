@@ -1,0 +1,43 @@
+/* Os cartões das contas, um embaixo do outro; rola por dentro do painel */
+.summary {
+  display: flex;
+  flex: 1;
+  flex-direction: column;
+  gap: 24px;
+  min-height: 0;
+  overflow: auto;
+}
+
+/* Os contratos encerrados, recolhidos no fim */
+.closed {
+  display: flex;
+  flex-direction: column;
+  gap: 16px;
+}
+
+.closedToggle {
+  display: inline-flex;
+  align-self: flex-start;
+  align-items: center;
+  gap: 6px;
+  padding: 0;
+  border: none;
+  background: none;
+  color: var(--color-muted);
+  font: inherit;
+  font-size: 12px;
+  font-weight: 700;
+  letter-spacing: 0.06em;
+  text-transform: uppercase;
+  cursor: pointer;
+}
+
+.closedToggle:hover {
+  color: var(--color-text);
+}
+
+.closedCards {
+  display: flex;
+  flex-direction: column;
+  gap: 24px;
+}

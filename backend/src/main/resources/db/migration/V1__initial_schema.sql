@@ -153,7 +153,13 @@ CREATE TABLE contract (
     amendment_number     INT         NOT NULL DEFAULT 0,
     -- dia em que a versão foi criada (cadastro ou aditivo), no fuso da clínica
     created_at           DATE        NOT NULL,
+    -- dia em que a versão foi inativada (no aditivo, a data dele); depois dele, nada vence
+    deactivated_on       DATE        NULL,
     end_date             DATE        NOT NULL,
+    -- 1º vencimento: as parcelas vencem uma por mês a partir dele, no mesmo dia
+    first_due_date       DATE        NOT NULL,
+    -- valor parcelado: o total, no cadastro; o total − o pago, no aditivo (nunca muda)
+    installment_base     DECIMAL(10,2) NOT NULL,
     -- número de parcelas: de 1 até os meses do contrato (regra na entidade); 12 no máximo
     installments         INT         NOT NULL,
     payment_method       VARCHAR(30) NOT NULL,
@@ -166,6 +172,7 @@ CREATE TABLE contract (
     -- cada versão tem no máximo uma sucessora (aditivo)
     CONSTRAINT uk_contract_previous_contract UNIQUE (previous_contract_id),
     CONSTRAINT ck_contract_installments CHECK (installments BETWEEN 1 AND 12),
+    CONSTRAINT ck_contract_installment_base CHECK (installment_base >= 0),
     CONSTRAINT fk_contract_patient FOREIGN KEY (patient_id) REFERENCES patient (id),
     CONSTRAINT fk_contract_beneficiary FOREIGN KEY (beneficiary_id) REFERENCES patient (id),
     CONSTRAINT fk_contract_plan FOREIGN KEY (plan_id) REFERENCES plan (id),
@@ -215,4 +222,45 @@ CREATE TABLE consultation (
     CONSTRAINT fk_consultation_duration_price FOREIGN KEY (session_duration_price_id) REFERENCES session_duration_price (id),
     CONSTRAINT fk_consultation_frequency_price FOREIGN KEY (session_frequency_price_id) REFERENCES session_frequency_price (id),
     CONSTRAINT fk_consultation_technique FOREIGN KEY (technique_id) REFERENCES technique (id)
+) ENGINE = InnoDB DEFAULT CHARSET = utf8mb4 COLLATE = utf8mb4_0900_ai_ci;
+
+-- ---------------------------------------------------------------------------
+-- payment
+-- ---------------------------------------------------------------------------
+
+CREATE TABLE payment (
+    id                    BIGINT        NOT NULL AUTO_INCREMENT,
+    active                BIT(1)        NOT NULL,
+    amount                DECIMAL(10,2) NOT NULL,
+    card_installments     INT           NOT NULL,
+    net_amount            DECIMAL(10,2) NOT NULL,
+    paid_at               DATE          NOT NULL,
+    payment_method        VARCHAR(30)   NOT NULL,
+    contract_id           BIGINT        NULL,
+    patient_id            BIGINT        NOT NULL,
+    registered_by_user_id BIGINT        NOT NULL,
+    CONSTRAINT pk_payment PRIMARY KEY (id),
+    CONSTRAINT fk_payment_contract FOREIGN KEY (contract_id) REFERENCES contract (id),
+    CONSTRAINT fk_payment_patient FOREIGN KEY (patient_id) REFERENCES patient (id),
+    CONSTRAINT fk_payment_registered_by_user FOREIGN KEY (registered_by_user_id) REFERENCES `user` (id),
+    CONSTRAINT ck_payment_amount CHECK (amount > 0),
+    CONSTRAINT ck_payment_net_amount CHECK (net_amount BETWEEN 0 AND amount),
+    CONSTRAINT ck_payment_card_installments CHECK (card_installments BETWEEN 1 AND 12)
+) ENGINE = InnoDB DEFAULT CHARSET = utf8mb4 COLLATE = utf8mb4_0900_ai_ci;
+
+-- ---------------------------------------------------------------------------
+-- balance_transfer (o crédito de um contrato aplicado em outro, no cadastro)
+-- ---------------------------------------------------------------------------
+
+CREATE TABLE balance_transfer (
+    id               BIGINT        NOT NULL AUTO_INCREMENT,
+    amount           DECIMAL(10,2) NOT NULL,
+    transferred_at   DATE          NOT NULL,
+    from_contract_id BIGINT        NOT NULL,
+    to_contract_id   BIGINT        NOT NULL,
+    CONSTRAINT pk_balance_transfer PRIMARY KEY (id),
+    CONSTRAINT fk_balance_transfer_from_contract FOREIGN KEY (from_contract_id) REFERENCES contract (id),
+    CONSTRAINT fk_balance_transfer_to_contract FOREIGN KEY (to_contract_id) REFERENCES contract (id),
+    CONSTRAINT ck_balance_transfer_amount CHECK (amount > 0),
+    CONSTRAINT ck_balance_transfer_contracts CHECK (from_contract_id <> to_contract_id)
 ) ENGINE = InnoDB DEFAULT CHARSET = utf8mb4 COLLATE = utf8mb4_0900_ai_ci;

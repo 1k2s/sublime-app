@@ -1,7 +1,7 @@
 import { formatPriceAxis } from "@/domain/pricing/display/priceAxis";
 import { formatDate } from "@/shared/utils/date";
 import { formatCurrency } from "@/shared/utils/money";
-import { formatInstallments } from "./formatInstallments";
+import { formatAmendedInstallments, formatInstallments } from "./formatInstallments";
 import { getPaymentMethodLabel } from "./paymentMethods";
 import { getSessionFrequencyLabel } from "./sessionFrequencies";
 
@@ -10,10 +10,12 @@ import { getSessionFrequencyLabel } from "./sessionFrequencies";
 // vale é a do backend, que recusa o aditivo sem alteração (ver "Versionamento (aditivos)" em
 // Contract, no domain-model). hasChanges segue o que o backend conta como alteração: item incluído
 // ou removido; outra técnica, linha de preço ou frequência num item mantido; outro beneficiário;
-// outra forma de pagamento; outras parcelas; prorrogação pedida.
+// outra forma de pagamento; outras parcelas; prorrogação pedida; 1º vencimento digitado. Num caso
+// raro o backend ainda recusa (o 1º vencimento digitado igual ao sugerido, no mesmo dia): a
+// mensagem dele aparece ao confirmar.
 //
 // contract: a versão atual (com beneficiaryName). form: { beneficiary, paymentMethod,
-// installments, endDate }, os valores do formulário. formItems: os itens resolvidos do
+// installments, endDate, firstDueDate }, os valores do formulário. formItems: os itens resolvidos do
 // useContractDraft. preview: a resposta da prévia do aditivo (ou null). balances: o saldo de
 // sessões dos itens (do session-balance).
 // Devolve { hasChanges, lines }: cada linha { key, label, text } ou { key, label, before, after }
@@ -76,18 +78,20 @@ export function listAmendmentChanges({ contract, form, formItems, preview, balan
       after: formatCurrency(preview.totalValue),
     });
   }
-  if (preview && haveInstallmentsChanged(preview, contract)) {
+  // As novas parcelas: o valor parcelado (o total − o já pago) e os vencimentos
+  if (preview && (haveInstallmentsChanged(preview, contract) || form.firstDueDate)) {
     lines.push({
       key: "installments",
       label: "Novas parcelas:",
       before: formatInstallments(contract),
-      after: formatInstallments(preview),
+      after: formatAmendedInstallments(preview),
     });
   }
 
   const installmentsChanged = Number(form.installments) !== contract.installments;
   const hasChanges =
     Boolean(form.endDate) ||
+    Boolean(form.firstDueDate) ||
     beneficiaryChanged ||
     paymentChanged ||
     installmentsChanged ||
