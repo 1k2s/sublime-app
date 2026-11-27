@@ -6,7 +6,15 @@ import { useFirstAccess } from "../api/useFirstAccess";
 import { LoginForm } from "../components/LoginForm";
 import { FirstAccessForm } from "../components/FirstAccessForm";
 import { useAuth } from "../context/useAuth";
+import { CalendarCheck, FileText, ShieldCheck, Tag } from "lucide-react";
 import styles from "./LoginPage.module.css";
+
+// Destaques do painel da marca: só o que o sistema faz hoje
+const HERO_FEATURES = [
+  { icon: CalendarCheck, label: "Atendimentos e repasses sempre em dia" },
+  { icon: FileText, label: "Contratos e saldo de sessões de cada paciente" },
+  { icon: Tag, label: "Tabela de preços por plano e técnica" },
+];
 
 export function LoginPage() {
   const { user, signIn } = useAuth();
@@ -53,6 +61,31 @@ export function LoginPage() {
 
   return (
     <main className={styles.page}>
+      <aside className={styles.hero} aria-hidden="true">
+        <img className={styles.heroLogoSmall} src="/sublime-logo-symbol.png" alt="" />
+        <img className={styles.heroLogoBackground} src="/sublime-logo-symbol.png" alt="" />
+
+        <div className={styles.heroContent}>
+          <p className={styles.heroTitle}>Tudo da clínica em um só lugar.</p>
+          <p className={styles.heroText}>
+            Pacientes, contratos e valores organizados para a equipe cuidar do que importa: as pessoas.
+          </p>
+          <ul className={styles.features}>
+            {HERO_FEATURES.map(({ icon: Icon, label }) => (
+              <li key={label} className={styles.feature}>
+                <span className={styles.featureIcon}>
+                  <Icon size={18} />
+                </span>
+                {label}
+              </li>
+            ))}
+          </ul>
+        </div>
+
+        <p className={styles.heroFooter}>© {new Date().getFullYear()} Sublime Fisioterapia Especializada</p>
+      </aside>
+
+      <div className={styles.formSide}>
       <section className={styles.card}>
         <div className={styles.brand}>
           <span className={styles.brandName}>Sublime</span>
@@ -62,6 +95,11 @@ export function LoginPage() {
         <h1 className={styles.title}>
           {firstAccessCredentials ? "Defina sua senha pessoal" : "Acesse sua conta"}
         </h1>
+        <p className={styles.subtitle}>
+          {firstAccessCredentials
+            ? "Troque a senha provisória para continuar."
+            : "Entre com seu e-mail e senha para continuar."}
+        </p>
 
         {firstAccessCredentials ? (
           <FirstAccessForm
@@ -73,7 +111,13 @@ export function LoginPage() {
         ) : (
           <LoginForm onSubmit={handleLoginSubmit} isSubmitting={isLoggingIn} />
         )}
+
+        <p className={styles.cardFooter}>
+          <ShieldCheck size={14} aria-hidden />
+          Acesso restrito a profissionais autorizados
+        </p>
       </section>
+      </div>
     </main>
   );
 }
