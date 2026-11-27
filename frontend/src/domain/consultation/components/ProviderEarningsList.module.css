@@ -47,7 +47,7 @@
 }
 
 .row:hover:not(.active) {
-  background: var(--color-row-stripe);
+  background: var(--color-row-hover);
 }
 
 .row:focus-visible {

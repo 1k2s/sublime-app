@@ -369,7 +369,7 @@ não as decide. Como rodar: [`development.md`](development.md). Estado e pendên
 | Rotas | React Router (data router, rotas `lazy`) |
 | Formulários | React Hook Form + Zod (`@hookform/resolvers`) |
 | HTTP | Axios, num cliente único (`shared/http/apiClient.js`) |
-| Gráficos | ECharts, com import modular e invólucro próprio (`shared/components/Chart.jsx`; ver "Gráficos" e o [ADR 0038](adr/0038-graficos-com-echarts.md)) |
+| Gráficos | ECharts, com import modular e invólucro próprio (`shared/components/Chart.jsx`; ver "Gráficos" e o [ADR 0043](adr/0043-graficos-com-echarts.md)) |
 
 Lista de dependências: [`development.md`](development.md).
 
@@ -607,15 +607,10 @@ Contratos), escolhido em 2026-11-11 a partir do que cada uma fazia melhor:
   botões, sempre à vista. O modal grande não fecha pelo clique no fundo
   (`closeOnBackdrop={false}`): um clique sem querer perderia o formulário.
 - **Busca sem `useTransition`:** com listas pequenas, filtrar a cada tecla é imediato.
-- **Tabela sempre na tela** (Lançamento e Dashboard): a page ocupa a altura do conteúdo
-  (`height: 100%` e `flex` em coluna), os filtros e os números ficam parados, e a tabela recebe
-  o que sobra (`flex: 1; min-height: 0` pelo `className`) e rola por dentro, com o cabeçalho
-  fixo (o `DataTable` tem o cabeçalho `sticky` e a rolagem nos dois eixos). Sem altura limitada
-  pelo pai, a tabela cresce com a página, como nos cadastros.
 
 ### Gráficos
 
-- **ECharts** ([ADR 0038](adr/0038-graficos-com-echarts.md)), pelo invólucro
+- **ECharts** ([ADR 0043](adr/0043-graficos-com-echarts.md)), pelo invólucro
   `shared/components/Chart.jsx`: recebe o `option` pronto e só desenha; cria o gráfico uma vez,
   acompanha o tamanho do contêiner (`ResizeObserver`: o menu lateral empurra o conteúdo sem
   evento de janela) e o descarta ao desmontar. `onEvents` liga os eventos do ECharts (memorize o

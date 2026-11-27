@@ -1,4 +1,4 @@
-# 0038 — Gráficos do frontend com o ECharts, import modular e invólucro próprio
+# 0043 — Gráficos do frontend com o ECharts, import modular e invólucro próprio
 
 - **Status:** aceito
 - **Data:** 2026-11-26

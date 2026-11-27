@@ -5,9 +5,8 @@
   min-height: 0;
 }
 
-/* A tabela (ou a mensagem) ocupa o que sobra embaixo do título */
+/* A tabela (ou a mensagem) encolhe até caber embaixo do título; a DataTable rola por dentro */
 .body {
-  flex: 1 1 auto;
   min-height: 0;
 }
 

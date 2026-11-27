@@ -62,7 +62,7 @@
   margin: 0;
   padding: 16px 18px;
   border-radius: var(--radius);
-  background: #fde8e6;
+  background: var(--color-danger-bg);
   color: var(--color-danger);
   font-size: 14px;
   font-weight: 600;

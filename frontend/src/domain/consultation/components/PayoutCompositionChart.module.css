@@ -83,7 +83,7 @@
 }
 
 .hot {
-  background: var(--color-row-stripe);
+  background: var(--color-row-hover);
 }
 
 .dim {

@@ -1310,7 +1310,7 @@ qualquer um.
 ### Rendimento
 
 O quanto o prestador rendeu num período, a base do dashboard e do resumo do dia
-([ADR 0037](adr/0037-rendimento-do-prestador.md)).
+([ADR 0042](adr/0042-rendimento-do-prestador.md)).
 
 - **Rendimento = soma do `payoutValue`** dos atendimentos **ativos** com status `ATTENDED`,
   cuja **`launchedAt`** cai no período. Um retroativo lançado hoje, com o atendimento da semana

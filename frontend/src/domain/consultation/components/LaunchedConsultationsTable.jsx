@@ -29,7 +29,6 @@ function buildColumns(showProvider) {
     {
       key: "patient",
       header: "Paciente",
-      emphasized: true,
       cell: (row) => (
         <span className={styles.patient}>
           {row.patientName}
